@@ -704,6 +704,8 @@
 
 .dashboard-panel__legend li {
   display: flex;
+  flex-direction: column;
+  gap: 6px;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -1437,7 +1439,11 @@
     justify-content: center;
   }
 
-  .dashboard-page__filters {
+  .dashboard__content {
+    padding: 24px 20px 36px;
+  }
+
+  .dashboard-page__actions {
     width: 100%;
     justify-content: center;
   }
