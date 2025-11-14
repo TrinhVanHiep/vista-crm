@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import DashboardLayout from './layouts/DashboardLayout.jsx';
 import Dashboard from './pages/Dashboard.jsx';
+import Testing from './pages/Testing.jsx';
 import styles from './styles/dashboard.module.css';
 
 const placeholderRoutes = [
@@ -25,6 +26,7 @@ function App() {
     <Routes>
       <Route path="/" element={<DashboardLayout />}>
         <Route index element={<Dashboard />} />
+        <Route path="testing" element={<Testing />} />
         {placeholderRoutes.map(({ path, title }) => (
           <Route key={path} path={path} element={<PlaceholderPage title={title} />} />
         ))}
