@@ -1,0 +1,62 @@
+:root {
+  color-scheme: light dark;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #0f172a;
+  background-color: #f8fafc;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+}
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+  background: linear-gradient(180deg, #e2e8f0 0%, #f8fafc 100%);
+}
+
+.app__header {
+  text-align: center;
+  max-width: 640px;
+}
+
+.app__logo {
+  height: 6rem;
+  width: 6rem;
+  margin-bottom: 1rem;
+  filter: drop-shadow(0 10px 20px rgba(15, 23, 42, 0.15));
+}
+
+.app__main {
+  max-width: 640px;
+  background: white;
+  border-radius: 1rem;
+  padding: 2rem;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.1);
+}
+
+.app__main h2 {
+  margin-top: 0;
+}
+
+.app__main ul {
+  padding-left: 1.5rem;
+}
+
+.app__main li {
+  margin-bottom: 0.5rem;
+}
+
+code {
+  font-family: 'Roboto Mono', 'Fira Code', 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  background-color: rgba(14, 116, 144, 0.1);
+  border-radius: 0.375rem;
+  padding: 0.125rem 0.375rem;
+}
