@@ -1,24 +1,36 @@
-import './App.css';
+import { Navigate, Route, Routes } from 'react-router-dom';
+import DashboardLayout from './layouts/DashboardLayout.jsx';
+import Dashboard from './pages/Dashboard.jsx';
+import styles from './styles/dashboard.module.css';
+
+const placeholderRoutes = [
+  { path: 'courses', title: 'Khóa học' },
+  { path: 'students', title: 'Học viên' },
+  { path: 'teachers', title: 'Giảng viên' },
+  { path: 'finance', title: 'Doanh thu' },
+  { path: 'settings', title: 'Cài đặt' },
+];
+
+function PlaceholderPage({ title }) {
+  return (
+    <div className={styles['placeholder-page']}>
+      <h1>{title}</h1>
+      <p>Trang đang được phát triển. Vui lòng quay lại sau.</p>
+    </div>
+  );
+}
 
 function App() {
   return (
-    <div className="app">
-      <header className="app__header">
-        <img src="/vite.svg" className="app__logo" alt="Vista CRM logo" />
-        <h1>Welcome to Vista CRM</h1>
-        <p>Your React project is ready to build modern customer experiences.</p>
-      </header>
-      <main className="app__main">
-        <section>
-          <h2>Next steps</h2>
-          <ul>
-            <li>Start the dev server with <code>npm install</code> and <code>npm run dev</code>.</li>
-            <li>Build features inside <code>src/</code>.</li>
-            <li>Update this landing page to match your product vision.</li>
-          </ul>
-        </section>
-      </main>
-    </div>
+    <Routes>
+      <Route path="/" element={<DashboardLayout />}>
+        <Route index element={<Dashboard />} />
+        {placeholderRoutes.map(({ path, title }) => (
+          <Route key={path} path={path} element={<PlaceholderPage title={title} />} />
+        ))}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Route>
+    </Routes>
   );
 }
 

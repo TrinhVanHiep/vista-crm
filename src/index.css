@@ -1,5 +1,15 @@
+:root {
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  color-scheme: light;
+}
+
 * {
   box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
 }
 
 a {
@@ -8,5 +18,11 @@ a {
 }
 
 ul {
-  list-style: disc;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+button {
+  font: inherit;
 }
