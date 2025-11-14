@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom';
+import styles from '../styles/dashboard.module.css';
 
 const navItems = [
   { label: 'Tổng quan', to: '/' },
@@ -11,74 +12,79 @@ const navItems = [
 
 function DashboardLayout() {
   return (
-    <div className="dashboard">
-      <aside className="dashboard__sidebar">
-        <div className="dashboard__brand">
-          <span className="dashboard__brand-mark">V</span>
-          <div className="dashboard__brand-name">
+    <div className={styles.dashboard}>
+      <aside className={styles['dashboard__sidebar']}>
+        <div className={styles['dashboard__brand']}>
+          <span className={styles['dashboard__brand-mark']}>V</span>
+          <div className={styles['dashboard__brand-name']}>
             <strong>Vista CRM</strong>
             <span>Academy Suite</span>
           </div>
         </div>
 
-        <nav className="dashboard__nav" aria-label="Điều hướng chính">
+        <nav className={styles['dashboard__nav']} aria-label="Điều hướng chính">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               end={item.to === '/'}
               className={({ isActive }) =>
-                `dashboard__nav-item${isActive ? ' dashboard__nav-item--active' : ''}`
+                `${styles['dashboard__nav-item']}${
+                  isActive ? ` ${styles['dashboard__nav-item--active']}` : ''
+                }`
               }
             >
-              <span className="dashboard__nav-indicator" aria-hidden="true" />
-              <span className="dashboard__nav-label">{item.label}</span>
+              <span className={styles['dashboard__nav-indicator']} aria-hidden="true" />
+              <span className={styles['dashboard__nav-label']}>{item.label}</span>
             </NavLink>
           ))}
         </nav>
 
-        <div className="dashboard__support-card" role="presentation">
-          <div className="dashboard__support-illustration" aria-hidden="true" />
+        <div className={styles['dashboard__support-card']} role="presentation">
+          <div className={styles['dashboard__support-illustration']} aria-hidden="true" />
           <h3>Hỗ trợ 24/7</h3>
           <p>
             Đội ngũ Vista CRM luôn sẵn sàng giúp bạn xây dựng trải nghiệm học tập tốt
             nhất.
           </p>
-          <button type="button" className="dashboard__support-button">
+          <button type="button" className={styles['dashboard__support-button']}>
             Liên hệ ngay
           </button>
         </div>
       </aside>
 
-      <div className="dashboard__main">
-        <header className="dashboard__topbar">
-          <div className="dashboard__search" role="search">
-            <span className="dashboard__search-icon" aria-hidden="true">🔍</span>
+      <div className={styles['dashboard__main']}>
+        <header className={styles['dashboard__topbar']}>
+          <div className={styles['dashboard__search']} role="search">
+            <span className={styles['dashboard__search-icon']} aria-hidden="true">🔍</span>
             <input type="search" placeholder="Tìm kiếm học viên, khóa học..." />
           </div>
-          <div className="dashboard__topbar-actions">
-            <button type="button" className="dashboard__button dashboard__button--secondary">
+          <div className={styles['dashboard__topbar-actions']}>
+            <button
+              type="button"
+              className={`${styles['dashboard__button']} ${styles['dashboard__button--secondary']}`}
+            >
               + Tạo lịch học
             </button>
             <button
               type="button"
-              className="dashboard__icon-button"
+              className={styles['dashboard__icon-button']}
               aria-label="Xem thông báo"
             >
               🔔
             </button>
-            <div className="dashboard__user">
-              <div className="dashboard__user-avatar" aria-hidden="true">
+            <div className={styles['dashboard__user']}>
+              <div className={styles['dashboard__user-avatar']} aria-hidden="true">
                 <span>EV</span>
               </div>
-              <div className="dashboard__user-meta">
+              <div className={styles['dashboard__user-meta']}>
                 <strong>Evan Torres</strong>
                 <span>Quản trị viên</span>
               </div>
             </div>
           </div>
         </header>
-        <main className="dashboard__content" aria-live="polite">
+        <main className={styles['dashboard__content']} aria-live="polite">
           <Outlet />
         </main>
       </div>

@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import DashboardLayout from './layouts/DashboardLayout.jsx';
 import Dashboard from './pages/Dashboard.jsx';
-import './App.css';
+import styles from './styles/dashboard.module.css';
 
 const placeholderRoutes = [
   { path: 'courses', title: 'Khóa học' },
@@ -13,7 +13,7 @@ const placeholderRoutes = [
 
 function PlaceholderPage({ title }) {
   return (
-    <div className="placeholder-page">
+    <div className={styles['placeholder-page']}>
       <h1>{title}</h1>
       <p>Trang đang được phát triển. Vui lòng quay lại sau.</p>
     </div>

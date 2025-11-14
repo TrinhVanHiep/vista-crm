@@ -1,3 +1,5 @@
+import styles from '../styles/dashboard.module.css';
+
 const summaryCards = [
   {
     title: 'Tổng số học viên',
@@ -120,39 +122,43 @@ const reminders = [
 
 function Dashboard() {
   return (
-    <div className="dashboard-page">
-      <header className="dashboard-page__header">
+    <div className={styles['dashboard-page']}>
+      <header className={styles['dashboard-page__header']}>
         <div>
-          <p className="dashboard-page__welcome">Chào mừng trở lại, Evan! 👋</p>
+          <p className={styles['dashboard-page__welcome']}>Chào mừng trở lại, Evan! 👋</p>
           <h1>Tổng quan</h1>
-          <p className="dashboard-page__subtitle">
+          <p className={styles['dashboard-page__subtitle']}>
             Theo dõi hiệu suất đào tạo, lịch học và tình trạng học viên của toàn bộ hệ thống.
           </p>
         </div>
-        <div className="dashboard-page__filters">
-          <button type="button" className="dashboard__button dashboard__button--ghost">
+        <div className={styles['dashboard-page__filters']}>
+          <button type="button" className={`${styles['dashboard__button']} ${styles['dashboard__button--ghost']}`}>
             Tuần này
           </button>
-          <button type="button" className="dashboard__button dashboard__button--primary">
+          <button type="button" className={`${styles['dashboard__button']} ${styles['dashboard__button--primary']}`}>
             Báo cáo chi tiết
           </button>
         </div>
       </header>
 
-      <section className="dashboard-grid dashboard-grid--summary" aria-label="Thống kê nhanh">
+      <section className={`${styles['dashboard-grid']} ${styles['dashboard-grid--summary']}`} aria-label="Thống kê nhanh">
         {summaryCards.map((card) => (
-          <article key={card.title} className="dashboard-card dashboard-card--summary">
+          <article key={card.title} className={`${styles['dashboard-card']} ${styles['dashboard-card--summary']}`}>
             <header>
               <h2>{card.title}</h2>
-              <span className="dashboard-card__tag">2024</span>
+              <span className={styles['dashboard-card__tag']}>2024</span>
             </header>
-            <p className="dashboard-card__value">{card.value}</p>
-            <div className="dashboard-card__trend" role="img" aria-hidden="true">
+            <p className={styles['dashboard-card__value']}>{card.value}</p>
+            <div className={styles['dashboard-card__trend']} role="img" aria-hidden="true">
               {card.trend.map((value, index) => (
-                <span key={`${card.title}-${index}`} style={{ '--bar-value': `${value}%` }} />
+                <span
+                  key={`${card.title}-${index}`}
+                  className={styles['dashboard-card__trend-bar']}
+                  style={{ '--bar-value': `${value}%` }}
+                />
               ))}
             </div>
-            <p className={`dashboard-card__change dashboard-card__change--${card.tone}`}>
+            <p className={`${styles['dashboard-card__change']} ${styles[`dashboard-card__change--${card.tone}`]}`}>
               {card.change}{' '}
               <span>{card.changeLabel}</span>
             </p>
@@ -160,46 +166,46 @@ function Dashboard() {
         ))}
       </section>
 
-      <section className="dashboard-grid dashboard-grid--analytics">
-        <article className="dashboard-panel dashboard-panel--wide">
-          <header className="dashboard-panel__header">
+      <section className={`${styles['dashboard-grid']} ${styles['dashboard-grid--analytics']}`}>
+        <article className={`${styles['dashboard-panel']} ${styles['dashboard-panel--wide']}`}>
+          <header className={styles['dashboard-panel__header']}>
             <div>
               <h2>Thống kê số lượng học viên</h2>
               <p>Biểu đồ tăng trưởng theo từng tháng trong năm 2024.</p>
             </div>
-            <button type="button" className="dashboard__button dashboard__button--ghost">
+            <button type="button" className={`${styles['dashboard__button']} ${styles['dashboard__button--ghost']}`}>
               Xuất dữ liệu
             </button>
           </header>
-          <div className="dashboard-panel__chart" role="img" aria-label="Biểu đồ cột thống kê học viên theo tháng">
+          <div className={styles['dashboard-panel__chart']} role="img" aria-label="Biểu đồ cột thống kê học viên theo tháng">
             {monthlyPerformance.map((item) => (
-              <div key={item.label} className="chart-bar">
-                <div className="chart-bar__value" style={{ '--bar-height': `${item.value}%` }} />
-                <span className="chart-bar__label">{item.label}</span>
+              <div key={item.label} className={styles['chart-bar']}>
+                <div className={styles['chart-bar__value']} style={{ '--bar-height': `${item.value}%` }} />
+                <span className={styles['chart-bar__label']}>{item.label}</span>
               </div>
             ))}
           </div>
         </article>
 
-        <article className="dashboard-panel dashboard-panel--focus">
-          <header className="dashboard-panel__header">
+        <article className={`${styles['dashboard-panel']} ${styles['dashboard-panel--focus']}`}>
+          <header className={styles['dashboard-panel__header']}>
             <div>
               <h2>Tỷ lệ học sinh</h2>
               <p>Phân bổ mức độ tham gia học tập của học viên.</p>
             </div>
           </header>
-          <div className="dashboard-panel__split">
-            <div className="dashboard-panel__radial" role="img" aria-label="76 phần trăm học viên đi học đầy đủ">
-              <div className="dashboard-panel__radial-progress" style={{ '--progress': '76' }}>
+          <div className={styles['dashboard-panel__split']}>
+            <div className={styles['dashboard-panel__radial']} role="img" aria-label="76 phần trăm học viên đi học đầy đủ">
+              <div className={styles['dashboard-panel__radial-progress']} style={{ '--progress': '76' }}>
                 <strong>76%</strong>
                 <span>Đi học đầy đủ</span>
               </div>
             </div>
-            <ul className="dashboard-panel__legend">
+            <ul className={styles['dashboard-panel__legend']}>
               {attendanceSplit.map((item, index) => (
                 <li key={item.label}>
                   <span
-                    className="legend-dot"
+                    className={styles['legend-dot']}
                     aria-hidden="true"
                     style={{ '--legend-color': attendanceColors[index] }}
                   />
@@ -214,19 +220,19 @@ function Dashboard() {
         </article>
       </section>
 
-      <section className="dashboard-grid dashboard-grid--insights">
-        <article className="dashboard-panel dashboard-panel--wide">
-          <header className="dashboard-panel__header">
+      <section className={`${styles['dashboard-grid']} ${styles['dashboard-grid--insights']}`}>
+        <article className={`${styles['dashboard-panel']} ${styles['dashboard-panel--wide']}`}>
+          <header className={styles['dashboard-panel__header']}>
             <div>
               <h2>Biến động số lượng học viên</h2>
               <p>Thống kê số lớp tham gia theo từng ngày trong tuần.</p>
             </div>
-            <div className="dashboard-panel__meta">
-              <span className="pill pill--success">+5,4%</span>
+            <div className={styles['dashboard-panel__meta']}>
+              <span className={`${styles.pill} ${styles['pill--success']}`}>+5,4%</span>
               <span>so với tuần trước</span>
             </div>
           </header>
-          <div className="dashboard-panel__sparkline" role="img" aria-label="Biểu đồ đường biến động học viên">
+          <div className={styles['dashboard-panel__sparkline']} role="img" aria-label="Biểu đồ đường biến động học viên">
             <svg viewBox="0 0 320 120" preserveAspectRatio="none">
               <defs>
                 <linearGradient id="sparklineGradient" x1="0" y1="0" x2="0" y2="1">
@@ -249,7 +255,7 @@ function Dashboard() {
                 points="0,100 40,90 80,82 120,70 160,52 200,60 240,74 280,92 320,110"
               />
             </svg>
-            <ul className="dashboard-panel__sparkline-legend">
+            <ul className={styles['dashboard-panel__sparkline-legend']}>
               {studentTrends.map((item) => (
                 <li key={item.label}>
                   <span>{item.label}</span>
@@ -260,17 +266,17 @@ function Dashboard() {
           </div>
         </article>
 
-        <article className="dashboard-panel dashboard-panel--finance">
-          <header className="dashboard-panel__header">
+        <article className={`${styles['dashboard-panel']} ${styles['dashboard-panel--finance']}`}>
+          <header className={styles['dashboard-panel__header']}>
             <div>
               <h2>Quản lý tài chính</h2>
               <p>Tổng quan các chỉ số tài chính quan trọng.</p>
             </div>
-            <button type="button" className="dashboard__button dashboard__button--secondary">
+            <button type="button" className={`${styles['dashboard__button']} ${styles['dashboard__button--secondary']}`}>
               Xem chi tiết
             </button>
           </header>
-          <ul className="dashboard-panel__highlights">
+          <ul className={styles['dashboard-panel__highlights']}>
             {financeHighlights.map((item) => (
               <li key={item.label}>
                 <span>{item.label}</span>
@@ -278,38 +284,38 @@ function Dashboard() {
               </li>
             ))}
           </ul>
-          <div className="dashboard-panel__progress">
-            <div className="dashboard-panel__progress-bar" style={{ '--progress': '62%' }}>
+          <div className={styles['dashboard-panel__progress']}>
+            <div className={styles['dashboard-panel__progress-bar']} style={{ '--progress': '62%' }}>
               <span>62% ngân sách đã sử dụng</span>
             </div>
           </div>
         </article>
       </section>
 
-      <section className="dashboard-grid dashboard-grid--schedule">
-        <article className="dashboard-panel dashboard-panel--schedule">
-          <header className="dashboard-panel__header">
+      <section className={`${styles['dashboard-grid']} ${styles['dashboard-grid--schedule']}`}>
+        <article className={`${styles['dashboard-panel']} ${styles['dashboard-panel--schedule']}`}>
+          <header className={styles['dashboard-panel__header']}>
             <div>
               <h2>Lịch công tác</h2>
               <p>Danh sách hoạt động trong tuần hiện tại.</p>
             </div>
-            <button type="button" className="dashboard__button dashboard__button--ghost">
+            <button type="button" className={`${styles['dashboard__button']} ${styles['dashboard__button--ghost']}`}>
               Lọc lịch
             </button>
           </header>
-          <ul className="dashboard-panel__schedule">
+          <ul className={styles['dashboard-panel__schedule']}>
             {schedule.map((item) => (
               <li key={item.title}>
-                <div className={`schedule-dot schedule-dot--${item.color}`} aria-hidden="true" />
-                <div className="schedule-meta">
+                <div className={`${styles['schedule-dot']} ${styles[`schedule-dot--${item.color}`]}`} aria-hidden="true" />
+                <div className={styles['schedule-meta']}>
                   <strong>{item.time}</strong>
                   <span>{item.type}</span>
                 </div>
-                <div className="schedule-content">
+                <div className={styles['schedule-content']}>
                   <h3>{item.title}</h3>
                   <p>{item.meta}</p>
                 </div>
-                <button type="button" className="dashboard__button dashboard__button--ghost">
+                <button type="button" className={`${styles['dashboard__button']} ${styles['dashboard__button--ghost']}`}>
                   Chi tiết
                 </button>
               </li>
@@ -317,21 +323,21 @@ function Dashboard() {
           </ul>
         </article>
 
-        <article className="dashboard-panel dashboard-panel--reminders">
-          <header className="dashboard-panel__header">
+        <article className={`${styles['dashboard-panel']} ${styles['dashboard-panel--reminders']}`}>
+          <header className={styles['dashboard-panel__header']}>
             <div>
               <h2>Nhắc việc</h2>
               <p>Các tác vụ quan trọng cần xử lý hôm nay.</p>
             </div>
           </header>
-          <ul className="dashboard-panel__reminders">
+          <ul className={styles['dashboard-panel__reminders']}>
             {reminders.map((item) => (
               <li key={item.title}>
                 <div>
                   <h3>{item.title}</h3>
                   <p>{item.detail}</p>
                 </div>
-                <button type="button" className="dashboard__button dashboard__button--secondary">
+                <button type="button" className={`${styles['dashboard__button']} ${styles['dashboard__button--secondary']}`}>
                   Đánh dấu xong
                 </button>
               </li>
