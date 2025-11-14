@@ -1,82 +1,5 @@
 import styles from '../styles/dashboard.module.css';
 
-const summaryCards = [
-  {
-    title: 'Tổng số học viên',
-    value: '15.928',
-    change: '+8,4%',
-    changeLabel: 'so với tháng trước',
-    tone: 'positive',
-    accent: '#4c6ef5',
-    accentSoft: 'rgba(76, 110, 245, 0.16)',
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path
-          d="M5 10.25 12 5l7 5.25V19a1 1 0 0 1-1 1h-4.5a1 1 0 0 1-1-1v-3.75h-3V19a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1Z"
-          fill="currentColor"
-        />
-      </svg>
-    ),
-    trend: [64, 72, 78, 82, 90, 96, 100],
-  },
-  {
-    title: 'Học viên mới',
-    value: '1.245',
-    change: '+12,1%',
-    changeLabel: 'đã ghi danh trong tháng',
-    tone: 'positive',
-    accent: '#22b8cf',
-    accentSoft: 'rgba(34, 184, 207, 0.18)',
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path
-          d="M12 12.5a4 4 0 1 0-4-4 4 4 0 0 0 4 4ZM5 20a1 1 0 0 1-1-1 6 6 0 0 1 12 0 1 1 0 0 1-1 1Z"
-          fill="currentColor"
-        />
-        <path d="M19 11.25v-2a.75.75 0 0 0-1.5 0v2h-2a.75.75 0 0 0 0 1.5h2v2a.75.75 0 0 0 1.5 0v-2h2a.75.75 0 0 0 0-1.5Z" fill="currentColor" />
-      </svg>
-    ),
-    trend: [28, 46, 58, 60, 72, 86, 92],
-  },
-  {
-    title: 'Đã tốt nghiệp',
-    value: '9.836',
-    change: '+3,2%',
-    changeLabel: 'hoàn thành chứng chỉ',
-    tone: 'neutral',
-    accent: '#845ef7',
-    accentSoft: 'rgba(132, 94, 247, 0.16)',
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path
-          d="m12 3 9 4.5-9 4.5-9-4.5Zm0 8 5.7-2.85v3.82a3 3 0 0 1-1.76 2.73l-3.94 1.77a1 1 0 0 1-.79 0L7.26 14.7A3 3 0 0 1 5.5 12V8.17Z"
-          fill="currentColor"
-        />
-        <path d="M7.5 15.92 12 18l4.5-2.08V21l-4.5 2-4.5-2Z" fill="currentColor" />
-      </svg>
-    ),
-    trend: [74, 78, 80, 84, 86, 88, 90],
-  },
-  {
-    title: 'Lớp học hoạt động',
-    value: '128',
-    change: '-1,4%',
-    changeLabel: 'đang mở trong tuần',
-    tone: 'negative',
-    accent: '#ffa94d',
-    accentSoft: 'rgba(255, 169, 77, 0.2)',
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path
-          d="M5.25 4.5h13.5a1 1 0 0 1 1 1V18a1 1 0 0 1-1 1H5.25a1 1 0 0 1-1-1V5.5a1 1 0 0 1 1-1Zm.75 3v9h12V7.5ZM8 20.5h8"
-          fill="currentColor"
-        />
-      </svg>
-    ),
-    trend: [94, 90, 86, 80, 76, 72, 68],
-  },
-];
-
 const monthlyPerformance = [
   { label: 'Th1', value: 54 },
   { label: 'Th2', value: 62 },
@@ -130,6 +53,26 @@ const financeHighlights = [
   { label: 'Chi phí vận hành', value: '36.120.000 ₫' },
   { label: 'Tỉ lệ chuyển đổi', value: '68,4%' },
 ];
+
+const performanceHighlights = [
+  {
+    label: 'Học viên đang học',
+    value: '2.480',
+    change: '+12%',
+  },
+  {
+    label: 'Học viên mới',
+    value: '1.245',
+    change: '+8%',
+  },
+  {
+    label: 'Đã hoàn thành',
+    value: '980',
+    change: '+3%',
+  },
+];
+
+const periodFilters = ['Ngày', 'Tuần', 'Tháng'];
 
 const reminders = [
   {
@@ -224,203 +167,179 @@ function Dashboard() {
           </p>
         </div>
         <div className={styles['dashboard-page__actions']}>
-          <button
-            type="button"
-            className={`${styles['dashboard__button']} ${styles['dashboard__button--ghost']}`}
-          >
-            Tuần này
-          </button>
+          <div className={styles['dashboard-page__filters']} role="group" aria-label="Chọn giai đoạn thống kê">
+            {periodFilters.map((option) => (
+              <button
+                key={option}
+                type="button"
+                className={`${styles['dashboard-segment']}${
+                  option === 'Tháng' ? ` ${styles['dashboard-segment--active']}` : ''
+                }`}
+              >
+                {option}
+              </button>
+            ))}
+          </div>
           <button
             type="button"
             className={`${styles['dashboard__button']} ${styles['dashboard__button--primary']}`}
           >
-            Báo cáo chi tiết
+            Xuất báo cáo
           </button>
         </div>
       </header>
 
       <div className={styles['dashboard-page__layout']}>
-        <div className={styles['dashboard-page__main']}>
-          <section className={styles['dashboard-summary']} aria-label="Thống kê nhanh">
-            {summaryCards.map((card) => (
-              <article
-                key={card.title}
-                className={styles['summary-card']}
-                style={{ '--card-accent': card.accent, '--card-accent-soft': card.accentSoft }}
+        <div className={styles['dashboard-page__column']}>
+          <article className={`${styles['dashboard-panel']} ${styles['dashboard-panel--performance']}`}>
+            <header className={styles['dashboard-panel__header']}>
+              <div>
+                <h2>Thống kê số lượng học viên</h2>
+                <p>Biểu đồ tăng trưởng theo từng tháng trong năm 2024.</p>
+              </div>
+              <button
+                type="button"
+                className={`${styles['dashboard__button']} ${styles['dashboard__button--ghost']}`}
               >
-                <header className={styles['summary-card__header']}>
-                  <span className={styles['summary-card__icon']} aria-hidden="true">
-                    {card.icon}
-                  </span>
-                  <span className={styles['summary-card__badge']}>2024</span>
-                </header>
-                <div className={styles['summary-card__content']}>
-                  <strong>{card.value}</strong>
-                  <p>{card.title}</p>
-                </div>
-                <p
-                  className={`${styles['summary-card__change']} ${styles[`summary-card__change--${card.tone}`]}`}
-                >
-                  {card.change}
-                  <span>{card.changeLabel}</span>
-                </p>
-                <div className={styles['summary-card__trend']} aria-hidden="true">
-                  {card.trend.map((value, index) => (
-                    <span
-                      key={`${card.title}-${index}`}
-                      className={styles['summary-card__trend-bar']}
-                      style={{ '--bar-value': `${value}%` }}
-                    />
-                  ))}
-                </div>
-              </article>
-            ))}
-          </section>
-
-          <section className={styles['dashboard-panels']} aria-label="Phân tích tổng quan">
-            <article className={`${styles['dashboard-panel']} ${styles['dashboard-panel--performance']}`}>
-              <header className={styles['dashboard-panel__header']}>
-                <div>
-                  <h2>Thống kê số lượng học viên</h2>
-                  <p>Biểu đồ tăng trưởng theo từng tháng trong năm 2024.</p>
-                </div>
-                <button
-                  type="button"
-                  className={`${styles['dashboard__button']} ${styles['dashboard__button--ghost']}`}
-                >
-                  Xuất dữ liệu
-                </button>
-              </header>
-              <div className={styles['chart-bars']} role="img" aria-label="Biểu đồ cột thống kê học viên theo tháng">
-                {monthlyPerformance.map((item) => (
-                  <div key={item.label} className={styles['chart-bars__column']}>
-                    <div
-                      className={styles['chart-bars__value']}
-                      style={{ '--bar-height': `${item.value}%` }}
-                    />
-                    <span className={styles['chart-bars__label']}>{item.label}</span>
-                  </div>
-                ))}
-              </div>
-            </article>
-
-            <article className={`${styles['dashboard-panel']} ${styles['dashboard-panel--radial']}`}>
-              <header className={styles['dashboard-panel__header']}>
-                <div>
-                  <h2>Tỷ lệ học sinh</h2>
-                  <p>Phân bổ mức độ tham gia học tập của học viên.</p>
-                </div>
-              </header>
-              <div className={styles['dashboard-panel__body']}>
-                <div className={styles['dashboard-panel__radial']} role="img" aria-label="Phân bổ tình trạng học viên">
+                Tải dữ liệu
+              </button>
+            </header>
+            <div className={styles['chart-bars']} role="img" aria-label="Biểu đồ cột thống kê học viên theo tháng">
+              {monthlyPerformance.map((item) => (
+                <div key={item.label} className={styles['chart-bars__column']}>
                   <div
-                    className={styles['dashboard-panel__radial-progress']}
-                    style={{ backgroundImage: `conic-gradient(${radialGradient})` }}
-                  >
-                    <strong>{totalStudents.toLocaleString('vi-VN')}</strong>
-                    <span>Tổng học viên</span>
-                  </div>
-                  <div className={styles['dashboard-panel__radial-indicator']}>
-                    <span className={`${styles.pill} ${styles['pill--info']}`}>+214 mới</span>
-                    <p>So với tháng trước</p>
-                  </div>
-                </div>
-                <ul className={styles['dashboard-panel__legend']}>
-                  {radialStops.map((item) => (
-                    <li key={item.label}>
-                      <span
-                        className={styles['legend-dot']}
-                        aria-hidden="true"
-                        style={{ '--legend-color': item.color }}
-                      />
-                      <div>
-                        <strong>{item.value.toLocaleString('vi-VN')}</strong>
-                        <span>{item.label}</span>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </article>
-          </section>
-
-          <section className={styles['dashboard-insights']} aria-label="Thông tin chi tiết">
-            <article className={`${styles['dashboard-panel']} ${styles['dashboard-panel--sparkline']}`}>
-              <header className={styles['dashboard-panel__header']}>
-                <div>
-                  <h2>Biến động số lượng học viên</h2>
-                  <p>Thống kê số lớp tham gia theo từng ngày trong tuần.</p>
-                </div>
-                <div className={styles['dashboard-panel__meta']}>
-                  <span className={`${styles.pill} ${styles['pill--success']}`}>+5,4%</span>
-                  <span>so với tuần trước</span>
-                </div>
-              </header>
-              <div className={styles['dashboard-panel__sparkline']} role="img" aria-label="Biểu đồ đường biến động học viên">
-                <svg viewBox="0 0 320 120" preserveAspectRatio="none">
-                  <defs>
-                    <linearGradient id="sparklineGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="rgba(76, 110, 245, 0.6)" />
-                      <stop offset="100%" stopColor="rgba(76, 110, 245, 0)" />
-                    </linearGradient>
-                  </defs>
-                  <polyline
-                    fill="url(#sparklineGradient)"
-                    stroke="rgba(76, 110, 245, 0.4)"
-                    strokeWidth="2"
-                    points="0,100 40,90 80,82 120,70 160,52 200,60 240,74 280,92 320,110 320,120 0,120"
+                    className={styles['chart-bars__value']}
+                    style={{ '--bar-height': `${item.value}%` }}
                   />
-                  <polyline
-                    fill="none"
-                    stroke="rgb(76, 110, 245)"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    points="0,100 40,90 80,82 120,70 160,52 200,60 240,74 280,92 320,110"
-                  />
-                </svg>
-                <ul className={styles['dashboard-panel__sparkline-legend']}>
-                  {studentTrends.map((item) => (
-                    <li key={item.label}>
-                      <span>{item.label}</span>
-                      <strong>{item.value}</strong>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </article>
-
-            <article className={`${styles['dashboard-panel']} ${styles['dashboard-panel--finance']}`}>
-              <header className={styles['dashboard-panel__header']}>
-                <div>
-                  <h2>Quản lý tài chính</h2>
-                  <p>Tổng quan các chỉ số tài chính quan trọng.</p>
+                  <span className={styles['chart-bars__label']}>{item.label}</span>
                 </div>
-                <button
-                  type="button"
-                  className={`${styles['dashboard__button']} ${styles['dashboard__button--secondary']}`}
-                >
-                  Xem chi tiết
-                </button>
-              </header>
-              <ul className={styles['dashboard-panel__highlights']}>
-                {financeHighlights.map((item) => (
+              ))}
+            </div>
+            <div className={styles['dashboard-panel__footer']}>
+              {performanceHighlights.map((item) => (
+                <div key={item.label} className={styles['dashboard-panel__stat']}>
+                  <span>{item.label}</span>
+                  <strong>{item.value}</strong>
+                  <small>{item.change}</small>
+                </div>
+              ))}
+            </div>
+          </article>
+
+          <article className={`${styles['dashboard-panel']} ${styles['dashboard-panel--sparkline']}`}>
+            <header className={styles['dashboard-panel__header']}>
+              <div>
+                <h2>Biến động số lượng học viên</h2>
+                <p>Thống kê số lớp tham gia theo từng ngày trong tuần.</p>
+              </div>
+              <div className={styles['dashboard-panel__meta']}>
+                <span className={`${styles.pill} ${styles['pill--success']}`}>+5,4%</span>
+                <span>so với tuần trước</span>
+              </div>
+            </header>
+            <div className={styles['dashboard-panel__sparkline']} role="img" aria-label="Biểu đồ đường biến động học viên">
+              <svg viewBox="0 0 320 120" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="sparklineGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="rgba(76, 110, 245, 0.6)" />
+                    <stop offset="100%" stopColor="rgba(76, 110, 245, 0)" />
+                  </linearGradient>
+                </defs>
+                <polyline
+                  fill="url(#sparklineGradient)"
+                  stroke="rgba(76, 110, 245, 0.4)"
+                  strokeWidth="2"
+                  points="0,100 40,90 80,82 120,70 160,52 200,60 240,74 280,92 320,110 320,120 0,120"
+                />
+                <polyline
+                  fill="none"
+                  stroke="rgb(76, 110, 245)"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  points="0,100 40,90 80,82 120,70 160,52 200,60 240,74 280,92 320,110"
+                />
+              </svg>
+              <ul className={styles['dashboard-panel__sparkline-legend']}>
+                {studentTrends.map((item) => (
                   <li key={item.label}>
                     <span>{item.label}</span>
                     <strong>{item.value}</strong>
                   </li>
                 ))}
               </ul>
-              <div className={styles['dashboard-panel__progress']}>
-                <div className={styles['dashboard-panel__progress-bar']} style={{ '--progress': '62%' }}>
-                  <span>62% ngân sách đã sử dụng</span>
-                </div>
+            </div>
+          </article>
+
+          <article className={`${styles['dashboard-panel']} ${styles['dashboard-panel--finance']}`}>
+            <header className={styles['dashboard-panel__header']}>
+              <div>
+                <h2>Quản lý tài chính</h2>
+                <p>Tổng quan các chỉ số tài chính quan trọng.</p>
               </div>
-            </article>
-          </section>
+              <button
+                type="button"
+                className={`${styles['dashboard__button']} ${styles['dashboard__button--secondary']}`}
+              >
+                Xem chi tiết
+              </button>
+            </header>
+            <ul className={styles['dashboard-panel__highlights']}>
+              {financeHighlights.map((item) => (
+                <li key={item.label}>
+                  <span>{item.label}</span>
+                  <strong>{item.value}</strong>
+                </li>
+              ))}
+            </ul>
+            <div className={styles['dashboard-panel__progress']}>
+              <div className={styles['dashboard-panel__progress-bar']} style={{ '--progress': '62%' }}>
+                <span>62% ngân sách đã sử dụng</span>
+              </div>
+            </div>
+          </article>
         </div>
 
         <aside className={styles['dashboard-page__aside']}>
+          <article className={`${styles['dashboard-panel']} ${styles['dashboard-panel--radial']}`}>
+            <header className={styles['dashboard-panel__header']}>
+              <div>
+                <h2>Tỷ lệ học sinh</h2>
+                <p>Phân bổ mức độ tham gia học tập của học viên.</p>
+              </div>
+            </header>
+            <div className={styles['dashboard-panel__body']}>
+              <div className={styles['dashboard-panel__radial']} role="img" aria-label="Phân bổ tình trạng học viên">
+                <div
+                  className={styles['dashboard-panel__radial-progress']}
+                  style={{ backgroundImage: `conic-gradient(${radialGradient})` }}
+                >
+                  <strong>{totalStudents.toLocaleString('vi-VN')}</strong>
+                  <span>Tổng học viên</span>
+                </div>
+                <div className={styles['dashboard-panel__radial-indicator']}>
+                  <span className={`${styles.pill} ${styles['pill--info']}`}>+214 mới</span>
+                  <p>So với tháng trước</p>
+                </div>
+              </div>
+              <ul className={styles['dashboard-panel__legend']}>
+                {radialStops.map((item) => (
+                  <li key={item.label}>
+                    <span
+                      className={styles['legend-dot']}
+                      aria-hidden="true"
+                      style={{ '--legend-color': item.color }}
+                    />
+                    <div>
+                      <strong>{item.value.toLocaleString('vi-VN')}</strong>
+                      <span>{item.label}</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </article>
+
           <section className={`${styles['dashboard-aside-card']} ${styles['dashboard-aside-card--calendar']}`}>
             <header className={styles['dashboard-panel__header']}>
               <div>
