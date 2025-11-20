@@ -1,5 +1,32 @@
 import styles from '../styles/dashboard.module.css';
 
+const summaryStats = [
+  {
+    label: 'Giảng viên',
+    value: '164',
+    change: '+12%',
+    tone: 'info',
+  },
+  {
+    label: 'Lớp học',
+    value: '246',
+    change: '+20%',
+    tone: 'pink',
+  },
+  {
+    label: 'Học viên',
+    value: '5.678',
+    change: '+12%',
+    tone: 'success',
+  },
+  {
+    label: 'Doanh thu',
+    value: '24,5%',
+    change: '-2,5%',
+    tone: 'warning',
+  },
+];
+
 const monthlyPerformance = [
   { label: 'Th1', value: 54 },
   { label: 'Th2', value: 62 },
@@ -188,6 +215,21 @@ function Dashboard() {
           </button>
         </div>
       </header>
+
+      <section className={styles['dashboard-page__stats']} aria-label="Chỉ số tổng quan">
+        {summaryStats.map((item) => (
+          <article
+            key={item.label}
+            className={`${styles['dashboard-stat']} ${styles[`dashboard-stat--${item.tone}`]}`}
+          >
+            <div className={styles['dashboard-stat__meta']}>
+              <span>{item.label}</span>
+              <strong>{item.value}</strong>
+            </div>
+            <span className={styles['dashboard-stat__trend']}>{item.change}</span>
+          </article>
+        ))}
+      </section>
 
       <div className={styles['dashboard-page__layout']}>
         <div className={styles['dashboard-page__column']}>
