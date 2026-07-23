@@ -1,0 +1,626 @@
+:global(:root) {
+  --ep-bg: #faf4ec;
+  --ep-surface: #ffffff;
+  --ep-border: #f0e4d7;
+  --ep-primary: #d9571f;
+  --ep-muted: #7d8592;
+  --ep-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.header p {
+  margin: 0;
+  color: var(--ep-muted);
+  font-weight: 600;
+}
+
+.header h1 {
+  margin: 6px 0 0;
+  color: #0a1629;
+}
+
+.settingsButton {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid var(--ep-border);
+  background: #ffffff;
+  color: #7d8592;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+}
+
+.content {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+  min-width: 0;
+}
+
+.profileCard {
+  background: var(--ep-surface);
+  border-radius: 22px;
+  padding: 22px;
+  border: 1px solid var(--ep-border);
+  box-shadow: var(--ep-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  position: sticky;
+  top: 0;
+  max-height: calc(100vh - 148px);
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.profileHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.profileAvatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(217, 87, 31, 0.85), rgba(217, 87, 31, 0.3));
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.profileHeader h2 {
+  margin: 0 0 4px;
+  font-size: 1.1rem;
+  color: #0a1629;
+}
+
+.profileHeader span {
+  color: var(--ep-muted);
+  font-size: 0.9rem;
+}
+
+.profileSection {
+  display: grid;
+  gap: 12px;
+}
+
+.profileSection h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #0a1629;
+}
+
+.profileField {
+  background: #fbf5ec;
+  border: 1px solid #f2e8dc;
+  border-radius: 14px;
+  padding: 10px 12px;
+  display: grid;
+  gap: 4px;
+}
+
+.profileField span {
+  color: var(--ep-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.profileField strong {
+  color: #0a1629;
+  font-size: 0.9rem;
+}
+
+.mainPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.tabsRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  background: #f2e6d9;
+  border-radius: 999px;
+}
+
+.tab {
+  border: none;
+  background: transparent;
+  padding: 7px 16px;
+  border-radius: 999px;
+  font-weight: 600;
+  color: #7d8592;
+  cursor: pointer;
+}
+
+.tab--active {
+  background: var(--ep-primary);
+  color: #ffffff;
+  box-shadow: 0 10px 24px rgba(217, 87, 31, 0.2);
+}
+
+.tabActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.iconButton {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid var(--ep-border);
+  background: #ffffff;
+  color: #7d8592;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.dropdownButton {
+  border: 1px solid var(--ep-border);
+  background: #ffffff;
+  padding: 10px 14px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: #0a1629;
+  cursor: pointer;
+}
+
+.courseList {
+  display: grid;
+  gap: 16px;
+}
+
+.courseCard {
+  background: #ffffff;
+  border-radius: 20px;
+  border: 1px solid var(--ep-border);
+  padding: 18px 20px;
+  display: grid;
+  gap: 16px;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.06);
+}
+
+.courseMain {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  position: relative;
+}
+
+.courseIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: #fdeee4;
+  color: #d9571f;
+  display: grid;
+  place-items: center;
+}
+
+.courseIcon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.courseMain h3 {
+  margin: 4px 0 2px;
+  font-size: 1rem;
+  color: #0a1629;
+}
+
+.courseMain p {
+  margin: 0;
+  color: var(--ep-muted);
+  font-size: 0.85rem;
+}
+
+.courseCode {
+  font-size: 0.75rem;
+  color: #9aa3b2;
+  font-weight: 600;
+}
+
+.courseLevel {
+  margin-left: auto;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #fff4e8;
+  color: #e98841;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.courseStats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  background: #fbf5ec;
+  border-radius: 16px;
+  padding: 14px 16px;
+  border: 1px solid #f2e8dc;
+}
+
+.courseStats span {
+  display: block;
+  color: var(--ep-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.courseStats strong {
+  font-size: 0.95rem;
+  color: #0a1629;
+}
+
+.courseOwners div {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.courseOwners div span {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #dbe8ff;
+  color: #d9571f;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.salaryPanel {
+  background: #ffffff;
+  border-radius: 20px;
+  border: 1px solid var(--ep-border);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.06);
+  padding: 18px 20px;
+  display: grid;
+  gap: 16px;
+}
+
+.salaryHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.salaryHeader h2 {
+  margin: 0;
+  color: #0a1629;
+  font-size: 1.05rem;
+}
+
+.salaryHeader p {
+  margin: 4px 0 0;
+  color: var(--ep-muted);
+  font-size: 0.85rem;
+}
+
+.salaryFilters {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.salaryFilters label {
+  display: grid;
+  gap: 6px;
+  color: var(--ep-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.salaryFilters select {
+  border: 1px solid var(--ep-border);
+  border-radius: 10px;
+  background: #ffffff;
+  color: #0a1629;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.salaryMetrics,
+.salaryBreakdown {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.salaryMetrics div,
+.salaryBreakdown div {
+  background: #fbf5ec;
+  border: 1px solid #f2e8dc;
+  border-radius: 14px;
+  padding: 12px;
+  display: grid;
+  gap: 6px;
+}
+
+.salaryMetrics span,
+.salaryBreakdown span {
+  color: var(--ep-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.salaryMetrics strong,
+.salaryBreakdown strong {
+  color: #0a1629;
+  font-size: 1rem;
+}
+
+.salaryTableWrap {
+  overflow-x: auto;
+  border: 1px solid #f2e8dc;
+  border-radius: 16px;
+  max-width: 100%;
+}
+
+.salaryTable {
+  width: 100%;
+  min-width: 900px;
+  border-collapse: collapse;
+  background: #ffffff;
+}
+
+.salaryTable th,
+.salaryTable td {
+  padding: 12px;
+  border-bottom: 1px solid #f2e8dc;
+  text-align: left;
+  vertical-align: top;
+  font-size: 0.82rem;
+}
+
+.salaryTable th {
+  color: #52607a;
+  background: #fbf5ec;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.salaryTable td {
+  color: #0a1629;
+  font-weight: 600;
+}
+
+.salaryTable td small {
+  display: block;
+  margin-top: 4px;
+  color: var(--ep-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.salaryTable tr:last-child td {
+  border-bottom: none;
+}
+
+.tablePagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  color: var(--ep-muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.tablePaginationActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tablePaginationActions button {
+  min-width: 74px;
+  border: 1px solid var(--ep-border);
+  border-radius: 10px;
+  background: #ffffff;
+  color: #0a1629;
+  padding: 0.5rem 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tablePaginationActions button:disabled {
+  color: #a6afbd;
+  cursor: not-allowed;
+  background: #fbf5ec;
+}
+
+.tablePaginationActions strong {
+  min-width: 54px;
+  text-align: center;
+  color: #0a1629;
+}
+
+.salaryState {
+  border-radius: 14px;
+  border: 1px solid #f2e8dc;
+  background: #fbf5ec;
+  color: #52607a;
+  padding: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.salaryStateError {
+  border-color: rgba(240, 68, 56, 0.22);
+  background: rgba(240, 68, 56, 0.08);
+  color: #c92a2a;
+}
+
+.scorePanel {
+  background: #ffffff;
+  border-radius: 20px;
+  border: 1px solid var(--ep-border);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.06);
+  padding: 18px 20px;
+  display: grid;
+  gap: 16px;
+}
+
+.scoreForm {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.scoreForm label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  color: var(--ep-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.scoreForm span {
+  min-width: 0;
+}
+
+.scoreForm input,
+.scoreForm select,
+.scoreForm textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--ep-border);
+  border-radius: 10px;
+  background: #ffffff;
+  color: #0a1629;
+  padding: 0.65rem 0.75rem;
+  font: inherit;
+  font-size: 0.88rem;
+  outline: none;
+}
+
+.scoreForm textarea {
+  min-height: 92px;
+  resize: vertical;
+  line-height: 1.45;
+}
+
+.scoreForm input:focus,
+.scoreForm select:focus,
+.scoreForm textarea:focus {
+  border-color: rgba(217, 87, 31, 0.7);
+  box-shadow: 0 0 0 3px rgba(217, 87, 31, 0.12);
+}
+
+.scoreFormWide {
+  grid-column: span 2;
+}
+
+.scoreActions {
+  display: flex;
+  justify-content: flex-end;
+  align-self: end;
+}
+
+.scoreButton {
+  min-height: 42px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--ep-primary);
+  color: #ffffff;
+  padding: 0.72rem 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 12px 24px rgba(217, 87, 31, 0.2);
+}
+
+.scoreButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  box-shadow: none;
+}
+
+@media (max-width: 1024px) {
+  .content {
+    grid-template-columns: 1fr;
+  }
+
+  .profileCard {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .courseMain {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .courseLevel {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .scorePanel,
+  .salaryPanel {
+    padding: 16px;
+  }
+
+  .scoreForm {
+    grid-template-columns: 1fr;
+  }
+
+  .scoreFormWide {
+    grid-column: auto;
+  }
+
+  .scoreActions {
+    justify-content: stretch;
+  }
+
+  .scoreButton {
+    width: 100%;
+  }
+}

@@ -1,429 +1,188 @@
-import styles from '../styles/dashboard.module.css';
+import styles from '../styles/employeeList.module.css';
 
-const qaSummaryCards = [
+const employees = [
   {
-    title: 'Tổng test case',
-    value: '1.284',
-    badge: 'Sprint 12',
-    change: '+4,2%',
-    changeLabel: 'so với sprint trước',
-    tone: 'positive',
-    accent: '#4263eb',
-    accentSoft: 'rgba(66, 99, 235, 0.16)',
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path
-          d="M4.75 3A1.75 1.75 0 0 0 3 4.75v14.5A1.75 1.75 0 0 0 4.75 21h14.5A1.75 1.75 0 0 0 21 19.25V4.75A1.75 1.75 0 0 0 19.25 3ZM7 6.5h10a.5.5 0 0 1 0 1H7a.5.5 0 0 1 0-1Zm0 4h10a.5.5 0 0 1 0 1H7a.5.5 0 0 1 0-1Zm0 4h6a.5.5 0 0 1 0 1H7a.5.5 0 0 1 0-1Z"
-          fill="currentColor"
-        />
-      </svg>
-    ),
-    trend: [64, 72, 78, 82, 90, 96, 100],
+    name: 'Evan Yates',
+    email: 'evanyates@gmail.com',
+    gender: 'Nam',
+    birthday: 'Apr 12, 1995',
+    age: '25',
+    role: 'Giảng viên Tiếng Anh',
+    initials: 'EY',
+    color: '#3f8cff',
   },
   {
-    title: 'Test tự động',
-    value: '842',
-    badge: 'Automation',
-    change: '+6,8%',
-    changeLabel: 'đã cập nhật tuần này',
-    tone: 'positive',
-    accent: '#15aabf',
-    accentSoft: 'rgba(21, 170, 191, 0.18)',
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path
-          d="M11 2.05v1.54a5 5 0 0 1 0 9.82v1.54a1 1 0 0 0 1.52.85l1.33-.77a5 5 0 0 1 3.91 0l1.33.77a1 1 0 0 0 1.48-.87v-1.54a5 5 0 0 1 0-9.82V2.05a1 1 0 0 0-1.52-.85l-1.33.77a5 5 0 0 1-3.91 0l-1.33-.77A1 1 0 0 0 11 2.05Z"
-          fill="currentColor"
-        />
-        <path
-          d="M4 7.5h4.5a.75.75 0 0 1 0 1.5H4a.75.75 0 0 1 0-1.5Zm0 4H8a.75.75 0 0 1 0 1.5H4a.75.75 0 0 1 0-1.5Zm0 4h5.5a.75.75 0 0 1 0 1.5H4a.75.75 0 0 1 0-1.5Z"
-          fill="currentColor"
-        />
-      </svg>
-    ),
-    trend: [28, 46, 58, 72, 84, 92, 98],
+    name: 'Lenora Fowler',
+    email: 'erav@lpc.gov',
+    gender: 'Nữ',
+    birthday: 'Apr 28, 1998',
+    age: '23',
+    role: 'Quản lý trung tâm',
+    initials: 'LF',
+    color: '#ff9f43',
   },
   {
-    title: 'Độ phủ kiểm thử',
-    value: '82%',
-    badge: 'Coverage',
-    change: '+3,4%',
-    changeLabel: 'tăng so với bản build trước',
-    tone: 'neutral',
-    accent: '#845ef7',
-    accentSoft: 'rgba(132, 94, 247, 0.16)',
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path
-          d="M11 2a1 1 0 0 0-1 1v3.26a6 6 0 1 0 2 0V3a1 1 0 0 0-1-1Zm0 8a4 4 0 1 1-4 4 4 4 0 0 1 4-4Z"
-          fill="currentColor"
-        />
-      </svg>
-    ),
-    trend: [70, 72, 74, 78, 80, 82, 84],
+    name: 'Winnie McGuire',
+    email: 'winnie3498@gmail.com',
+    gender: 'Nữ',
+    birthday: 'Apr 12, 1995',
+    age: '25',
+    role: 'Trợ giảng',
+    initials: 'WM',
+    color: '#6c63ff',
   },
   {
-    title: 'Lỗi nghiêm trọng',
-    value: '5',
-    badge: 'Critical',
-    change: '-2',
-    changeLabel: 'đã khắc phục trong 24h',
-    tone: 'positive',
-    accent: '#ffa94d',
-    accentSoft: 'rgba(255, 169, 77, 0.2)',
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path
-          d="M10.27 3.36 2.47 17.08A1.75 1.75 0 0 0 4 19.67h16a1.75 1.75 0 0 0 1.53-2.59L13.73 3.36a1.75 1.75 0 0 0-3.46 0ZM12 14.25a.75.75 0 0 1-.75-.75v-3.5a.75.75 0 0 1 1.5 0v3.5a.75.75 0 0 1-.75.75Zm0 3a1 1 0 1 1 1-1 1 1 0 0 1-1 1Z"
-          fill="currentColor"
-        />
-      </svg>
-    ),
-    trend: [48, 42, 36, 30, 24, 18, 12],
+    name: 'James Williamson',
+    email: 'williamsonj@gmail.com',
+    gender: 'Nam',
+    birthday: 'Sep 23, 1992',
+    age: '28',
+    role: 'Giảng viên Tiếng Anh',
+    initials: 'JW',
+    color: '#10b981',
+  },
+  {
+    name: 'Emily Tyler',
+    email: 'tyleremily24@gmail.com',
+    gender: 'Nữ',
+    birthday: 'May 16, 1996',
+    age: '24',
+    role: 'Biên tập nội dung',
+    initials: 'ET',
+    color: '#f97316',
+  },
+  {
+    name: 'Thomas Schneider',
+    email: 'thomass.g@gmail.com',
+    gender: 'Nam',
+    birthday: 'Apr 28, 1998',
+    age: '23',
+    role: 'Giảng viên Tiếng Anh',
+    initials: 'TS',
+    color: '#0ea5e9',
   },
 ];
 
-const recentRuns = [
-  {
-    name: 'Regression Suite',
-    time: 'Hoàn tất 08:45 - 10/09',
-    duration: '2h 14m',
-    environment: 'Chrome, Edge, Safari',
-    passRate: '98%',
-    status: 'passed',
-  },
-  {
-    name: 'Smoke build #312',
-    time: 'Đang chạy - 09:20',
-    duration: '18m',
-    environment: 'Staging',
-    passRate: 'Đang cập nhật',
-    status: 'warning',
-  },
-  {
-    name: 'API contract',
-    time: 'Hoàn tất 21:10 - 09/09',
-    duration: '42m',
-    environment: 'Postman CI',
-    passRate: '92%',
-    status: 'passed',
-  },
-  {
-    name: 'Cross-device UI',
-    time: 'Thất bại 18:32 - 09/09',
-    duration: '1h 05m',
-    environment: 'iOS, Android',
-    passRate: '78%',
-    status: 'failed',
-  },
-];
-
-const defectBreakdown = [
-  { label: 'Giao diện', count: 18, percentage: 36, color: '#4c6ef5' },
-  { label: 'API & tích hợp', count: 14, percentage: 28, color: '#22b8cf' },
-  { label: 'Logic nghiệp vụ', count: 10, percentage: 20, color: '#845ef7' },
-  { label: 'Hiệu năng', count: 8, percentage: 16, color: '#ef5da8' },
-];
-
-const automationCoverage = {
-  total: 82,
-  change: '+3,4%',
-  suites: [
-    { label: 'UI end-to-end', value: 74, delta: '+6,2%' },
-    { label: 'API', value: 96, delta: '+1,1%' },
-    { label: 'Integration', value: 68, delta: '+4,5%' },
-  ],
-};
-
-const qaTimeline = [
-  {
-    label: '12/09',
-    title: 'Kiểm thử hồi quy',
-    detail: 'Hoàn thành script mới cho module CRM',
-    status: 'done',
-  },
-  {
-    label: '13/09',
-    title: 'Kiểm thử tải',
-    detail: 'JMeter 5k users - chuẩn bị báo cáo hiệu năng',
-    status: 'progress',
-  },
-  {
-    label: '15/09',
-    title: 'Kiểm thử chấp nhận',
-    detail: 'Phiên UAT với khối vận hành',
-    status: 'upcoming',
-  },
-];
-
-const qaChecklist = [
-  {
-    title: 'Xác nhận build ổn định',
-    detail: 'Đã kiểm tra chữ ký & version 3.12.4',
-    state: 'done',
-  },
-  {
-    title: 'Kiểm thử smoke sau deploy',
-    detail: '6/8 test case đã hoàn thành',
-    state: 'progress',
-  },
-  {
-    title: 'Cập nhật test case hồi quy',
-    detail: 'Chờ review từ đội sản phẩm',
-    state: 'todo',
-  },
-];
-
-const releaseHealth = [
-  { label: 'Backend API', state: 'Ổn định', tone: 'success' },
-  { label: 'Portal quản trị', state: 'Cần theo dõi', tone: 'warning' },
-  { label: 'Ứng dụng di động', state: 'Kiểm thử lại', tone: 'danger' },
-];
-
-const statusLabels = {
-  passed: 'Đạt',
-  warning: 'Đang chạy',
-  failed: 'Thất bại',
-};
+const tabs = ['Danh sách', 'Hoạt động'];
 
 function Testing() {
   return (
-    <div className={styles['dashboard-page']}>
-      <header className={styles['dashboard-page__header']}>
+    <div className={styles.page}>
+      <div className={styles.searchRow}>
+        <label className={styles.search}>
+          <span className={styles.searchIcon} aria-hidden="true">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path
+                d="m20.25 19.19-3.9-3.9a6.5 6.5 0 1 0-1.06 1.06l3.9 3.9a.75.75 0 1 0 1.06-1.06ZM6.75 11a4.25 4.25 0 1 1 4.25 4.25A4.25 4.25 0 0 1 6.75 11Z"
+                fill="currentColor"
+              />
+            </svg>
+          </span>
+          <input type="search" placeholder="Tìm kiếm" aria-label="Tìm kiếm nhân sự" />
+        </label>
+      </div>
+
+      <header className={styles.header}>
         <div>
-          <p className={styles['dashboard-page__welcome']}>Trung tâm kiểm thử</p>
-          <h1>Testing &amp; QA</h1>
-          <p className={styles['dashboard-page__subtitle']}>
-            Theo dõi tiến độ kiểm thử, độ phủ tự động hóa và sức khỏe bản build hiện tại.
-          </p>
+          <h1>
+            Đội ngũ nhân sự <span>(28)</span>
+          </h1>
         </div>
-        <div className={styles['dashboard-page__actions']}>
-          <button
-            type="button"
-            className={`${styles['dashboard__button']} ${styles['dashboard__button--ghost']}`}
-          >
-            Sprint 12
+        <div className={styles.tabs} role="tablist" aria-label="Chế độ hiển thị">
+          {tabs.map((tab, index) => (
+            <button
+              key={tab}
+              type="button"
+              className={`${styles.tab} ${index === 0 ? styles['tab--active'] : ''}`}
+              aria-pressed={index === 0}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+        <div className={styles.actions}>
+          <button type="button" className={styles.iconButton} aria-label="Bộ lọc">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path
+                d="M4 6.5h16a.75.75 0 0 1 .58 1.23L14 15.5v4a.75.75 0 0 1-1.12.66l-2-1.1a.75.75 0 0 1-.38-.66v-2.9L3.42 7.73A.75.75 0 0 1 4 6.5Z"
+                fill="currentColor"
+              />
+            </svg>
           </button>
-          <button
-            type="button"
-            className={`${styles['dashboard__button']} ${styles['dashboard__button--primary']}`}
-          >
-            Tải báo cáo QA
+          <button type="button" className={styles.primaryButton}>
+            + Thêm nhân sự
           </button>
         </div>
       </header>
 
-      <div className={styles['dashboard-page__layout']}>
-        <div className={styles['dashboard-page__main']}>
-          <section className={styles['dashboard-summary']} aria-label="Tổng quan kiểm thử">
-            {qaSummaryCards.map((card) => (
-              <article
-                key={card.title}
-                className={styles['summary-card']}
-                style={{ '--card-accent': card.accent, '--card-accent-soft': card.accentSoft }}
-              >
-                <header className={styles['summary-card__header']}>
-                  <span className={styles['summary-card__icon']} aria-hidden="true">
-                    {card.icon}
-                  </span>
-                  <span className={styles['summary-card__badge']}>{card.badge}</span>
-                </header>
-                <div className={styles['summary-card__content']}>
-                  <strong>{card.value}</strong>
-                  <p>{card.title}</p>
-                </div>
-                <p
-                  className={`${styles['summary-card__change']} ${styles[`summary-card__change--${card.tone}`]}`}
-                >
-                  {card.change}
-                  <span>{card.changeLabel}</span>
-                </p>
-                <div className={styles['summary-card__trend']} aria-hidden="true">
-                  {card.trend.map((value, index) => (
-                    <span
-                      key={`${card.title}-${index}`}
-                      className={styles['summary-card__trend-bar']}
-                      style={{ '--bar-value': `${value}%` }}
-                    />
-                  ))}
-                </div>
-              </article>
-            ))}
-          </section>
-
-          <section className={styles['dashboard-panels']} aria-label="Chi tiết bản build">
-            <article className={styles['dashboard-panel']}>
-              <header className={styles['dashboard-panel__header']}>
-                <div>
-                  <h2>Lượt chạy gần đây</h2>
-                  <p>Theo dõi trạng thái các bộ kiểm thử quan trọng.</p>
-                </div>
-                <button
-                  type="button"
-                  className={`${styles['dashboard__button']} ${styles['dashboard__button--ghost']}`}
-                >
-                  Xem lịch sử
-                </button>
-              </header>
-              <ul className={styles['testing-runs__list']}>
-                {recentRuns.map((run) => (
-                  <li key={run.name} className={styles['testing-runs__item']}>
-                    <div className={styles['testing-runs__meta']}>
-                      <h3>{run.name}</h3>
-                      <span>{run.time}</span>
-                      <div className={styles['testing-runs__summary']}>
-                        <span>{run.duration}</span>
-                        <span>{run.environment}</span>
-                        <span>Tỷ lệ đạt: {run.passRate}</span>
-                      </div>
-                    </div>
-                    <span
-                      className={`${styles['status-pill']} ${styles[`status-pill--${run.status}`]}`}
-                    >
-                      {statusLabels[run.status]}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </article>
-
-            <article className={styles['dashboard-panel']}>
-              <header className={styles['dashboard-panel__header']}>
-                <div>
-                  <h2>Phân loại lỗi</h2>
-                  <p>Tập trung xử lý các nhóm lỗi có ảnh hưởng lớn.</p>
-                </div>
-                <span className={`${styles.pill} ${styles['pill--info']}`}>57 lỗi mở</span>
-              </header>
-              <ul className={styles['defect-list']}>
-                {defectBreakdown.map((item) => (
-                  <li key={item.label} className={styles['defect-list__item']}>
-                    <div className={styles['defect-list__meta']}>
-                      <span>{item.label}</span>
-                      <strong>{item.count}</strong>
-                    </div>
-                    <div
-                      className={styles['defect-list__progress']}
-                      style={{ '--defect-progress': `${item.percentage}%`, '--defect-color': item.color }}
-                    >
-                      <span aria-hidden="true" />
-                    </div>
-                    <span className={styles['defect-list__percentage']}>
-                      {item.percentage}% tổng lỗi
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </article>
-          </section>
-
-          <section className={styles['dashboard-insights']} aria-label="Thông tin kiểm thử">
-            <article className={styles['dashboard-panel']}>
-              <header className={styles['dashboard-panel__header']}>
-                <div>
-                  <h2>Độ phủ tự động hóa</h2>
-                  <p>Tổng quan độ phủ kiểm thử theo từng bộ script.</p>
-                </div>
-                <span className={`${styles.pill} ${styles['pill--success']}`}>{automationCoverage.change}</span>
-              </header>
-              <div className={styles['coverage-summary']}>
-                <div className={styles['coverage-summary__chart']} aria-hidden="true">
-                  <div className={styles['coverage-summary__ring']}>
-                    <svg viewBox="0 0 120 120">
-                      <circle cx="60" cy="60" r="54" className={styles['coverage-summary__ring-track']} />
-                      <circle
-                        cx="60"
-                        cy="60"
-                        r="54"
-                        className={styles['coverage-summary__ring-progress']}
-                        style={{ '--coverage-progress': automationCoverage.total }}
-                      />
-                    </svg>
-                    <div className={styles['coverage-summary__value']}>
-                      <strong>{automationCoverage.total}%</strong>
-                      <span>Độ phủ chung</span>
-                    </div>
-                  </div>
-                </div>
-                <ul className={styles['coverage-summary__list']}>
-                  {automationCoverage.suites.map((suite) => (
-                    <li key={suite.label}>
-                      <div>
-                        <strong>{suite.value}%</strong>
-                        <span>{suite.label}</span>
-                      </div>
-                      <span className={styles['coverage-summary__delta']}>{suite.delta}</span>
-                    </li>
-                  ))}
-                </ul>
+      <section className={styles.list}>
+        {employees.map((employee) => (
+          <article key={employee.email} className={styles.card}>
+            <div className={styles.user}>
+              <div className={styles.avatar} style={{ background: employee.color }}>
+                {employee.initials}
               </div>
-            </article>
+              <div>
+                <strong>{employee.name}</strong>
+                <span>{employee.email}</span>
+              </div>
+            </div>
+            <div className={styles.field}>
+              <span>Giới tính</span>
+              <strong>{employee.gender}</strong>
+            </div>
+            <div className={styles.field}>
+              <span>Ngày sinh</span>
+              <strong>{employee.birthday}</strong>
+            </div>
+            <div className={styles.field}>
+              <span>Tuổi</span>
+              <strong>{employee.age}</strong>
+            </div>
+            <div className={styles.field}>
+              <span>Vị trí</span>
+              <strong>{employee.role}</strong>
+            </div>
+            <button type="button" className={styles.menuButton} aria-label="Tùy chọn">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path
+                  d="M12 6.75a1.25 1.25 0 1 1-1.25 1.25A1.25 1.25 0 0 1 12 6.75Zm0 7a1.25 1.25 0 1 1-1.25 1.25A1.25 1.25 0 0 1 12 13.75Zm0-3.5A1.25 1.25 0 1 1 10.75 12 1.25 1.25 0 0 1 12 10.25Z"
+                  fill="currentColor"
+                />
+              </svg>
+            </button>
+          </article>
+        ))}
+      </section>
 
-            <article className={styles['dashboard-panel']}>
-              <header className={styles['dashboard-panel__header']}>
-                <div>
-                  <h2>Kế hoạch kiểm thử</h2>
-                  <p>Lịch trình công việc của đội QA trong tuần.</p>
-                </div>
-              </header>
-              <ul className={styles['qa-timeline']}>
-                {qaTimeline.map((item) => (
-                  <li key={item.title} data-status={item.status}>
-                    <span className={styles['qa-timeline__date']}>{item.label}</span>
-                    <div className={styles['qa-timeline__content']}>
-                      <strong>{item.title}</strong>
-                      <span>{item.detail}</span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </article>
-          </section>
+      <div className={styles.pagination}>
+        <span>1-8 of 28</span>
+        <div className={styles.paginationButtons}>
+          <button type="button" className={styles.iconButton} aria-label="Trang trước">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path
+                d="m14 7-5 5 5 5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+          <button type="button" className={styles.iconButton} aria-label="Trang sau">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path
+                d="m10 7 5 5-5 5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
         </div>
-
-        <aside className={styles['dashboard-page__aside']}>
-          <section className={styles['dashboard-aside-card']} aria-label="Checklist QA">
-            <header>
-              <h2>Checklist sprint</h2>
-              <p>Đảm bảo các hạng mục quan trọng được hoàn thành trước UAT.</p>
-            </header>
-            <ul className={styles['qa-checklist']}>
-              {qaChecklist.map((item) => (
-                <li key={item.title} data-state={item.state}>
-                  <span className={styles['qa-checklist__status']} aria-hidden="true">
-                    {item.state === 'done' ? '✓' : item.state === 'progress' ? '•' : ''}
-                  </span>
-                  <div className={styles['qa-checklist__content']}>
-                    <strong>{item.title}</strong>
-                    <span>{item.detail}</span>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <section className={styles['dashboard-aside-card']} aria-label="Sức khỏe bản build">
-            <header>
-              <h2>Build health</h2>
-              <p>Trạng thái của các khu vực quan trọng trước khi release.</p>
-            </header>
-            <ul className={styles['release-health']}>
-              {releaseHealth.map((item) => (
-                <li key={item.label}>
-                  <div>
-                    <strong>{item.label}</strong>
-                    <span>{item.state}</span>
-                  </div>
-                  <span className={`${styles['status-pill']} ${styles[`status-pill--${item.tone}`]}`}>
-                    {item.tone === 'success' && 'Ổn định'}
-                    {item.tone === 'warning' && 'Cần theo dõi'}
-                    {item.tone === 'danger' && 'Cảnh báo'}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        </aside>
       </div>
     </div>
   );

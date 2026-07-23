@@ -1,0 +1,285 @@
+.page {
+  display: flex;
+  justify-content: center;
+  padding: 24px;
+}
+
+.card {
+  background: #fff;
+  border-radius: 28px;
+  border: 1px solid #f0e4d7;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
+  display: grid;
+  grid-template-columns: minmax(240px, 280px) 1fr;
+  overflow: hidden;
+  width: min(100%, 980px);
+}
+
+.sidebar {
+  background: #d9571f;
+  color: #fff;
+  padding: 32px;
+  display: grid;
+  gap: 28px;
+}
+
+.brand {
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.sidebar h1 {
+  margin: 0.35rem 0 0;
+  font-size: 1.7rem;
+}
+
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 20px;
+  position: relative;
+}
+
+.steps::before {
+  content: '';
+  position: absolute;
+  left: 11px;
+  top: 12px;
+  bottom: 12px;
+  width: 2px;
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.stepDot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  display: grid;
+  place-items: center;
+  font-size: 0.7rem;
+  font-weight: 600;
+  z-index: 1;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.step--active {
+  color: #fff;
+  font-weight: 600;
+}
+
+.step--active .stepDot {
+  background: #fff;
+  color: #d9571f;
+  border-color: #fff;
+  box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.25);
+}
+
+.content {
+  padding: 36px 40px;
+  display: grid;
+  gap: 14px;
+}
+
+.badge {
+  font-size: 0.75rem;
+  letter-spacing: 0.18em;
+  color: #d9571f;
+  font-weight: 700;
+}
+
+.content h2 {
+  margin: 0;
+  font-size: 1.6rem;
+  color: #0a1629;
+}
+
+.sub {
+  margin: 0;
+  color: #7d8592;
+}
+
+.form {
+  display: grid;
+  gap: 16px;
+  margin-top: 6px;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+  font-weight: 600;
+  color: #0a1629;
+}
+
+.field input {
+  border: 1px solid #e0e2e7;
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  font-size: 0.95rem;
+  background: #fff;
+}
+
+.field input:focus {
+  outline: none;
+  border-color: #d9571f;
+  box-shadow: 0 0 0 4px rgba(217, 87, 31, 0.15);
+}
+
+.phoneRow {
+  display: flex;
+  gap: 10px;
+}
+
+.phoneRow input {
+  flex: 1;
+}
+
+.countryButton {
+  border: 1px solid #e0e2e7;
+  border-radius: 12px;
+  padding: 0.8rem 0.9rem;
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #0a1629;
+}
+
+.countryButton svg {
+  width: 16px;
+  height: 16px;
+}
+
+.codeRow {
+  display: grid;
+  grid-template-columns: repeat(4, 52px);
+  gap: 10px;
+}
+
+.codeRow input {
+  text-align: center;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.infoBox {
+  background: #fdeee4;
+  border-radius: 12px;
+  padding: 0.75rem 0.9rem;
+  display: grid;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: #d9571f;
+}
+
+.infoBox strong {
+  font-weight: 600;
+}
+
+.passwordRow {
+  display: flex;
+  align-items: center;
+  border-radius: 12px;
+  border: 1px solid #e0e2e7;
+  background: #fff;
+}
+
+.passwordRow input {
+  border: none;
+  flex: 1;
+  padding: 0.85rem 1rem;
+  font-size: 0.95rem;
+}
+
+.passwordRow input:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.eyeButton {
+  border: none;
+  background: transparent;
+  color: #7d8592;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.nextButton {
+  border: none;
+  background: #d9571f;
+  color: #fff;
+  border-radius: 12px;
+  padding: 0.85rem 1.6rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: 0 12px 24px rgba(217, 87, 31, 0.25);
+}
+
+.nextButton svg {
+  width: 18px;
+  height: 18px;
+}
+
+@media (max-width: 900px) {
+  .card {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    padding: 24px;
+  }
+
+  .content {
+    padding: 24px;
+  }
+
+  .page {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 600px) {
+  .phoneRow {
+    flex-direction: column;
+  }
+
+  .codeRow {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .actions {
+    justify-content: stretch;
+  }
+
+  .nextButton {
+    width: 100%;
+    justify-content: center;
+  }
+}

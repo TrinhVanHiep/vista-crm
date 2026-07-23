@@ -1,0 +1,20 @@
+{
+  "id": "/",
+  "name": "Vista CRM",
+  "short_name": "Vista CRM",
+  "description": "Quản lý lịch dạy và báo cáo tại Vista",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3f8cff",
+  "lang": "vi",
+  "icons": [
+    {
+      "src": "/vista-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

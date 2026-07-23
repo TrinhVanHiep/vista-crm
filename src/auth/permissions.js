@@ -1,0 +1,18 @@
+export const ROUTE_PERMISSIONS = {
+  dashboard: ['superadmin', 'admin'],
+  courses: ['superadmin', 'admin', 'teacher', 'student'],
+  students: ['superadmin', 'admin', 'teacher'],
+  teachers: ['superadmin', 'admin'],
+  attendance: ['superadmin', 'admin'],
+  calendar: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager'],
+  monthlyScorecards: ['superadmin', 'admin', 'teacher', 'student'],
+  monthlyReports: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager'],
+  reportCard: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager'],
+  employeeProfile: ['superadmin', 'admin', 'teacher'],
+  finance: ['superadmin', 'admin'],
+  documents: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager'],
+  settings: ['superadmin', 'admin'],
+  accounts: ['superadmin', 'admin'],
+  media: ['superadmin', 'admin', 'staff', 'teacher', 'center_manager', 'training_manager'],
+  tuition: ['superadmin', 'admin', 'staff', 'center_manager', 'training_manager'],
+};
