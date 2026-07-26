@@ -74,6 +74,12 @@ export async function getTuitionSummary(params = {}) {
   return data || { total_fee: 0, collected: 0, discount: 0, remaining: 0, students: 0, by_class: [] };
 }
 
+// Tỉ lệ chuyên cần theo lớp (tổng hợp từ điểm danh thật).
+export async function listAttendanceSummary(params = {}) {
+  const { data } = await apiClient.get("/attendance-summary/", { params });
+  return data || { results: [], overall_rate: null };
+}
+
 export async function createTuitionRecord(payload) {
   const { data } = await apiClient.post("/tuition-records/", payload);
   return data;
@@ -218,6 +224,38 @@ export async function listMonthlyScorecards(params = {}) {
   return normalizeCollection(data);
 }
 
+export async function listStudentScores(params = {}) {
+  const { data } = await apiClient.get("/student-scores/", { params });
+  return normalizeCollection(data);
+}
+
+// Đầu mục đánh giá theo nhóm chương trình (không phân trang -> mảng phẳng).
+export async function listEvaluationItems(params = {}) {
+  const { data } = await apiClient.get("/evaluation-items/", { params });
+  return Array.isArray(data) ? data : data?.results || [];
+}
+
+// Nhiệm vụ tháng / học kỳ theo lớp.
+export async function listClassTasks(params = {}) {
+  const { data } = await apiClient.get("/class-tasks/", { params });
+  return normalizeCollection(data);
+}
+
+export async function createClassTask(payload) {
+  const { data } = await apiClient.post("/class-tasks/", payload);
+  return data;
+}
+
+export async function updateClassTask(taskId, payload) {
+  const { data } = await apiClient.patch(`/class-tasks/${taskId}/`, payload);
+  return data;
+}
+
+export async function deleteClassTask(taskId) {
+  const { data } = await apiClient.delete(`/class-tasks/${taskId}/`);
+  return data;
+}
+
 export async function createMonthlyScorecard(payload) {
   const { data } = await apiClient.post("/monthly-scorecards/", payload);
   return data;
@@ -268,6 +306,31 @@ export async function listStudents(params = {}) {
   return normalizeCollection(data);
 }
 
+export async function createStudent(payload) {
+  const { data } = await apiClient.post("/students/students/", payload);
+  return data;
+}
+
+export async function importStudentsFile(formData) {
+  const { data } = await apiClient.post("/students/students/import_students/", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return data;
+}
+
+export async function deleteStudent(studentId) {
+  const { data } = await apiClient.delete(`/students/students/${studentId}/`);
+  return data;
+}
+
+export async function exportStudentsFile(params = {}) {
+  const response = await apiClient.get("/students/students/export_students/", {
+    params,
+    responseType: "blob",
+  });
+  return response.data;
+}
+
 export async function listCentersAll() {
   const { data } = await apiClient.get("/centers/centers/all/");
   return Array.isArray(data) ? data : [];
@@ -300,6 +363,13 @@ export async function listTeacherStudentsByCenterClassroom(centerId, classroomId
 export async function listTeachers(params = {}) {
   const { data } = await apiClient.get("/teachers/teachers/", { params });
   return normalizeCollection(data);
+}
+
+export async function importRosterFile(formData) {
+  const { data } = await apiClient.post("/classrooms/classrooms/import_roster/", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return data;
 }
 
 export async function listClassroomsByCenter(centerId) {

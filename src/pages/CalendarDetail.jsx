@@ -2367,10 +2367,17 @@ function CalendarDetail() {
       }
       const templateDate = selectedDay >= todayString ? selectedDay : todayString;
       const [templateYear, templateMonth, templateDay] = templateDate.split("-");
+      // Dùng tên trung tâm / mã lớp CÓ THẬT trong hệ thống làm ví dụ, để file mẫu
+      // nhập được ngay (tên phải khớp hệ thống mới match được khi nhập).
+      const tplCenter =
+        centers.find((c) => String(c.id) === String(selectedCenterId))?.name ||
+        centers[0]?.name ||
+        "Tên trung tâm trong hệ thống";
+      const tplClass = classrooms[0]?.class_code || classrooms[0]?.name || "Mã lớp trong hệ thống";
       appendJsonSheet(XLSX, workbook, "Lich day", [
         {
-          "Trung tâm": "Vista",
-          "Lớp": "F201",
+          "Trung tâm": tplCenter,
+          "Lớp": tplClass,
           ...(!isTeacherRole && { "Giáo viên": "Mã hoặc tên giáo viên" }),
           "Ngày dạy": `${templateDay}/${templateMonth}/${templateYear}`,
           "Giờ bắt đầu": "18:00",

@@ -12,6 +12,8 @@ const ROUTE_ORDER = [
   { path: '/kho-tai-lieu', allowedRoles: ROUTE_PERMISSIONS.documents },
   { path: '/cai-dat', allowedRoles: ROUTE_PERMISSIONS.settings },
   { path: '/students', allowedRoles: ROUTE_PERMISSIONS.students },
+  { path: '/chuong-trinh', allowedRoles: ROUTE_PERMISSIONS.programs },
+  { path: '/classrooms/:classroomId', allowedRoles: ROUTE_PERMISSIONS.programs },
   { path: '/students/:studentId', allowedRoles: ROUTE_PERMISSIONS.employeeProfile },
   { path: '/teachers', allowedRoles: ROUTE_PERMISSIONS.teachers },
   { path: '/teachers/:teacherId', allowedRoles: ROUTE_PERMISSIONS.employeeProfile },

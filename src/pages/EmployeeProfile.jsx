@@ -11,6 +11,7 @@ import {
   getFullName,
   getInitials,
 } from "../utils/userFormatters";
+import { skillsFor } from "../utils/skills";
 
 const tabs = [
   { id: "overview", label: "Tổng quan" },
@@ -308,6 +309,7 @@ function EmployeeProfile() {
     teacher_comment: "",
     skill_evaluation: "",
     final_project_note: "",
+    skill_scores: {},
   });
   const profile = student
     ? buildStudentProfile(student)
@@ -439,6 +441,14 @@ function EmployeeProfile() {
       (item) => String(item.classroom?.id || item.classroom) === classroomId,
     );
   }, [scoreStudents, selectedAssessment]);
+
+  const scoreSkillLabels = useMemo(() => {
+    const selectedStudent = scoreStudents.find(
+      (item) => String(item.id) === String(scoreForm.student),
+    );
+    const program = selectedStudent?.classroom?.program_name || "";
+    return skillsFor(program);
+  }, [scoreStudents, scoreForm.student]);
 
   useEffect(() => {
     setPayrollTablePage(1);
@@ -723,6 +733,15 @@ function EmployeeProfile() {
         String(item.assessment) === String(scoreForm.assessment) &&
         String(item.student) === String(scoreForm.student),
     );
+    const nextSkillScores =
+      existingScore && existingScore.skill_scores
+        ? Object.fromEntries(
+            Object.entries(existingScore.skill_scores).map(([key, value]) => [
+              key,
+              value === null || value === undefined ? "" : String(value),
+            ]),
+          )
+        : {};
     const nextValues = existingScore
       ? {
           numeric_score: getValue(existingScore.numeric_score, ""),
@@ -731,6 +750,7 @@ function EmployeeProfile() {
           teacher_comment: getValue(existingScore.teacher_comment, ""),
           skill_evaluation: getValue(existingScore.skill_evaluation, ""),
           final_project_note: getValue(existingScore.final_project_note, ""),
+          skill_scores: nextSkillScores,
         }
       : {
           numeric_score: "",
@@ -739,12 +759,18 @@ function EmployeeProfile() {
           teacher_comment: "",
           skill_evaluation: "",
           final_project_note: "",
+          skill_scores: {},
         };
 
     setScoreForm((prev) => {
-      const hasChanged = Object.entries(nextValues).some(
-        ([key, value]) => String(prev[key] ?? "") !== String(value ?? ""),
-      );
+      const hasChanged = Object.entries(nextValues).some(([key, value]) => {
+        if (key === "skill_scores") {
+          return (
+            JSON.stringify(prev.skill_scores ?? {}) !== JSON.stringify(value)
+          );
+        }
+        return String(prev[key] ?? "") !== String(value ?? "");
+      });
       return hasChanged ? { ...prev, ...nextValues } : prev;
     });
   }, [scoreForm.assessment, scoreForm.student, teacher?.id, teacherScores]);
@@ -782,6 +808,15 @@ function EmployeeProfile() {
     }));
   };
 
+  const handleSkillScoreChange = (label, value) => {
+    setScoreNotice("");
+    setScoreError("");
+    setScoreForm((prev) => ({
+      ...prev,
+      skill_scores: { ...(prev.skill_scores || {}), [label]: value },
+    }));
+  };
+
   const handleSaveScore = async (event) => {
     event.preventDefault();
     setScoreNotice("");
@@ -802,6 +837,14 @@ function EmployeeProfile() {
       return;
     }
 
+    const skillScoresPayload = {};
+    scoreSkillLabels.forEach((label) => {
+      const raw = scoreForm.skill_scores?.[label];
+      if (raw !== undefined && raw !== null && String(raw).trim() !== "") {
+        skillScoresPayload[label] = Number(raw);
+      }
+    });
+
     const payload = {
       assessment: Number(scoreForm.assessment),
       student: Number(scoreForm.student),
@@ -810,6 +853,7 @@ function EmployeeProfile() {
       teacher_comment: scoreForm.teacher_comment.trim(),
       skill_evaluation: scoreForm.skill_evaluation.trim(),
       final_project_note: scoreForm.final_project_note.trim(),
+      skill_scores: skillScoresPayload,
       status: scoreForm.status,
       published_date:
         scoreForm.status === "published" || scoreForm.status === "locked"
@@ -1264,6 +1308,43 @@ function EmployeeProfile() {
                     }
                   />
                 </label>
+
+                {scoreForm.student && (
+                  <div className={styles.scoreFormWide}>
+                    <span>Điểm kỹ năng (0-100)</span>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns:
+                          "repeat(auto-fit, minmax(120px, 1fr))",
+                        gap: 8,
+                        marginTop: 4,
+                      }}
+                    >
+                      {scoreSkillLabels.map((label) => (
+                        <label
+                          key={label}
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 4,
+                          }}
+                        >
+                          <span>{label}</span>
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={scoreForm.skill_scores?.[label] ?? ""}
+                            onChange={(event) =>
+                              handleSkillScoreChange(label, event.target.value)
+                            }
+                          />
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <label>
                   <span>Xếp loại</span>

@@ -15,6 +15,8 @@ import Tuition from './pages/Tuition.jsx';
 import Finance from './pages/Finance.jsx';
 import CreateAccount from './pages/CreateAccount.jsx';
 import Students from './pages/Students.jsx';
+import ProgramDetail from './pages/ProgramDetail.jsx';
+import ClassDetail from './pages/ClassDetail.jsx';
 import Teachers from './pages/Teachers.jsx';
 import Attendance from './pages/Attendance.jsx';
 import Login from './pages/Login.jsx';
@@ -74,6 +76,22 @@ function App() {
             element={
               <RoleGuard allowedRoles={ROUTE_PERMISSIONS.students}>
                 <Students />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="chuong-trinh"
+            element={
+              <RoleGuard allowedRoles={ROUTE_PERMISSIONS.programs}>
+                <ProgramDetail />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="classrooms/:classroomId"
+            element={
+              <RoleGuard allowedRoles={ROUTE_PERMISSIONS.programs}>
+                <ClassDetail />
               </RoleGuard>
             }
           />

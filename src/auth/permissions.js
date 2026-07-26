@@ -2,6 +2,7 @@ export const ROUTE_PERMISSIONS = {
   dashboard: ['superadmin', 'admin'],
   courses: ['superadmin', 'admin', 'teacher', 'student'],
   students: ['superadmin', 'admin', 'teacher'],
+  programs: ['superadmin', 'admin', 'teacher'],
   teachers: ['superadmin', 'admin'],
   attendance: ['superadmin', 'admin'],
   calendar: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager'],
