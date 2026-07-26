@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { useOutletContext, useSearchParams } from "react-router-dom";
 import { plannerCategories } from "../data/scheduleData";
 import { useAuth } from "../auth/AuthProvider";
@@ -35,6 +35,7 @@ import {
   scorecardFrameworks,
   teachingShiftChecklist,
 } from "../data/academicWorkflowData";
+import { CenterField, useAutoCenter } from "../utils/centerField";
 import styles from "../styles/calendarDetail.module.css";
 import "../styles/vista4.css";
 
@@ -770,6 +771,20 @@ function CalendarDetail() {
     teaching_plan_week: currentWeek,
     status: "scheduled",
   });
+
+  // Hệ thống hiện chỉ vận hành 1 cơ sở: tự chọn cơ sở duy nhất cho các ô
+  // "chọn trung tâm" ở modal (thay vì hiện dropdown).
+  const setStaffCreateCenter = useCallback(
+    (updater) =>
+      setStaffCreateForm((prev) => {
+        const next =
+          typeof updater === "function" ? updater(prev.center) : updater;
+        return next === prev.center ? prev : { ...prev, center: next };
+      }),
+    [],
+  );
+  useAutoCenter(centers, setReviewCenterId);
+  useAutoCenter(centers, setStaffCreateCenter);
 
   const yearOptions = useMemo(() => {
     const startYear = currentYear - 2;
@@ -3005,20 +3020,15 @@ function CalendarDetail() {
               <div className={styles.reviewFilterGrid}>
                 <label className={styles.formGroup}>
                   <span>Trung tâm</span>
-                  <select
+                  <CenterField
+                    centers={centers}
                     value={reviewCenterId}
                     onChange={(event) => {
                       setReviewCenterId(event.target.value);
                       setReviewClassroomId("");
                     }}
-                  >
-                    <option value="">Tất cả trung tâm</option>
-                    {centers.map((center) => (
-                      <option key={center.id} value={center.id}>
-                        {center.name}
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="Tất cả trung tâm"
+                  />
                 </label>
                 <label className={styles.formGroup}>
                   <span>Lớp</span>
@@ -3533,17 +3543,14 @@ function CalendarDetail() {
                 </label>
                 <label className={styles.formGroup}>
                   <span>Trung tâm</span>
-                  <select
+                  <CenterField
+                    centers={centers}
                     value={staffCreateForm.center}
                     onChange={(event) =>
                       setStaffCreateForm((prev) => ({ ...prev, center: event.target.value }))
                     }
-                  >
-                    <option value="">Không gắn trung tâm</option>
-                    {centers.map((center) => (
-                      <option key={center.id} value={center.id}>{center.name}</option>
-                    ))}
-                  </select>
+                    placeholder="Không gắn trung tâm"
+                  />
                 </label>
                 <label className={`${styles.formGroup} ${styles.formGroupFull}`}>
                   <span>Tiêu đề</span>

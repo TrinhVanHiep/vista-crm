@@ -20,6 +20,7 @@ import {
   updateMonthlyScorecard,
   upsertTuitionStatus,
 } from "../services/calendarService";
+import { CenterField } from "../utils/centerField";
 import styles from "../styles/monthlyScorecards.module.css";
 
 const monthOptions = Array.from({ length: 12 }, (_, index) => ({
@@ -662,6 +663,14 @@ function MonthlyScorecards() {
       cancelled = true;
     };
   }, [isManager, isTeacher]);
+
+  useEffect(() => {
+    if (Array.isArray(centers) && centers.length === 1 && centers[0]?.id != null) {
+      setFilters((prev) =>
+        prev.center ? prev : { ...prev, center: String(centers[0].id) },
+      );
+    }
+  }, [centers]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1435,17 +1444,12 @@ function MonthlyScorecards() {
               <>
                 <label className={styles.field}>
                   <span>Trung tâm</span>
-                  <select
+                  <CenterField
+                    centers={centers}
                     value={filters.center}
                     onChange={(event) => updateFilter("center", event.target.value)}
-                  >
-                    <option value="">Tất cả trung tâm</option>
-                    {centers.map((center) => (
-                      <option key={center.id} value={center.id}>
-                        {center.name}
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="Tất cả trung tâm"
+                  />
                 </label>
                 <label className={styles.field}>
                   <span>Lớp</span>

@@ -6,6 +6,7 @@ import styles from "../styles/employeeList.module.css";
 import { useAuth } from "../auth/AuthProvider";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { formatDate, formatGender, getAge } from "../utils/userFormatters";
+import { CenterField, useAutoCenter } from "../utils/centerField";
 
 const teacherStatusLabels = {
   active: "Đang làm",
@@ -133,6 +134,9 @@ function Teachers() {
     fetchClassrooms();
     setCreateClassroomId("");
   }, [createCenterId]);
+
+  useAutoCenter(centers, setImportCenterId);
+  useAutoCenter(centers, setCreateCenterId);
 
   const importCenterName = useMemo(() => {
     if (!importCenterId) return "";
@@ -429,17 +433,12 @@ function Teachers() {
                 </label>
                 <label className={styles.formGroup}>
                   <span>Trung tâm (tuỳ chọn)</span>
-                  <select
+                  <CenterField
+                    centers={centers}
                     value={importCenterId}
                     onChange={(event) => setImportCenterId(event.target.value)}
-                  >
-                    <option value="">Chọn trung tâm</option>
-                    {centers.map((center) => (
-                      <option key={center.id} value={center.id}>
-                        {center.name}
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="Chọn trung tâm"
+                  />
                 </label>
               </div>
               {importMessage && <div className={styles.state}>{importMessage}</div>}
@@ -600,17 +599,12 @@ function Teachers() {
                 </label>
                 <label className={styles.formGroup}>
                   <span>Trung tâm</span>
-                  <select
+                  <CenterField
+                    centers={centers}
                     value={createCenterId}
                     onChange={(event) => setCreateCenterId(event.target.value)}
-                  >
-                    <option value="">Chọn trung tâm</option>
-                    {centers.map((center) => (
-                      <option key={center.id} value={center.id}>
-                        {center.name}
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="Chọn trung tâm"
+                  />
                 </label>
                 <label className={styles.formGroup}>
                   <span>Lớp học</span>

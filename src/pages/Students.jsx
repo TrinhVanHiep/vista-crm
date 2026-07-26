@@ -16,6 +16,7 @@ import {
   exportStudentsFile,
 } from "../services/calendarService";
 import { skillsFor } from "../utils/skills";
+import { CenterField, useAutoCenter } from "../utils/centerField";
 import "../styles/vista4.css";
 
 const PAGE_SIZE = 12;
@@ -263,14 +264,10 @@ function Students() {
   }, [reloadKey]);
 
   // Chỉ có 1 trung tâm -> mặc định chọn sẵn để khỏi phải chọn khi nhập/thêm.
-  useEffect(() => {
-    if (centers.length === 1) {
-      const id = String(centers[0].id);
-      setRosterCenter((v) => v || id);
-      setImportCenter((v) => v || id);
-      setCreateCenter((v) => v || id);
-    }
-  }, [centers]);
+  useAutoCenter(centers, setFilterCenter);
+  useAutoCenter(centers, setRosterCenter);
+  useAutoCenter(centers, setImportCenter);
+  useAutoCenter(centers, setCreateCenter);
 
   // Create form center → classroom cascade
   useEffect(() => {
@@ -700,11 +697,7 @@ function Students() {
               <div className="flex" style={{ gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
                 <input placeholder="Tìm lớp, mã lớp, chương trình..." value={searchInput} onChange={(e) => setSearchInput(e.target.value)}
                   style={{ flex: "1 1 220px", padding: "8px 12px", border: "1px solid var(--border)", borderRadius: 9, fontSize: 13 }} />
-                <select value={filterCenter} onChange={(e) => setFilterCenter(e.target.value)}
-                  style={{ padding: "8px 12px", border: "1px solid var(--border)", borderRadius: 9, fontSize: 13 }}>
-                  <option value="">Tất cả cơ sở</option>
-                  {centers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
+                <CenterField centers={centers} value={filterCenter} onChange={(e) => setFilterCenter(e.target.value)} placeholder="Tất cả cơ sở" />
               </div>
 
               {!aggLoading && !hasGradeData ? (
@@ -820,10 +813,7 @@ function Students() {
                 </select>
               </label>
               <label><span className="field-label">Cơ sở</span>
-                <select value={createCenter} onChange={(e) => setCreateCenter(e.target.value)}>
-                  <option value="">-- Chọn cơ sở --</option>
-                  {centers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
+                <CenterField centers={centers} value={createCenter} onChange={(e) => setCreateCenter(e.target.value)} placeholder="-- Chọn cơ sở --" />
               </label>
               <label><span className="field-label">Lớp học</span>
                 <select value={createClassroom} onChange={(e) => setCreateClassroom(e.target.value)} disabled={!createCenter}>
@@ -848,10 +838,7 @@ function Students() {
         <Modal title="Nhập học viên từ Excel" onClose={() => setModal(null)} width={560}>
           <p className="small muted" style={{ marginTop: 0 }}>Chọn file Excel (.xlsx) theo mẫu học viên. Có thể gán vào một cơ sở nếu file không ghi rõ.</p>
           <label><span className="field-label">Cơ sở (tuỳ chọn)</span>
-            <select value={importCenter} onChange={(e) => setImportCenter(e.target.value)}>
-              <option value="">-- Không gán --</option>
-              {centers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+            <CenterField centers={centers} value={importCenter} onChange={(e) => setImportCenter(e.target.value)} placeholder="-- Không gán --" />
           </label>
           <label style={{ display: "block", marginTop: 10 }}><span className="field-label">File Excel (.xlsx)</span>
             <input ref={importFileRef} type="file" accept=".xlsx,.xls" />
@@ -877,10 +864,7 @@ function Students() {
             Tải lên file Excel danh sách lớp (nhiều sheet, mỗi sheet là một lớp theo mẫu VISTA). Hệ thống đọc sheet <b>"TỔNG HỢP CÁC CHƯƠNG TRÌNH"</b> để gán chương trình, tạo/cập nhật <b>lớp học</b> và <b>học sinh</b> (tên + SĐT) trong từng sheet. Chạy lại cùng file sẽ không tạo trùng.
           </p>
           <label><span className="field-label">Cơ sở *</span>
-            <select value={rosterCenter} onChange={(e) => setRosterCenter(e.target.value)}>
-              <option value="">-- Chọn cơ sở --</option>
-              {centers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+            <CenterField centers={centers} value={rosterCenter} onChange={(e) => setRosterCenter(e.target.value)} placeholder="-- Chọn cơ sở --" />
           </label>
           <label style={{ display: "block", marginTop: 10 }}><span className="field-label">File Excel (.xlsx)</span>
             <input ref={rosterFileRef} type="file" accept=".xlsx,.xls" />

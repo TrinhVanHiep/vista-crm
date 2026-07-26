@@ -25,6 +25,7 @@ import {
   loadWebPushState,
 } from "../services/webPushService";
 import styles from "../styles/dashboard.module.css";
+import { useAutoCenter, isSingleCenter } from "../utils/centerField";
 
 const NOTIFICATION_POLL_MS = 5000;
 
@@ -239,6 +240,9 @@ function DashboardLayout() {
       cancelled = true;
     };
   }, []);
+
+  // Hệ thống hiện chỉ 1 cơ sở: tự chọn cơ sở duy nhất cho phạm vi header.
+  useAutoCenter(scopeCenters, setScopeCenterId);
 
   useEffect(() => {
     let cancelled = false;
@@ -620,21 +624,23 @@ function DashboardLayout() {
       <div className={styles["dashboard__main"]}>
         <header className={styles["dashboard__topbar"]}>
           <div className={styles["dashboard__topbar-scope"]}>
-            <label className={styles["dashboard__scope-field"]}>
-              <span>🏢</span>
-              <select
-                value={scopeCenterId}
-                onChange={(event) => setScopeCenterId(event.target.value)}
-                aria-label="Chọn trung tâm"
-              >
-                <option value="">Tất cả trung tâm</option>
-                {scopeCenters.map((center) => (
-                  <option key={center.id} value={center.id}>
-                    {center.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+            {!isSingleCenter(scopeCenters) && (
+              <label className={styles["dashboard__scope-field"]}>
+                <span>🏢</span>
+                <select
+                  value={scopeCenterId}
+                  onChange={(event) => setScopeCenterId(event.target.value)}
+                  aria-label="Chọn trung tâm"
+                >
+                  <option value="">Tất cả trung tâm</option>
+                  {scopeCenters.map((center) => (
+                    <option key={center.id} value={center.id}>
+                      {center.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <label className={styles["dashboard__scope-field"]}>
               <span>📅</span>
               <select
