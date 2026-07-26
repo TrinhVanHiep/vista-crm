@@ -956,8 +956,29 @@ function MonthlyScorecards() {
         await updateMonthlyScorecard(form.id, payload);
         setNotice("Đã cập nhật bảng điểm tháng.");
       } else {
-        await createMonthlyScorecard(payload);
-        setNotice("Đã tạo bảng điểm tháng.");
+        const existingScorecard = scorecards.find(
+          (item) =>
+            Number(item.student) === payload.student &&
+            item.program_type === payload.program_type &&
+            item.report_type === payload.report_type &&
+            item.period_label === payload.period_label,
+        );
+        if (existingScorecard) {
+          // Đã có bảng điểm trùng (student+chương trình+loại+kỳ) — DB unique nên
+          // POST sẽ 400. Chỉ ghi đè khi bản cũ còn sửa được; đã gửi/duyệt thì chặn
+          // để không xoá dữ liệu đã chốt (backend admin không tự chặn việc này).
+          if (!["draft", "revision_required"].includes(existingScorecard.status)) {
+            setError(
+              "Học viên này đã có bảng điểm cho kỳ này và bảng đó đã được gửi/duyệt, không thể ghi đè. Mở bảng điểm đó trong danh sách nếu cần chỉnh.",
+            );
+            return;
+          }
+          await updateMonthlyScorecard(existingScorecard.id, payload);
+          setNotice("Đã cập nhật bảng điểm tháng.");
+        } else {
+          await createMonthlyScorecard(payload);
+          setNotice("Đã tạo bảng điểm tháng.");
+        }
       }
       setEditorOpen(false);
       setReloadKey((current) => current + 1);
@@ -1893,6 +1914,7 @@ function MonthlyScorecards() {
                   <span>Kỳ điểm</span>
                   <input
                     value={form.period_label}
+                    maxLength={50}
                     onChange={(event) =>
                       updateFormField("period_label", event.target.value)
                     }
@@ -1985,11 +2007,10 @@ function MonthlyScorecards() {
                   <label className={styles.field}>
                     <span>Xếp loại</span>
                     <input
-                      value={form.grade_label}
-                      onChange={(event) =>
-                        updateFormField("grade_label", event.target.value)
-                      }
-                      placeholder={scoreSummary.suggestedGrade || "Nhập xếp loại"}
+                      value={form.grade_label || scoreSummary.suggestedGrade || ""}
+                      readOnly
+                      disabled
+                      placeholder={scoreSummary.suggestedGrade || "--"}
                     />
                   </label>
                   <label className={styles.field}>

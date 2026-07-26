@@ -400,6 +400,19 @@ const toIsoWithLocalOffset = (value) => {
   )}T${pad2(parsed.getHours())}:${pad2(parsed.getMinutes())}:00${sign}${hours}:${minutes}`;
 };
 
+// Cộng thêm phút vào giá trị input datetime-local ("YYYY-MM-DDTHH:MM").
+const addMinutesToLocalInput = (value, minutes) => {
+  if (!value || value.length < 16) return value;
+  const [datePart, timePart] = value.split("T");
+  const [year, month, day] = datePart.split("-").map(Number);
+  const [hour, minute] = timePart.split(":").map(Number);
+  const dt = new Date(year, month - 1, day, hour, minute);
+  dt.setMinutes(dt.getMinutes() + minutes);
+  return `${dt.getFullYear()}-${pad2(dt.getMonth() + 1)}-${pad2(
+    dt.getDate(),
+  )}T${pad2(dt.getHours())}:${pad2(dt.getMinutes())}`;
+};
+
 const getFinancePerSession = (financeItem) => {
   const divisor =
     Number(financeItem?.approved_sessions_count) ||
@@ -628,7 +641,8 @@ function CalendarDetail() {
   const initialDate = searchParams.get("date") || todayString;
   const initialWeek = readWeekParam(searchParams, currentWeek);
 
-  const { role } = useAuth();
+  const { role, user } = useAuth();
+  const currentUserId = user?.id;
   const isTeacherRole = role === "teacher";
   const canManageSessions = ["superadmin", "admin"].includes(role);
   // Phân quyền duyệt đơn nhân sự (mirror backend staff_requests._can_review).
@@ -1905,6 +1919,10 @@ function CalendarDetail() {
     }
     if (!createForm.start_at || !createForm.end_at) {
       setCreateError("Vui lòng nhập thời gian bắt đầu và kết thúc.");
+      return;
+    }
+    if (createForm.end_at <= createForm.start_at) {
+      setCreateError("Thời gian kết thúc phải sau thời gian bắt đầu.");
       return;
     }
     const sessionDate = createForm.start_at.slice(0, 10);
@@ -3377,15 +3395,29 @@ function CalendarDetail() {
                     onChange={(event) => {
                       const value = event.target.value;
                       const [year, month, day] = value.slice(0, 10).split("-").map(Number);
-                      setCreateForm((prev) => ({
-                        ...prev,
-                        start_at: value,
-                        teaching_plan_month: month || prev.teaching_plan_month,
-                        teaching_plan_year: year || prev.teaching_plan_year,
-                        teaching_plan_week: day
-                          ? getWeekIndexFromDay(day)
-                          : prev.teaching_plan_week,
-                      }));
+                      setCreateForm((prev) => {
+                        // Kéo giờ kết thúc theo ngày bắt đầu; nếu end không còn
+                        // sau start thì mặc định +90 phút để luôn hợp lệ.
+                        let nextEnd = prev.end_at;
+                        if (value && value.length >= 16) {
+                          if (nextEnd && nextEnd.length >= 16) {
+                            nextEnd = `${value.slice(0, 10)}T${nextEnd.slice(11, 16)}`;
+                          }
+                          if (!nextEnd || nextEnd <= value) {
+                            nextEnd = addMinutesToLocalInput(value, 90);
+                          }
+                        }
+                        return {
+                          ...prev,
+                          start_at: value,
+                          end_at: nextEnd,
+                          teaching_plan_month: month || prev.teaching_plan_month,
+                          teaching_plan_year: year || prev.teaching_plan_year,
+                          teaching_plan_week: day
+                            ? getWeekIndexFromDay(day)
+                            : prev.teaching_plan_week,
+                        };
+                      });
                     }}
                   />
                 </label>
@@ -3556,6 +3588,7 @@ function CalendarDetail() {
                   <span>Tiêu đề</span>
                   <input
                     type="text"
+                    maxLength={255}
                     placeholder="VD: Xin nghỉ 1 ngày / Đề xuất trang bị bảng phụ..."
                     value={staffCreateForm.title}
                     onChange={(event) =>
@@ -3594,6 +3627,7 @@ function CalendarDetail() {
                     <span>Ca mong muốn</span>
                     <input
                       type="text"
+                      maxLength={200}
                       placeholder="VD: T6 18:00 - 19:30"
                       value={staffCreateForm.desired_shift}
                       onChange={(event) =>
@@ -3696,7 +3730,9 @@ function CalendarDetail() {
                           <p style={{ margin: 0, fontSize: 13, color: "#43301f" }}>{item.reason}</p>
                         )}
                         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 2 }}>
-                          {canAct ? (
+                          {canAct &&
+                          (isAdminRole ||
+                            String(item.submitted_by?.id ?? item.submitted_by) !== String(currentUserId)) ? (
                             <>
                               <button
                                 type="button"
@@ -3717,7 +3753,11 @@ function CalendarDetail() {
                             </>
                           ) : (
                             <span className={styles.note} style={{ margin: 0 }}>
-                              Bạn không có quyền duyệt loại đơn này.
+                              {canAct &&
+                              String(item.submitted_by?.id ?? item.submitted_by) ===
+                                String(currentUserId)
+                                ? "Không thể tự duyệt đơn của chính mình."
+                                : "Bạn không có quyền duyệt loại đơn này."}
                             </span>
                           )}
                         </div>
@@ -4026,14 +4066,14 @@ function CalendarDetail() {
                 <button
                   type="submit"
                   className={styles.secondaryButton}
-                  disabled={reportSaving}
+                  disabled={reportSaving || (activeReport && !["draft", "revision_required"].includes(activeReport.report_status))}
                 >
                   {reportSaving ? "Đang lưu..." : "Lưu nháp"}
                 </button>
                 <button
                   type="button"
                   className={styles.primaryButton}
-                  disabled={reportSaving}
+                  disabled={reportSaving || (activeReport && !["draft", "revision_required"].includes(activeReport.report_status))}
                   onClick={() => saveSessionReport({ thenSubmit: true })}
                 >
                   {reportSaving ? "Đang gửi..." : "Đã báo cáo — Gửi duyệt"}

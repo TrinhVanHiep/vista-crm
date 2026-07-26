@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import {
   listTeachingSessions,
   createSessionReport,
+  updateSessionReport,
+  listSessionReports,
   listMediaReports,
   createMediaReport,
   importSessionReportsFile,
@@ -62,6 +64,12 @@ const REPORT_META = {
 };
 const reportMeta = (status) => REPORT_META[status] || REPORT_META.__none;
 const isReported = (status) => ["draft", "submitted", "approved"].includes(status);
+// Báo cáo còn sửa được (hoặc chưa có) => cho phép nhập/cập nhật; đã khóa => chỉ xem.
+// Backend chỉ cho giáo viên PATCH khi status ∈ {draft, revision_required}
+// (teaching/views.py perform_update); "rejected" là trạng thái khóa, không sửa được.
+const EDITABLE_STATUSES = ["draft", "revision_required"];
+const LOCKED_STATUSES = ["submitted", "approved", "rejected"];
+const isLockedReport = (status) => LOCKED_STATUSES.includes(status);
 
 // Progress ring with % in center (no stray dot at 0%).
 function RingDonut({ pct = 0, color = "#F26522", size = 54, thick = 7 }) {
@@ -239,7 +247,40 @@ function DailyReport() {
   };
 
   const selectedSession = sessions.find((s) => String(s.id) === String(selectedSessionId)) || null;
-  const selectedReported = selectedSession && isReported(selectedSession.report_status);
+  const selectedStatus = selectedSession?.report_status || "";
+  // Chỉ khóa nhập khi báo cáo đã submitted/approved. Draft/rejected/revision_required vẫn cho sửa lại.
+  const selectedReported = Boolean(selectedSession) && isLockedReport(selectedStatus);
+  const selectedEditableReport = Boolean(selectedSession) && EDITABLE_STATUSES.includes(selectedStatus);
+
+  // Khi chọn buổi dạy đã có báo cáo còn sửa được (draft / rejected / revision_required) thì nạp sẵn
+  // nội dung để giáo viên chỉnh sửa thay vì gõ lại từ đầu; ngược lại để form trống.
+  useEffect(() => {
+    if (!isDay || !selectedSessionId) return undefined;
+    if (!selectedEditableReport) {
+      setForm({ student_count: "", topic: "", activities: "" });
+      return undefined;
+    }
+    let active = true;
+    (async () => {
+      try {
+        const res = await listSessionReports({ session: Number(selectedSessionId) });
+        const rpt = (res?.results || [])[0];
+        if (active && rpt) {
+          setForm({
+            student_count:
+              rpt.student_count != null && rpt.student_count !== "" ? String(rpt.student_count) : "",
+            topic: rpt.content_taught || "",
+            activities: rpt.session_evaluation || "",
+          });
+        }
+      } catch (error) {
+        /* Không nạp được báo cáo cũ thì giữ nguyên form, không chặn nhập. */
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [isDay, selectedSessionId, selectedEditableReport]);
 
   const saveReport = async (advance) => {
     setFormError("");
@@ -253,7 +294,7 @@ function DailyReport() {
     }
     setSaving(true);
     try {
-      await createSessionReport({
+      const payload = {
         session: Number(selectedSessionId),
         objective_status: "achieved",
         student_count: form.student_count ? Number(form.student_count) : undefined,
@@ -261,7 +302,21 @@ function DailyReport() {
         session_evaluation: form.activities.trim() || "Hoàn thành nội dung buổi học.",
         attendance_summary: form.student_count ? `${form.student_count} học sinh đi học` : "Đã điểm danh",
         homework_assigned: "Xem lại nội dung bài học.",
-      });
+      };
+      // SessionReport.session là OneToOne (unique): nếu buổi dạy đã có báo cáo (kể cả bị từ chối /
+      // cần sửa) thì phải PATCH cập nhật, POST tạo mới sẽ bị 400. Chỉ tạo mới khi chưa có báo cáo.
+      const existingStatus = selectedSession?.report_status;
+      if (existingStatus) {
+        const existingList = await listSessionReports({ session: Number(selectedSessionId) });
+        const existing = (existingList?.results || [])[0];
+        if (existing?.id) {
+          await updateSessionReport(existing.id, payload);
+        } else {
+          await createSessionReport(payload);
+        }
+      } else {
+        await createSessionReport(payload);
+      }
       setNotice("Đã lưu báo cáo buổi dạy.");
       setForm({ student_count: "", topic: "", activities: "" });
       if (advance) {
@@ -270,11 +325,14 @@ function DailyReport() {
       }
       setReloadKey((k) => k + 1);
     } catch (error) {
+      const httpStatus = error?.response?.status;
       setFormError(
         error?.response?.data?.detail ||
-          (error?.response?.status === 400
+          (httpStatus === 400
             ? "Buổi dạy này có thể đã có báo cáo hoặc thiếu thông tin."
-            : "Không lưu được báo cáo. Vui lòng thử lại.")
+            : httpStatus === 403
+              ? "Báo cáo đã gửi/duyệt hoặc bị từ chối nên không sửa được."
+              : "Không lưu được báo cáo. Vui lòng thử lại.")
       );
     } finally {
       setSaving(false);
