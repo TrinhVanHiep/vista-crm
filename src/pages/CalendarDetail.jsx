@@ -74,6 +74,15 @@ const teachingPlanStatusOptions = {
   rejected: "Từ chối",
 };
 
+// Màu badge theo trạng thái duyệt lịch báo giảng (dùng class .badge trong vista4.css).
+const teachingPlanStatusBadge = {
+  draft: "gray",
+  submitted: "orange",
+  approved: "green",
+  revision_required: "red",
+  rejected: "red",
+};
+
 const objectiveStatusOptions = [
   { value: "achieved", label: "Đạt mục tiêu" },
   { value: "partial", label: "Đạt một phần" },
@@ -2798,7 +2807,18 @@ function CalendarDetail() {
                                   {cell.map((it, idx) => (
                                     <div className="lesson normal" key={it.id} style={{ cursor: "pointer", borderLeft: `3px solid ${it.color}` }} onClick={() => setDetailSession(it)}>
                                       <img className="avatar" alt="" src={avatarUrl(it.owner || it.title, idx)} style={{ width: 18, height: 18, borderRadius: "50%", flexShrink: 0 }} />
-                                      <span><b>{it.title}</b><small>{it.time}</small></span>
+                                      <span style={{ minWidth: 0 }}>
+                                        <b>{it.title}</b>
+                                        <small>{it.time}</small>
+                                        {it.kind === "session" && it.raw?.teaching_plan_status ? (
+                                          <span
+                                            className={`badge ${teachingPlanStatusBadge[it.raw.teaching_plan_status] || "gray"}`}
+                                            style={{ display: "flex", width: "fit-content", marginTop: 3, fontSize: 8.5, fontWeight: 700, padding: "1px 6px", lineHeight: 1.3 }}
+                                          >
+                                            {teachingPlanStatusOptions[it.raw.teaching_plan_status] || it.raw.teaching_plan_status}
+                                          </span>
+                                        ) : null}
+                                      </span>
                                     </div>
                                   ))}
                                 </div>
@@ -3035,7 +3055,7 @@ function CalendarDetail() {
               <footer className={styles.modalFooter}>
                 <button
                   type="button"
-                  className="btn primary"
+                  className={styles.primaryButton}
                   onClick={() => {
                     const sessionId = detailSession.raw.id;
                     setDetailSession(null);
