@@ -1789,11 +1789,6 @@ function CalendarDetail() {
     reviewTeacherId,
     teachers,
   ]);
-  const reviewDeadline = useMemo(
-    () => new Date(selectedYear, selectedMonth - 1, 1),
-    [selectedMonth, selectedYear],
-  );
-  const isReviewPeriodOpen = todayAtStart < reviewDeadline;
 
   useEffect(() => {
     let cancelled = false;
@@ -2593,12 +2588,6 @@ function CalendarDetail() {
     setScheduleError("");
     setNotice("");
     setReviewError("");
-    if (!isReviewPeriodOpen) {
-      const message = `Quản lý phải duyệt hoặc từ chối lịch báo giảng trước ngày 01/${pad2(selectedMonth)}/${selectedYear}.`;
-      setScheduleError(message);
-      setReviewError(message);
-      return false;
-    }
     setReviewActionSessionId(sessionId);
     try {
       const fallbackNote =
@@ -3080,11 +3069,6 @@ function CalendarDetail() {
                   </select>
                 </label>
               </div>
-              {!isReviewPeriodOpen && (
-                <div className={styles.errorNotice}>
-                  Đã quá hạn duyệt cho kỳ này. Quản lý phải duyệt trước ngày đầu tiên của tháng triển khai.
-                </div>
-              )}
               {reviewError && <div className={styles.errorNotice}>{reviewError}</div>}
               <div className={styles.reviewList}>
                 {reviewLoading ? (
@@ -3119,7 +3103,6 @@ function CalendarDetail() {
                           title="Hành động"
                           disabled={
                             reviewActionSessionId === session.id ||
-                            !isReviewPeriodOpen ||
                             session.teaching_plan_status !== "submitted"
                           }
                           onClick={() =>
