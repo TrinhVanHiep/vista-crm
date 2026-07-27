@@ -719,6 +719,16 @@ function CalendarDetail() {
   // Trang Lịch mới: thẻ công việc + chế độ xem + lịch công tác.
   const [selectedCard, setSelectedCard] = useState("teaching_plan");
   const [calendarView, setCalendarView] = useState("month"); // month | week | day
+  // Mỗi cột ngày trong board tuần chỉ hiện tối đa MAX_VISIBLE_EVENTS buổi;
+  // ngày nào được mở rộng thì hiện hết (tránh hiển thị quá nhiều lịch cùng lúc).
+  const [expandedDays, setExpandedDays] = useState(() => new Set());
+  const toggleDayExpand = (dayId) =>
+    setExpandedDays((prev) => {
+      const next = new Set(prev);
+      if (next.has(dayId)) next.delete(dayId);
+      else next.add(dayId);
+      return next;
+    });
   const [focusDate, setFocusDate] = useState(() => toDateInputValueFromParts(new Date()));
   const [schedules, setSchedules] = useState([]);
   const [staffPending, setStaffPending] = useState({ leave_shift: 0, proposal: 0, total: 0 });
@@ -2716,9 +2726,27 @@ function CalendarDetail() {
                 const week = monthWeeks.find((w) => w.days.some((d) => d.id === focusDate)) || monthWeeks[0];
                 const days = week?.days || [];
                 const parseHour = (t) => { const m = /(\d{1,2}):(\d{2})/.exec(t || ""); return m ? Number(m[1]) : null; };
+                // Giới hạn mỗi cột ngày tối đa MAX_VISIBLE_EVENTS buổi; phần dư ẩn
+                // sau nút "Xem thêm" của ngày đó (tránh hiển thị quá nhiều lịch cùng lúc).
+                const visibleIdsByDay = new Map();
+                const hiddenCountByDay = new Map();
                 const hoursSet = new Set();
-                days.forEach((d) => (gridItemsByDate.get(d.id) || []).forEach((it) => { const h = parseHour(it.time); if (h != null) hoursSet.add(h); }));
+                days.forEach((d) => {
+                  const dayItems = (gridItemsByDate.get(d.id) || [])
+                    .slice()
+                    .sort((a, b) => (parseHour(a.time) ?? 0) - (parseHour(b.time) ?? 0));
+                  const shown = expandedDays.has(d.id)
+                    ? dayItems
+                    : dayItems.slice(0, MAX_VISIBLE_EVENTS);
+                  visibleIdsByDay.set(d.id, new Set(shown.map((it) => it.id)));
+                  hiddenCountByDay.set(d.id, dayItems.length - shown.length);
+                  // Chỉ lấy hàng giờ từ các buổi đang hiển thị để không tạo dòng trống.
+                  shown.forEach((it) => { const h = parseHour(it.time); if (h != null) hoursSet.add(h); });
+                });
                 const hours = [...hoursSet].sort((a, b) => a - b);
+                const anyMoreControls = days.some(
+                  (d) => (hiddenCountByDay.get(d.id) || 0) > 0 || expandedDays.has(d.id),
+                );
                 const shiftWeek = (delta) => { const [y, m, dd] = focusDate.split("-").map(Number); const nd = new Date(y, m - 1, dd + delta * 7); const s = `${nd.getFullYear()}-${pad2(nd.getMonth() + 1)}-${pad2(nd.getDate())}`; setFocusDate(s); setSelectedYear(nd.getFullYear()); setSelectedMonth(nd.getMonth() + 1); };
                 return (
                   <div className="card">
@@ -2761,7 +2789,10 @@ function CalendarDetail() {
                           <Fragment key={h}>
                             <div className="sc-t">{pad2(h)}:00</div>
                             {days.map((d) => {
-                              const cell = (gridItemsByDate.get(d.id) || []).filter((it) => parseHour(it.time) === h);
+                              const visibleSet = visibleIdsByDay.get(d.id);
+                              const cell = (gridItemsByDate.get(d.id) || []).filter(
+                                (it) => parseHour(it.time) === h && (!visibleSet || visibleSet.has(it.id)),
+                              );
                               return (
                                 <div className="sc-c" key={d.id}>
                                   {cell.map((it, idx) => (
@@ -2775,6 +2806,28 @@ function CalendarDetail() {
                             })}
                           </Fragment>
                         ))}
+                        {hours.length > 0 && anyMoreControls && (
+                          <>
+                            <div className="sc-t"></div>
+                            {days.map((d) => {
+                              const hidden = hiddenCountByDay.get(d.id) || 0;
+                              const isExp = expandedDays.has(d.id);
+                              return (
+                                <div className="sc-c" key={`more-${d.id}`}>
+                                  {hidden > 0 ? (
+                                    <button type="button" className="btn ghost sm" style={{ width: "100%" }} onClick={() => toggleDayExpand(d.id)}>
+                                      +{hidden} Xem thêm
+                                    </button>
+                                  ) : isExp ? (
+                                    <button type="button" className="btn ghost sm" style={{ width: "100%" }} onClick={() => toggleDayExpand(d.id)}>
+                                      Thu gọn
+                                    </button>
+                                  ) : null}
+                                </div>
+                              );
+                            })}
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
