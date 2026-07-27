@@ -24,6 +24,7 @@ import {
   listTeachers,
   listTeachingSessions,
   reviewTeachingSessionPlan,
+  reviewMonthlyTeachingPlan,
   submitMonthlyTeachingPlan,
   submitSessionReport,
   updateSessionReport,
@@ -778,6 +779,7 @@ function CalendarDetail() {
   const [reportError, setReportError] = useState("");
   const [isReviewOpen, setIsReviewOpen] = useState(false);
   const [reviewLoading, setReviewLoading] = useState(false);
+  const [approveAllLoading, setApproveAllLoading] = useState(false);
   const [reviewError, setReviewError] = useState("");
   const [reviewSessions, setReviewSessions] = useState([]);
   const [reviewCenterId, setReviewCenterId] = useState("");
@@ -2646,6 +2648,39 @@ function CalendarDetail() {
     }
   };
 
+  // Duyệt tất cả lịch báo giảng đang "chờ duyệt" trong phạm vi đang lọc (1 lần gọi).
+  const handleApproveAllPlans = async () => {
+    const pendingCount = reviewSessions.filter(
+      (s) => s.teaching_plan_status === "submitted",
+    ).length;
+    if (!pendingCount) return;
+    setReviewError("");
+    setNotice("");
+    setApproveAllLoading(true);
+    try {
+      const res = await reviewMonthlyTeachingPlan({
+        month: selectedMonth,
+        year: selectedYear,
+        decision: "approve",
+        note: "Duyệt tất cả lịch báo giảng.",
+        ...(reviewCenterId ? { center: Number(reviewCenterId) } : {}),
+        ...(reviewClassroomId ? { classroom: Number(reviewClassroomId) } : {}),
+        ...(reviewTeacherId ? { teacher: Number(reviewTeacherId) } : {}),
+      });
+      setNotice(
+        `Đã duyệt ${res?.reviewed_count ?? pendingCount} ca lịch báo giảng.`,
+      );
+      setReviewSessions([]);
+      setReloadKey((prev) => prev + 1);
+    } catch (error) {
+      setReviewError(
+        getErrorMessage(error, "Không thể duyệt tất cả lịch báo giảng."),
+      );
+    } finally {
+      setApproveAllLoading(false);
+    }
+  };
+
   const openReviewReasonDialog = (session, decision) => {
     setReviewReasonTarget({ session, decision });
     setReviewReasonText("");
@@ -3142,6 +3177,22 @@ function CalendarDetail() {
                   </select>
                 </label>
               </div>
+              {reviewSessions.some((s) => s.teaching_plan_status === "submitted") && (
+                <div style={{ display: "flex", justifyContent: "flex-end", margin: "4px 0 10px" }}>
+                  <button
+                    type="button"
+                    className={styles.primaryButton}
+                    onClick={handleApproveAllPlans}
+                    disabled={approveAllLoading || Boolean(reviewActionSessionId)}
+                  >
+                    {approveAllLoading
+                      ? "Đang duyệt..."
+                      : `Duyệt tất cả (${
+                          reviewSessions.filter((s) => s.teaching_plan_status === "submitted").length
+                        })`}
+                  </button>
+                </div>
+              )}
               {reviewError && <div className={styles.errorNotice}>{reviewError}</div>}
               <div className={styles.reviewList}>
                 {reviewLoading ? (
