@@ -139,7 +139,12 @@ export default function ProgramDetail() {
       return "";
     }
   })();
-  const canManage = ["superadmin", "admin"].includes(role);
+  // Backend ClassTaskViewSet.create dùng IsTeacherOrAdmin -> is_teaching_planner_user,
+  // TEACHING_PLANNER_ROLE_NAMES có "teacher" => giáo viên được tạo nhiệm vụ lớp.
+  const canManage = ["superadmin", "admin", "teacher"].includes(role);
+  // Học phí: backend CanManageTuition chỉ cho {superadmin, admin, staff, center_manager,
+  // training_manager} — role teacher bị 403, nên ẩn hẳn mọi khối học phí cho teacher.
+  const isTeacher = role === "teacher";
 
   const [rows, setRows] = useState([]);
   const [deliveryById, setDeliveryById] = useState({});
@@ -196,7 +201,9 @@ export default function ProgramDetail() {
   }, [reloadKey]);
 
   // Học phí năm 2026 (REAL) — nạp 1 lần khi mount, dựng Map theo mã lớp chuẩn hoá.
+  // Bỏ qua với role teacher (API trả 403) để không gọi thừa.
   useEffect(() => {
+    if (isTeacher) return undefined;
     let active = true;
     (async () => {
       const summary = await getTuitionSummary({ year: 2026 }).catch(() => ({ by_class: [] }));
@@ -204,7 +211,7 @@ export default function ProgramDetail() {
       setTuitionMap(tuitionByNormCode(summary?.by_class || []));
     })();
     return () => { active = false; };
-  }, []);
+  }, [isTeacher]);
 
   // Group classes by program_name (null -> "Chưa phân loại")
   const programs = useMemo(() => {
@@ -400,7 +407,7 @@ export default function ProgramDetail() {
             </div>
 
             {/* 3. KPI row for the active program */}
-            <div className="kpi-grid cols-5">
+            <div className={`kpi-grid${isTeacher ? " cols-4" : ""}`}>
               <Kpi ico="🏫" icoClass="orange" label="Tổng số lớp" value={fmt(kpis.totalClasses)} sub={activeProgram} />
               <Kpi ico="👥" icoClass="blue" label="Tổng sĩ số" value={fmt(kpis.totalStudents)} sub="học sinh đang học" />
               <Kpi
@@ -412,15 +419,17 @@ export default function ProgramDetail() {
                   ? `${gradePctSub}% lộ trình · ${fmt(kpis.knownClasses)}/${fmt(kpis.totalClasses)} lớp có tổng buổi`
                   : `Đã học ${fmt(kpis.sessionsAll)} buổi · chưa rõ tổng số buổi`}
               />
-              <Kpi
-                ico="💰"
-                icoClass="green"
-                label="Học phí đã thu / còn tồn"
-                value={programTuition.matched > 0 ? vnd(programTuition.paid) : "—"}
-                sub={programTuition.matched > 0
-                  ? `Còn tồn: ${vnd(programTuition.remaining)}`
-                  : "Chưa có dữ liệu học phí"}
-              />
+              {!isTeacher ? (
+                <Kpi
+                  ico="💰"
+                  icoClass="green"
+                  label="Học phí đã thu / còn tồn"
+                  value={programTuition.matched > 0 ? vnd(programTuition.paid) : "—"}
+                  sub={programTuition.matched > 0
+                    ? `Còn tồn: ${vnd(programTuition.remaining)}`
+                    : "Chưa có dữ liệu học phí"}
+                />
+              ) : null}
               <Kpi
                 ico="📋"
                 icoClass="yellow"
@@ -445,7 +454,7 @@ export default function ProgramDetail() {
                         <th>Giáo viên</th>
                         <th className="t-center">Sĩ số</th>
                         <th className="t-center">Số buổi đã học/tổng</th>
-                        <th className="t-center">Tình trạng học phí</th>
+                        {!isTeacher ? <th className="t-center">Tình trạng học phí</th> : null}
                         <th className="t-center">Trạng thái</th>
                       </tr>
                     </thead>
@@ -489,19 +498,21 @@ export default function ProgramDetail() {
                                 ? `${fmt(sess)} / ${fmt(tb)}`
                                 : <span className="muted">{fmt(sess)} / —</span>}
                             </td>
-                            <td className="t-center">
-                              {tui
-                                ? (tui.remaining > 0
-                                  ? <span className="badge orange">Còn thiếu · {vnd(tui.remaining)}</span>
-                                  : <span className="badge green">Đã đủ</span>)
-                                : <span className="muted">—</span>}
-                            </td>
+                            {!isTeacher ? (
+                              <td className="t-center">
+                                {tui
+                                  ? (tui.remaining > 0
+                                    ? <span className="badge orange">Còn thiếu · {vnd(tui.remaining)}</span>
+                                    : <span className="badge green">Đã đủ</span>)
+                                  : <span className="muted">—</span>}
+                              </td>
+                            ) : null}
                             <td className="t-center"><span className={`badge ${st.cls}`}>{st.label}</span></td>
                           </tr>
                         );
                       }) : (
                         <tr>
-                          <td colSpan={6} className="muted" style={{ padding: 16, textAlign: "center" }}>
+                          <td colSpan={isTeacher ? 5 : 6} className="muted" style={{ padding: 16, textAlign: "center" }}>
                             Chưa có lớp học cho chương trình này.
                           </td>
                         </tr>
@@ -509,9 +520,11 @@ export default function ProgramDetail() {
                     </tbody>
                   </table>
                 </div>
-                <div className="small muted" style={{ marginTop: 8 }}>
-                  Học phí năm 2026 (thực) · {fmt(programTuition.matched)}/{fmt(activeClasses.length)} lớp có dữ liệu học phí.
-                </div>
+                {!isTeacher ? (
+                  <div className="small muted" style={{ marginTop: 8 }}>
+                    Học phí năm 2026 (thực) · {fmt(programTuition.matched)}/{fmt(activeClasses.length)} lớp có dữ liệu học phí.
+                  </div>
+                ) : null}
               </div>
 
               {/* 5 + grade: A. Tiến độ lộ trình (REAL) | Phân bố xếp loại (REAL) */}
@@ -579,8 +592,10 @@ export default function ProgramDetail() {
               </div>
 
               {/* 6 + 8: B. Tình trạng học phí (REAL) | Tổng quan thời gian thực (DEMO) */}
-              <div className="grid c2">
-                {/* 6. B. Tình trạng học phí — REAL donut (getTuitionSummary năm 2026) */}
+              <div className={`grid${isTeacher ? "" : " c2"}`}>
+                {/* 6. B. Tình trạng học phí — REAL donut (getTuitionSummary năm 2026).
+                    Ẩn với role teacher: API học phí trả 403 cho giáo viên. */}
+                {!isTeacher ? (
                 <div className="card">
                   <div className="card-head">
                     <h3>B. Tình trạng học phí</h3>
@@ -611,6 +626,7 @@ export default function ProgramDetail() {
                     </div>
                   )}
                 </div>
+                ) : null}
 
                 {/* 8. Tổng quan theo thời gian thực — DEMO stat rows */}
                 <div className="card">

@@ -13,12 +13,6 @@ import {
 } from "../utils/userFormatters";
 import { skillsFor } from "../utils/skills";
 
-const tabs = [
-  { id: "overview", label: "Tổng quan" },
-  { id: "activity", label: "Hoạt động" },
-  { id: "reports", label: "Báo cáo" },
-];
-
 const monthOptions = Array.from({ length: 12 }, (_, index) => ({
   value: index + 1,
   label: `Tháng ${index + 1}`,
@@ -463,7 +457,7 @@ function EmployeeProfile() {
   }, [student?.id, studentScores.length]);
 
   useEffect(() => {
-    if (!teacher?.id) {
+    if (!teacher?.id || !isAdmin) {
       setPayrollPreview(null);
       setPayrollError("");
       setPayrollLoading(false);
@@ -506,7 +500,7 @@ function EmployeeProfile() {
     return () => {
       cancelled = true;
     };
-  }, [payrollMonth, payrollYear, teacher?.id]);
+  }, [isAdmin, payrollMonth, payrollYear, teacher?.id]);
 
   useEffect(() => {
     if (!isAdmin || !teacher?.user?.id) {
@@ -956,22 +950,6 @@ function EmployeeProfile() {
         </aside>
 
         <section className={styles.mainPanel}>
-          <div className={styles.tabsRow}>
-            <div className={styles.tabs}>
-              {tabs.map((tab, index) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  className={`${styles.tab} ${
-                    index === 0 ? styles["tab--active"] : ""
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
           <div className={styles.courseList}>
             {profile.cards.map((card) => (
               <article key={card.code} className={styles.courseCard}>
@@ -1012,7 +990,7 @@ function EmployeeProfile() {
             ))}
           </div>
 
-          {teacher && (
+          {teacher && isAdmin && (
             <section className={styles.salaryPanel}>
               <div className={styles.salaryHeader}>
                 <div>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import apiClient from "../services/apiClient";
 import styles from "../styles/finance.module.css";
 
@@ -49,6 +49,7 @@ function Finance() {
   const [transactionError, setTransactionError] = useState("");
   const [hasNext, setHasNext] = useState(false);
   const [hasPrev, setHasPrev] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   const yearOptions = useMemo(() => {
     const years = [];
@@ -59,7 +60,6 @@ function Finance() {
   }, [currentYear]);
 
   const filterKey = `${period}-${selectedYear}-${selectedMonth}-${selectedQuarter}`;
-  const lastFilterRef = useRef(filterKey);
 
   const periodLabel = useMemo(() => {
     if (period === "month") {
@@ -161,19 +161,19 @@ function Finance() {
         expense: periodExpense,
         net: periodIncome - periodExpense,
       });
-      setNotice("");
       setError("");
     } catch (fetchError) {
       setError("Không thể tải dữ liệu doanh thu. Vui lòng thử lại.");
     }
   };
 
-  const fetchTransactions = async () => {
+  const fetchTransactions = async ({ page, isStale }) => {
+    const stale = () => (typeof isStale === "function" ? isStale() : false);
     setTransactionLoading(true);
     setTransactionError("");
     try {
       const params = {
-        page: transactionPage,
+        page,
         page_size: transactionPageSize,
         year: selectedYear,
         period,
@@ -185,6 +185,7 @@ function Finance() {
         params.quarter = selectedQuarter;
       }
       const response = await apiClient.get("/finances/entries/", { params });
+      if (stale()) return;
       const data = response.data;
       const results = Array.isArray(data) ? data : data?.results || [];
       setTransactions(results);
@@ -192,6 +193,7 @@ function Finance() {
       setHasNext(Boolean(data?.next));
       setHasPrev(Boolean(data?.previous));
     } catch (fetchError) {
+      if (stale()) return;
       const apiError = fetchError?.response?.data;
       const message =
         apiError?.detail ||
@@ -199,7 +201,9 @@ function Finance() {
         "Không thể tải giao dịch. Vui lòng thử lại.";
       setTransactionError(message);
     } finally {
-      setTransactionLoading(false);
+      if (!stale()) {
+        setTransactionLoading(false);
+      }
     }
   };
 
@@ -210,16 +214,22 @@ function Finance() {
       month: selectedMonth,
       quarter: selectedQuarter,
     });
+  }, [filterKey, reloadKey]);
+
+  // Đổi bộ lọc thì luôn quay về trang 1 và dọn thông báo của lần import trước.
+  useEffect(() => {
+    setTransactionPage(1);
+    setNotice("");
   }, [filterKey]);
 
+  // Luôn tải lại giao dịch khi bộ lọc / trang / lần import thay đổi.
   useEffect(() => {
-    if (lastFilterRef.current !== filterKey) {
-      lastFilterRef.current = filterKey;
-      setTransactionPage(1);
-      return;
-    }
-    fetchTransactions();
-  }, [filterKey, transactionPage]);
+    let cancelled = false;
+    fetchTransactions({ page: transactionPage, isStale: () => cancelled });
+    return () => {
+      cancelled = true;
+    };
+  }, [filterKey, transactionPage, reloadKey]);
 
   const handleImport = async (event) => {
     event.preventDefault();
@@ -261,6 +271,7 @@ function Finance() {
       if (targetYear) {
         setSelectedYear(targetYear);
       }
+      setReloadKey((value) => value + 1);
       setNotice("Đã import dữ liệu thu/chi thành công.");
       setIsImportOpen(false);
       setTuitionFile(null);

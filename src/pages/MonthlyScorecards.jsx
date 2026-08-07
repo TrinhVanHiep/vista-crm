@@ -331,6 +331,8 @@ function MonthlyScorecards() {
   const isManager = ["superadmin", "admin"].includes(role);
   const canManageScorecards = ["superadmin", "admin", "teacher"].includes(role);
   const isTeacher = role === "teacher";
+  // Học viên chỉ xem bảng điểm của chính mình, không có danh sách lớp.
+  const isStudent = role === "student";
 
   const [filters, setFilters] = useState({
     year: currentYear,
@@ -374,7 +376,7 @@ function MonthlyScorecards() {
   const [reloadKey, setReloadKey] = useState(0);
 
   const navigate = useNavigate();
-  const [pageView, setPageView] = useState("overview");
+  const [pageView, setPageView] = useState(isStudent ? "scorecards" : "overview");
   const [overviewPeriod, setOverviewPeriod] = useState({
     month: currentMonth,
     year: currentYear,
@@ -1355,13 +1357,15 @@ function MonthlyScorecards() {
     <div className={styles.page}>
       <header className={styles.header}>
         <div>
-          <button
-            type="button"
-            className={styles.secondaryButton}
-            onClick={() => setPageView("overview")}
-          >
-            ← Danh sách lớp
-          </button>
+          {!isStudent && (
+            <button
+              type="button"
+              className={styles.secondaryButton}
+              onClick={() => setPageView("overview")}
+            >
+              ← Danh sách lớp
+            </button>
+          )}
           <span className={styles.badge} style={{ marginTop: 10 }}>Bảng điểm tháng</span>
           <h1>{buildPeriodLabel(filters.month, filters.year)}</h1>
           <p>

@@ -190,6 +190,21 @@ function DashboardLayout() {
   const { user, role, hasRole, logout } = useAuth();
   const navigate = useNavigate();
   const visibleNavItems = navItems.filter((item) => hasRole(item.allowedRoles));
+  // Ô tìm kiếm header chỉ được gọi API và hiện kết quả cho nhóm mà role thực sự mở được
+  // màn đích. Nếu không, API trả 403 (kết quả luôn rỗng) hoặc RoleGuard đá sang /unauthorized.
+  const canOpenStudentList = hasRole(ROUTE_PERMISSIONS.students); // /students?classroom=...
+  const canOpenPersonProfile = hasRole(ROUTE_PERMISSIONS.employeeProfile); // /students/:id, /teachers/:id
+  const canSearchStudents = canOpenStudentList && canOpenPersonProfile;
+  const canSearchClassrooms = canOpenStudentList;
+  const canSearchTeachers = canOpenPersonProfile;
+  const canSearch = canSearchStudents || canSearchClassrooms || canSearchTeachers;
+  const searchPlaceholder = (() => {
+    const parts = [];
+    if (canSearchStudents) parts.push("học sinh");
+    if (canSearchClassrooms) parts.push("lớp học");
+    if (canSearchTeachers) parts.push("giáo viên");
+    return parts.length ? `Tìm kiếm ${parts.join(", ")}...` : "";
+  })();
   const [collapsed, setCollapsed] = useState(getInitialCollapsed);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
@@ -304,7 +319,7 @@ function DashboardLayout() {
 
   useEffect(() => {
     const q = searchQ.trim();
-    if (q.length < 2) {
+    if (!canSearch || q.length < 2) {
       setSearchResults({ students: [], teachers: [], classrooms: [] });
       setSearchLoading(false);
       return;
@@ -315,9 +330,9 @@ function DashboardLayout() {
     const timer = setTimeout(async () => {
       try {
         const [st, te, cl] = await Promise.allSettled([
-          listStudents({ search: q, page_size: 6 }),
-          listTeachers({ search: q, page_size: 6 }),
-          listClassroomsAll(),
+          canSearchStudents ? listStudents({ search: q, page_size: 6 }) : Promise.resolve([]),
+          canSearchTeachers ? listTeachers({ search: q, page_size: 6 }) : Promise.resolve([]),
+          canSearchClassrooms ? listClassroomsAll() : Promise.resolve([]),
         ]);
         if (cancelled) return;
         const students = st.status === "fulfilled" ? asArray(st.value).slice(0, 5) : [];
@@ -339,7 +354,7 @@ function DashboardLayout() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [searchQ]);
+  }, [searchQ, canSearch, canSearchStudents, canSearchTeachers, canSearchClassrooms]);
 
   const nameOfPerson = (obj) =>
     obj?.full_name ||
@@ -667,94 +682,96 @@ function DashboardLayout() {
               </select>
             </label>
           </div>
-          <div className={styles["dashboard__topbar-search"]} ref={searchRef}>
-            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round">
-              <circle cx="11" cy="11" r="7" />
-              <path d="m20 20-3.8-3.8" />
-            </svg>
-            <input
-              type="text"
-              placeholder="Tìm kiếm học sinh, lớp học, giáo viên..."
-              aria-label="Tìm kiếm"
-              value={searchQ}
-              onChange={(e) => {
-                setSearchQ(e.target.value);
-                setSearchOpen(true);
-              }}
-              onFocus={() => setSearchOpen(true)}
-            />
-            {searchQ.trim().length >= 2 && searchOpen && (
-              <div className={styles["dashboard__search-pop"]}>
-                {searchLoading &&
-                !searchResults.students.length &&
-                !searchResults.teachers.length &&
-                !searchResults.classrooms.length ? (
-                  <div className={styles["dashboard__search-empty"]}>Đang tìm…</div>
-                ) : !searchResults.students.length &&
+          {canSearch && (
+            <div className={styles["dashboard__topbar-search"]} ref={searchRef}>
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round">
+                <circle cx="11" cy="11" r="7" />
+                <path d="m20 20-3.8-3.8" />
+              </svg>
+              <input
+                type="text"
+                placeholder={searchPlaceholder}
+                aria-label="Tìm kiếm"
+                value={searchQ}
+                onChange={(e) => {
+                  setSearchQ(e.target.value);
+                  setSearchOpen(true);
+                }}
+                onFocus={() => setSearchOpen(true)}
+              />
+              {searchQ.trim().length >= 2 && searchOpen && (
+                <div className={styles["dashboard__search-pop"]}>
+                  {searchLoading &&
+                  !searchResults.students.length &&
                   !searchResults.teachers.length &&
                   !searchResults.classrooms.length ? (
-                  <div className={styles["dashboard__search-empty"]}>Không có kết quả</div>
-                ) : (
-                  <>
-                    {searchResults.students.length > 0 && (
-                      <div className={styles["dashboard__search-group"]}>
-                        <div className={styles["dashboard__search-group-label"]}>Học sinh</div>
-                        {searchResults.students.map((s) => (
-                          <button
-                            type="button"
-                            key={`st-${s.id}`}
-                            className={styles["dashboard__search-item"]}
-                            onClick={() => goToResult(`/students/${s.id}`)}
-                          >
-                            <span className={styles["dashboard__search-item-name"]}>{nameOfPerson(s)}</span>
-                            {(s.phone || s.user?.phone) && (
-                              <span className={styles["dashboard__search-item-sub"]}>{s.phone || s.user?.phone}</span>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    {searchResults.classrooms.length > 0 && (
-                      <div className={styles["dashboard__search-group"]}>
-                        <div className={styles["dashboard__search-group-label"]}>Lớp học</div>
-                        {searchResults.classrooms.map((c) => (
-                          <button
-                            type="button"
-                            key={`cl-${c.id}`}
-                            className={styles["dashboard__search-item"]}
-                            onClick={() => goToResult(`/students?classroom=${c.id}`)}
-                          >
-                            <span className={styles["dashboard__search-item-name"]}>{c.name}</span>
-                            {c.center_name && (
-                              <span className={styles["dashboard__search-item-sub"]}>{c.center_name}</span>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    {searchResults.teachers.length > 0 && (
-                      <div className={styles["dashboard__search-group"]}>
-                        <div className={styles["dashboard__search-group-label"]}>Giáo viên</div>
-                        {searchResults.teachers.map((t) => (
-                          <button
-                            type="button"
-                            key={`te-${t.id}`}
-                            className={styles["dashboard__search-item"]}
-                            onClick={() => goToResult(`/teachers/${t.id}`)}
-                          >
-                            <span className={styles["dashboard__search-item-name"]}>{nameOfPerson(t)}</span>
-                            {(t.user?.email || t.email) && (
-                              <span className={styles["dashboard__search-item-sub"]}>{t.user?.email || t.email}</span>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            )}
-          </div>
+                    <div className={styles["dashboard__search-empty"]}>Đang tìm…</div>
+                  ) : !searchResults.students.length &&
+                    !searchResults.teachers.length &&
+                    !searchResults.classrooms.length ? (
+                    <div className={styles["dashboard__search-empty"]}>Không có kết quả</div>
+                  ) : (
+                    <>
+                      {canSearchStudents && searchResults.students.length > 0 && (
+                        <div className={styles["dashboard__search-group"]}>
+                          <div className={styles["dashboard__search-group-label"]}>Học sinh</div>
+                          {searchResults.students.map((s) => (
+                            <button
+                              type="button"
+                              key={`st-${s.id}`}
+                              className={styles["dashboard__search-item"]}
+                              onClick={() => goToResult(`/students/${s.id}`)}
+                            >
+                              <span className={styles["dashboard__search-item-name"]}>{nameOfPerson(s)}</span>
+                              {(s.phone || s.user?.phone) && (
+                                <span className={styles["dashboard__search-item-sub"]}>{s.phone || s.user?.phone}</span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {canSearchClassrooms && searchResults.classrooms.length > 0 && (
+                        <div className={styles["dashboard__search-group"]}>
+                          <div className={styles["dashboard__search-group-label"]}>Lớp học</div>
+                          {searchResults.classrooms.map((c) => (
+                            <button
+                              type="button"
+                              key={`cl-${c.id}`}
+                              className={styles["dashboard__search-item"]}
+                              onClick={() => goToResult(`/students?classroom=${c.id}`)}
+                            >
+                              <span className={styles["dashboard__search-item-name"]}>{c.name}</span>
+                              {c.center_name && (
+                                <span className={styles["dashboard__search-item-sub"]}>{c.center_name}</span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {canSearchTeachers && searchResults.teachers.length > 0 && (
+                        <div className={styles["dashboard__search-group"]}>
+                          <div className={styles["dashboard__search-group-label"]}>Giáo viên</div>
+                          {searchResults.teachers.map((t) => (
+                            <button
+                              type="button"
+                              key={`te-${t.id}`}
+                              className={styles["dashboard__search-item"]}
+                              onClick={() => goToResult(`/teachers/${t.id}`)}
+                            >
+                              <span className={styles["dashboard__search-item-name"]}>{nameOfPerson(t)}</span>
+                              {(t.user?.email || t.email) && (
+                                <span className={styles["dashboard__search-item-sub"]}>{t.user?.email || t.email}</span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
           <div className={styles["dashboard__topbar-actions"]}>
             <div style={{ position: "relative" }} ref={notifRef}>
               <button

@@ -1983,7 +1983,25 @@ function CalendarDetail() {
         payload.teacher = Number(createForm.teacher);
       }
       if (editingSessionId) {
-        await updateTeachingSession(editingSessionId, payload);
+        // Backend (_validate_teacher_update_payload) chỉ chấp nhận đúng nhóm field
+        // dưới đây khi người sửa là giáo viên; gửi dư field -> 403.
+        // Không gửi recording_link khi SỬA: form không nhập field này (luôn rỗng)
+        // nên gửi lên sẽ xoá trắng link ghi hình đã có.
+        const updatePayload = isTeacherRole
+          ? {
+              session_date: payload.session_date,
+              start_at: payload.start_at,
+              end_at: payload.end_at,
+              delivery_mode: payload.delivery_mode,
+              meeting_link: payload.meeting_link,
+              lesson_topic: payload.lesson_topic,
+              lesson_objective: payload.lesson_objective,
+              teaching_plan_month: payload.teaching_plan_month,
+              teaching_plan_year: payload.teaching_plan_year,
+              teaching_plan_week: payload.teaching_plan_week,
+            }
+          : (({ recording_link, ...rest }) => rest)(payload);
+        await updateTeachingSession(editingSessionId, updatePayload);
         setNotice("Đã cập nhật ca dạy.");
       } else {
         await createTeachingSession(payload);
@@ -3183,8 +3201,11 @@ function CalendarDetail() {
             </div>
             {detailSession.kind === "session" && canCreateTeachingPlan && (
               <footer className={styles.modalFooter} style={{ flexWrap: "wrap", gap: 8 }}>
-                {canManageSessions && (
-                  <>
+                {/* Sửa: backend cho phép teacher/staff PATCH khi lịch chưa được duyệt
+                    (đặc biệt cần khi admin yêu cầu sửa -> revision_required). */}
+                {(canManageSessions ||
+                  (canCreateTeachingPlan &&
+                    detailSession.raw.teaching_plan_status !== "approved")) && (
                     <button
                       type="button"
                       className={styles.secondaryButton}
@@ -3192,16 +3213,18 @@ function CalendarDetail() {
                     >
                       Sửa
                     </button>
-                    <button
-                      type="button"
-                      className={styles.secondaryButton}
-                      style={{ color: "#c0392b", borderColor: "#e7b6ad" }}
-                      disabled={deletingSessionId === detailSession.raw.id}
-                      onClick={() => handleDeleteSession(detailSession.raw)}
-                    >
-                      {deletingSessionId === detailSession.raw.id ? "Đang xoá..." : "Xoá"}
-                    </button>
-                  </>
+                  )}
+                {/* Xoá: backend destroy chỉ cho admin/superadmin. */}
+                {canManageSessions && (
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    style={{ color: "#c0392b", borderColor: "#e7b6ad" }}
+                    disabled={deletingSessionId === detailSession.raw.id}
+                    onClick={() => handleDeleteSession(detailSession.raw)}
+                  >
+                    {deletingSessionId === detailSession.raw.id ? "Đang xoá..." : "Xoá"}
+                  </button>
                 )}
                 <button
                   type="button"
@@ -3553,6 +3576,9 @@ function CalendarDetail() {
                   <span>Lớp</span>
                   <select
                     value={createForm.classroom}
+                    // Giáo viên sửa ca dạy: backend không nhận đổi lớp -> khoá lại
+                    // để không đổi mà tưởng có tác dụng.
+                    disabled={Boolean(editingSessionId) && isTeacherRole}
                     onChange={(event) => {
                       const classroomId = event.target.value;
                       const selectedClassroom = createClassrooms.find(
@@ -3680,6 +3706,8 @@ function CalendarDetail() {
                   <span>Trạng thái</span>
                   <select
                     value={createForm.status}
+                    // Giáo viên sửa ca dạy: backend không nhận đổi trạng thái ca.
+                    disabled={Boolean(editingSessionId) && isTeacherRole}
                     onChange={(event) =>
                       setCreateForm((prev) => ({
                         ...prev,

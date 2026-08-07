@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useLocation, useNavigate, Link } from "react-router-dom";
 import { listStudents, listClassroomsAll, listStudentScores, listEvaluationItems, getTuitionSummary, listAttendanceSummary } from "../services/calendarService";
+import { useAuth } from "../auth/AuthProvider";
 import { skillsFor } from "../utils/skills";
 import { tuitionByNormCode, normCode } from "../utils/classCode";
 import "../styles/vista4.css";
@@ -129,6 +130,8 @@ export default function ClassDetail() {
   const { classroomId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const { role } = useAuth();
+  const isTeacher = role === "teacher";
 
   // Lớp truyền qua state từ ProgramDetail (ưu tiên) — nếu không có sẽ tự tra cứu.
   const [cls, setCls] = useState(location.state?.classroom || null);
@@ -214,9 +217,12 @@ export default function ClassDetail() {
   // Học phí (toàn khoá 2026) + chuyên cần của lớp này — THẬT, tải 1 lần.
   useEffect(() => {
     let active = true;
-    getTuitionSummary({ year: 2026 })
-      .then((data) => { if (active) setTuitionMap(tuitionByNormCode(data?.by_class || [])); })
-      .catch(() => { if (active) setTuitionMap(new Map()); });
+    // Giáo viên không có quyền xem học phí (backend 403) -> không gọi API.
+    if (!isTeacher) {
+      getTuitionSummary({ year: 2026 })
+        .then((data) => { if (active) setTuitionMap(tuitionByNormCode(data?.by_class || [])); })
+        .catch(() => { if (active) setTuitionMap(new Map()); });
+    }
     listAttendanceSummary({ classroom: classroomId })
       .then((data) => {
         if (!active) return;
@@ -226,7 +232,7 @@ export default function ClassDetail() {
       })
       .catch(() => { if (active) setAttendanceMap(new Map()); });
     return () => { active = false; };
-  }, [classroomId]);
+  }, [classroomId, isTeacher]);
 
   // ---- Trường hiển thị của lớp (chịu được cả 2 shape: overview & classroomsAll) ----
   const info = useMemo(() => {
@@ -397,7 +403,29 @@ export default function ClassDetail() {
   const groupAvg = (arr) => (arr.length ? arr.reduce((s, x) => s + x.avg, 0) / arr.length : 0);
 
   return (
-    <div className="v4page">
+    <div className="v4page cd-print">
+      {/* CSS in ấn cục bộ cho trang này. DashboardLayout dùng CSS module (tên class bị hash)
+          nên không thể nhắm .sidebar/.topbar từ đây — dùng kỹ thuật ẩn toàn bộ rồi chỉ hiện
+          lại vùng .cd-print, đồng thời gỡ giới hạn cuộn (dashboard: height:100vh + overflow)
+          để báo cáo in được nhiều trang thay vì cắt cụt 1 màn hình. */}
+      <style>{`
+        @media print {
+          html, body { height: auto !important; overflow: visible !important; background: #fff !important; }
+          body * { visibility: hidden !important; }
+          .cd-print, .cd-print * { visibility: visible !important; }
+          .cd-print .no-print { display: none !important; }
+          .cd-print .tbl-wrap { overflow: visible !important; }
+          .cd-print {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            background: #fff !important;
+          }
+        }
+      `}</style>
       <div className="content-col">
         {/* 1. Header + breadcrumb + hành động */}
         <div className="page-head">
@@ -415,7 +443,7 @@ export default function ClassDetail() {
                 {info.center ? ` · ${info.center}` : ""}
               </p>
             </div>
-            <button type="button" className="btn ghost" onClick={() => window.print()}>
+            <button type="button" className="btn ghost no-print" onClick={() => window.print()}>
               🖨️ In báo cáo
             </button>
           </div>
@@ -445,13 +473,15 @@ export default function ClassDetail() {
                 : "Chưa có dữ liệu điểm danh"
             }
           />
-          <Kpi
-            ico="💰"
-            icoClass="yellow"
-            label="Học phí đã thu / còn thiếu"
-            value={tuition ? money(tuition.paid) : "—"}
-            sub={tuition ? `Còn thiếu: ${money(tuition.remaining)}` : "Chưa có dữ liệu học phí"}
-          />
+          {!isTeacher ? (
+            <Kpi
+              ico="💰"
+              icoClass="yellow"
+              label="Học phí đã thu / còn thiếu"
+              value={tuition ? money(tuition.paid) : "—"}
+              sub={tuition ? `Còn thiếu: ${money(tuition.remaining)}` : "Chưa có dữ liệu học phí"}
+            />
+          ) : null}
           <Kpi ico="⚠️" icoClass="red" label="Số HS cảnh báo" value="—" sub="Đang cập nhật" demo />
           <Kpi ico="💬" icoClass="purple" label="Số HS cần chăm sóc" value="—" sub="Đang cập nhật" demo />
         </div>

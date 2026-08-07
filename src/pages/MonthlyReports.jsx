@@ -464,8 +464,9 @@ function MonthlyReports() {
   const handleReview = async (submissionId, decision) => {
     let note = "";
     if (decision !== "approve") {
-      note = window.prompt(`Nhập lý do ${decisionLabels[decision].toLowerCase()}:`, "") || "";
-      if (note === null) return;
+      const input = window.prompt(`Nhập lý do ${decisionLabels[decision].toLowerCase()}:`, "");
+      if (input === null || !input.trim()) return;
+      note = input.trim();
     }
     setReviewLoadingId(submissionId);
     setError("");
@@ -855,7 +856,7 @@ function MonthlyReports() {
                           ) : (
                             "--"
                           )
-                        ) : report.report_status === "revision_required" ? (
+                        ) : !isReportManager && report.report_status === "revision_required" ? (
                           <button
                             type="button"
                             className={styles.secondaryButton}
