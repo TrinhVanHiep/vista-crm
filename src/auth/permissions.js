@@ -7,7 +7,9 @@ export const ROUTE_PERMISSIONS = {
   attendance: ['superadmin', 'admin'],
   calendar: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager'],
   monthlyScorecards: ['superadmin', 'admin', 'teacher', 'student'],
-  monthlyReports: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager'],
+  // Backend CanViewMonthlyReports chỉ cho: giáo viên (báo cáo của mình), admin,
+  // quản lý cơ sở. staff/training_manager vào sẽ 403 nên không đưa vào menu.
+  monthlyReports: ['superadmin', 'admin', 'teacher', 'center_manager'],
   reportCard: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager'],
   employeeProfile: ['superadmin', 'admin', 'teacher'],
   finance: ['superadmin', 'admin'],
