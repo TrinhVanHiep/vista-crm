@@ -5,6 +5,7 @@ import {
   createSessionReport,
   updateSessionReport,
   listSessionReports,
+  submitSessionReport,
   listMediaReports,
   createMediaReport,
   importSessionReportsFile,
@@ -140,6 +141,7 @@ function DailyReport() {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState("");
+  const [submittingReports, setSubmittingReports] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
   const [formTab, setFormTab] = useState("general");
@@ -373,6 +375,53 @@ function DailyReport() {
     }
   };
 
+  // Gửi duyệt THẬT các báo cáo còn ở trạng thái nháp trong kỳ đang xem.
+  // (Trước đây nút này chỉ hiện thông báo giả, không gọi API nào.)
+  const handleSubmitReports = async () => {
+    setNotice("");
+    setFormError("");
+    const draftSessionIds = sessions
+      .filter((s) => s.report_status === "draft")
+      .map((s) => s.id);
+    if (!draftSessionIds.length) {
+      setFormError(
+        `Không có báo cáo nháp nào trong ${RANGE_WORD[rangeTab]} này để gửi duyệt.`,
+      );
+      return;
+    }
+    setSubmittingReports(true);
+    try {
+      const res = await listSessionReports({ report_status: "draft", page_size: 500 });
+      const drafts = (res?.results || []).filter((r) =>
+        draftSessionIds.includes(r.session),
+      );
+      if (!drafts.length) {
+        setFormError("Không tìm thấy báo cáo nháp tương ứng để gửi duyệt.");
+        return;
+      }
+      const outcomes = await Promise.allSettled(
+        drafts.map((r) => submitSessionReport(r.id)),
+      );
+      const okCount = outcomes.filter((o) => o.status === "fulfilled").length;
+      const failCount = outcomes.length - okCount;
+      if (okCount) {
+        setNotice(
+          `Đã gửi ${okCount} báo cáo ${RANGE_WORD[rangeTab]} cho quản lý duyệt.` +
+            (failCount ? ` (${failCount} báo cáo gửi không thành công)` : ""),
+        );
+        setReloadKey((k) => k + 1);
+      } else {
+        setFormError("Không gửi được báo cáo. Vui lòng thử lại.");
+      }
+    } catch (error) {
+      setFormError(
+        error?.response?.data?.detail || "Không gửi được báo cáo. Vui lòng thử lại.",
+      );
+    } finally {
+      setSubmittingReports(false);
+    }
+  };
+
   return (
     <div className="v4page">
       <div className="content-col">
@@ -389,12 +438,14 @@ function DailyReport() {
               <p>Báo cáo giảng dạy &amp; truyền thông — {periodLabel(reportDate, rangeTab)}</p>
             </div>
             <div className="flex" style={{ gap: 8, flexWrap: "wrap" }}>
-              <button type="button" className="btn ghost">❔ Hướng dẫn</button>
+              <button type="button" className="btn ghost" onClick={() => navigate("/kho-tai-lieu")}>❔ Hướng dẫn</button>
               <button type="button" className="btn ghost" onClick={() => navigate("/calendar-detail")}>📅 Xem lịch dạy</button>
               {canReviewReports ? (
                 <button type="button" className="btn ghost" onClick={() => navigate("/monthly-reports")}>✓ Duyệt báo cáo</button>
               ) : null}
-              <button type="button" className="btn primary" onClick={() => setNotice(`Đã gửi báo cáo ${RANGE_WORD[rangeTab]} cho quản lý.`)}>➤ Gửi báo cáo {RANGE_WORD[rangeTab]}</button>
+              <button type="button" className="btn primary" onClick={handleSubmitReports} disabled={submittingReports}>
+                {submittingReports ? "Đang gửi..." : `➤ Gửi báo cáo ${RANGE_WORD[rangeTab]}`}
+              </button>
             </div>
           </div>
         </div>
