@@ -2791,7 +2791,36 @@ function CalendarDetail() {
                 const anyMoreControls = days.some(
                   (d) => (hiddenCountByDay.get(d.id) || 0) > 0 || expandedDays.has(d.id),
                 );
-                const shiftWeek = (delta) => { const [y, m, dd] = focusDate.split("-").map(Number); const nd = new Date(y, m - 1, dd + delta * 7); const s = `${nd.getFullYear()}-${pad2(nd.getMonth() + 1)}-${pad2(nd.getDate())}`; setFocusDate(s); setSelectedYear(nd.getFullYear()); setSelectedMonth(nd.getMonth() + 1); };
+                // Điều hướng theo TUẦN trong tháng, không nhảy cóc: hết tuần cuối
+                // thì sang tuần 1 tháng sau (và ngược lại), selectedMonth luôn khớp
+                // tuần đang xem. Fix lỗi "tuần 1 tháng sau không hiện".
+                const focusInMonth = (wk) => (wk.days.find((d) => d.inMonth) || wk.days[0]).id;
+                const shiftWeek = (delta) => {
+                  const curIdx = monthWeeks.findIndex((w) =>
+                    w.days.some((d) => d.id === focusDate),
+                  );
+                  const curFirst = curIdx >= 0 ? monthWeeks[curIdx].days[0].id : null;
+                  const nextIdx = (curIdx >= 0 ? curIdx : 0) + delta;
+                  if (nextIdx >= 0 && nextIdx < monthWeeks.length) {
+                    setFocusDate(focusInMonth(monthWeeks[nextIdx]));
+                    return;
+                  }
+                  const anchor = new Date(selectedYear, selectedMonth - 1 + delta, 1);
+                  const ny = anchor.getFullYear();
+                  const nm = anchor.getMonth() + 1;
+                  const wks = buildMonthWeeks(ny, nm);
+                  let targetIdx = delta > 0 ? 0 : wks.length - 1;
+                  // Tuần biên (VD 27/7–2/8) là tuần cuối tháng trước = tuần đầu tháng
+                  // sau. Nếu trùng tuần đang xem thì nhảy tiếp 1 tuần để không hiện lại.
+                  if (curFirst && wks[targetIdx]?.days[0]?.id === curFirst) {
+                    targetIdx = delta > 0
+                      ? Math.min(targetIdx + 1, wks.length - 1)
+                      : Math.max(targetIdx - 1, 0);
+                  }
+                  setSelectedYear(ny);
+                  setSelectedMonth(nm);
+                  setFocusDate(focusInMonth(wks[targetIdx]));
+                };
                 return (
                   <div className="card">
                     <div className="card-head">
