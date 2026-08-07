@@ -114,6 +114,11 @@ export async function updateTeachingSession(sessionId, payload) {
   return data;
 }
 
+export async function deleteTeachingSession(sessionId) {
+  const { data } = await apiClient.delete(`/teaching-sessions/${sessionId}/`);
+  return data;
+}
+
 export async function submitMonthlyTeachingPlan(payload) {
   const { data } = await apiClient.post("/teaching-sessions/submit_month_plan/", payload);
   return data;

@@ -29,6 +29,7 @@ import {
   submitSessionReport,
   updateSessionReport,
   updateTeachingSession,
+  deleteTeachingSession,
 } from "../services/calendarService";
 import {
   competitionFrame,
@@ -410,6 +411,15 @@ const toIsoWithLocalOffset = (value) => {
   )}T${pad2(parsed.getHours())}:${pad2(parsed.getMinutes())}:00${sign}${hours}:${minutes}`;
 };
 
+// ISO -> giá trị input datetime-local ("YYYY-MM-DDTHH:MM") theo giờ local.
+const toDateTimeLocalValue = (value) => {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "";
+  return `${parsed.getFullYear()}-${pad2(parsed.getMonth() + 1)}-${pad2(
+    parsed.getDate(),
+  )}T${pad2(parsed.getHours())}:${pad2(parsed.getMinutes())}`;
+};
+
 // Cộng thêm phút vào giá trị input datetime-local ("YYYY-MM-DDTHH:MM").
 const addMinutesToLocalInput = (value, minutes) => {
   if (!value || value.length < 16) return value;
@@ -763,6 +773,8 @@ function CalendarDetail() {
   const [staffActionId, setStaffActionId] = useState(null);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [editingSessionId, setEditingSessionId] = useState(null);
+  const [deletingSessionId, setDeletingSessionId] = useState(null);
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState("");
   const [createClassrooms, setCreateClassrooms] = useState([]);
@@ -1970,18 +1982,72 @@ function CalendarDetail() {
       if (createForm.teacher) {
         payload.teacher = Number(createForm.teacher);
       }
-      await createTeachingSession(payload);
-
-      setNotice("Đã tạo ca dạy mới.");
+      if (editingSessionId) {
+        await updateTeachingSession(editingSessionId, payload);
+        setNotice("Đã cập nhật ca dạy.");
+      } else {
+        await createTeachingSession(payload);
+        setNotice("Đã tạo ca dạy mới.");
+      }
       setCreateError("");
       setIsCreateOpen(false);
+      setEditingSessionId(null);
       setReloadKey((prev) => prev + 1);
     } catch (error) {
       setCreateError(
-        getErrorMessage(error, "Không thể tạo ca dạy. Vui lòng thử lại."),
+        getErrorMessage(
+          error,
+          editingSessionId
+            ? "Không thể cập nhật ca dạy. Vui lòng thử lại."
+            : "Không thể tạo ca dạy. Vui lòng thử lại.",
+        ),
       );
     } finally {
       setCreateLoading(false);
+    }
+  };
+
+  // Mở form sửa 1 ca dạy (dùng lại form tạo, ở chế độ chỉnh sửa -> PATCH).
+  const openEditSession = (raw) => {
+    if (!raw) return;
+    setDetailSession(null);
+    setCreateError("");
+    const startLocal = raw.start_at ? toDateTimeLocalValue(raw.start_at) : "";
+    const endLocal = raw.end_at ? toDateTimeLocalValue(raw.end_at) : "";
+    setEditingSessionId(raw.id);
+    setCreateForm((prev) => ({
+      ...prev,
+      classroom: String(raw.classroom || ""),
+      teacher: raw.teacher ? String(raw.teacher) : "",
+      start_at: startLocal,
+      end_at: endLocal,
+      delivery_mode: raw.delivery_mode || "offline",
+      meeting_link: raw.meeting_link || "",
+      lesson_topic: raw.lesson_topic || "",
+      lesson_objective: raw.lesson_objective || "",
+      status: raw.status || "scheduled",
+    }));
+    setIsCreateOpen(true);
+  };
+
+  // Xoá 1 ca dạy trực tiếp từ modal chi tiết (có xác nhận).
+  const handleDeleteSession = async (raw) => {
+    if (!raw?.id) return;
+    if (!window.confirm(`Xoá ca dạy "${raw.classroom_name || raw.id}" ngày ${formatShortDate(raw.session_date)}?`)) {
+      return;
+    }
+    setDeletingSessionId(raw.id);
+    setScheduleError("");
+    setNotice("");
+    try {
+      await deleteTeachingSession(raw.id);
+      setDetailSession(null);
+      setNotice("Đã xoá ca dạy.");
+      setReloadKey((prev) => prev + 1);
+    } catch (error) {
+      setScheduleError(getErrorMessage(error, "Không thể xoá ca dạy."));
+    } finally {
+      setDeletingSessionId(null);
     }
   };
 
@@ -3116,7 +3182,27 @@ function CalendarDetail() {
               )}
             </div>
             {detailSession.kind === "session" && canCreateTeachingPlan && (
-              <footer className={styles.modalFooter}>
+              <footer className={styles.modalFooter} style={{ flexWrap: "wrap", gap: 8 }}>
+                {canManageSessions && (
+                  <>
+                    <button
+                      type="button"
+                      className={styles.secondaryButton}
+                      onClick={() => openEditSession(detailSession.raw)}
+                    >
+                      Sửa
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.secondaryButton}
+                      style={{ color: "#c0392b", borderColor: "#e7b6ad" }}
+                      disabled={deletingSessionId === detailSession.raw.id}
+                      onClick={() => handleDeleteSession(detailSession.raw)}
+                    >
+                      {deletingSessionId === detailSession.raw.id ? "Đang xoá..." : "Xoá"}
+                    </button>
+                  </>
+                )}
                 <button
                   type="button"
                   className={styles.primaryButton}
@@ -3438,12 +3524,12 @@ function CalendarDetail() {
         <div className={styles.modalBackdrop} role="dialog" aria-modal="true">
           <div className={styles.modal}>
             <header className={styles.modalHeader}>
-              <h2>Tạo ca dạy thủ công</h2>
+              <h2>{editingSessionId ? "Sửa ca dạy" : "Tạo ca dạy thủ công"}</h2>
               <button
                 type="button"
                 className={styles.iconButton}
                 aria-label="Đóng"
-                onClick={() => setIsCreateOpen(false)}
+                onClick={() => { setIsCreateOpen(false); setEditingSessionId(null); }}
               >
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                   <path
@@ -3658,7 +3744,7 @@ function CalendarDetail() {
                 <button
                   type="button"
                   className={styles.secondaryButton}
-                  onClick={() => setIsCreateOpen(false)}
+                  onClick={() => { setIsCreateOpen(false); setEditingSessionId(null); }}
                 >
                   Đóng
                 </button>
@@ -3667,7 +3753,11 @@ function CalendarDetail() {
                   className={styles.primaryButton}
                   disabled={createLoading}
                 >
-                  {createLoading ? "Đang tạo..." : "Tạo ca dạy"}
+                  {createLoading
+                    ? "Đang lưu..."
+                    : editingSessionId
+                      ? "Lưu thay đổi"
+                      : "Tạo ca dạy"}
                 </button>
               </div>
             </form>
