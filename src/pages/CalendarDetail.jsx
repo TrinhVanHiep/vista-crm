@@ -297,11 +297,23 @@ const toDateInputValue = (date) =>
 
 const getLastDayOfMonth = (year, month) => new Date(year, month, 0).getDate();
 
-const getWeekIndexFromDay = (day) => {
-  if (day <= 7) return 1;
-  if (day <= 14) return 2;
-  if (day <= 21) return 3;
-  return 4;
+// Chỉ số tuần trong tháng, tính theo tuần bắt đầu THỨ HAI — đúng như lưới lịch vẽ.
+//
+// Bản cũ chia cứng theo ngày trong tháng (1–7 là tuần 1, 8–14 là tuần 2...) và tối
+// đa chỉ trả 4. Cách chia đó không liên quan gì tới thứ trong tuần nên lệch hẳn so
+// với lưới: tháng 8/2026 (mùng 1 rơi vào Thứ Bảy) có 6 tuần, và ngày 03/08 nằm ở
+// tuần 2 trên lưới nhưng bản cũ trả về 1. Giá trị này được ghi xuống backend thành
+// teaching_plan_week nên lệch là sai dữ liệu, không chỉ sai hiển thị.
+const getWeekIndexFromDate = (year, month, day) => {
+  const target = new Date(year, month - 1, day);
+  const start = startOfWeekMonday(new Date(year, month - 1, 1));
+  // Trừ theo UTC để đổi giờ mùa không làm lệch một ngày.
+  const soNgay = Math.round(
+    (Date.UTC(target.getFullYear(), target.getMonth(), target.getDate()) -
+      Date.UTC(start.getFullYear(), start.getMonth(), start.getDate())) /
+      86400000,
+  );
+  return Math.floor(soNgay / 7) + 1;
 };
 
 const toDateInputValueFromParts = (date) =>
@@ -663,7 +675,7 @@ function CalendarDetail() {
   const todayString = toDateInputValue(now);
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth() + 1;
-  const currentWeek = getWeekIndexFromDay(now.getDate());
+  const currentWeek = getWeekIndexFromDate(currentYear, currentMonth, now.getDate());
   const initialYear = readNumberParam(searchParams, "year", currentYear, 2000, 2100);
   const initialMonth = readNumberParam(searchParams, "month", currentMonth, 1, 12);
   const initialDate = searchParams.get("date") || todayString;
@@ -808,6 +820,14 @@ function CalendarDetail() {
   const [reviewReasonTarget, setReviewReasonTarget] = useState(null);
   const [reviewReasonText, setReviewReasonText] = useState("");
   const [reviewReasonError, setReviewReasonError] = useState("");
+  // Thông báo thành công tự ẩn sau 6 giây. Thông báo LỖI thì không tự ẩn — người
+  // dùng cần đọc kỹ và thường phải làm lại thao tác.
+  useEffect(() => {
+    if (!notice) return undefined;
+    const timer = setTimeout(() => setNotice(""), 6000);
+    return () => clearTimeout(timer);
+  }, [notice]);
+
   // Các hộp thoại của màn này viết tay từ trước, không cái nào đóng được bằng Esc
   // (bấm Esc xong hộp thoại vẫn nằm nguyên). Gom về một chỗ xử lý thay vì sửa
   // rải rác 7 hộp thoại trong file, và đóng theo thứ tự trong-ra-ngoài để hộp
@@ -871,6 +891,20 @@ function CalendarDetail() {
     () => buildMonthWeeks(selectedYear, selectedMonth),
     [selectedYear, selectedMonth],
   );
+
+  // Đổi tháng ở ô chọn tháng phải kéo theo tuần đang xem. Trước đây focusDate chỉ
+  // được đặt lúc khởi tạo và trong shiftWeek, nên đổi tháng xong focusDate vẫn nằm
+  // ở tháng cũ: shiftWeek không tìm thấy tuần hiện tại (curIdx = -1) nên bộ chống
+  // trùng tuần bị vô hiệu, bấm ‹ hiện lại ĐÚNG tuần đang xem dưới một nhãn khác
+  // (VD Tuần 1 · 31/08–06/09 bấm ‹ ra Tuần 6 · 31/08–06/09).
+  useEffect(() => {
+    if (!monthWeeks.length) return;
+    const dangKhop = monthWeeks.some((w) => w.days.some((d) => d.id === focusDate));
+    if (dangKhop) return;
+    const tuanDau = monthWeeks[0];
+    const ngay = (tuanDau.days.find((d) => d.inMonth) || tuanDau.days[0]).id;
+    setFocusDate(ngay);
+  }, [monthWeeks, focusDate]);
 
   const activeRange = useMemo(() => {
     const firstWeek = monthWeeks[0];
@@ -1219,7 +1253,11 @@ function CalendarDetail() {
           `Lịch báo giảng: ${planStatusLabel}`,
           session.lesson_objective
             ? `Mục tiêu: ${truncateText(session.lesson_objective, 48)}`
-            : `Tuần ${session.teaching_plan_week || getWeekIndexFromDay(Number(sessionDate?.slice(8, 10)) || 1)}`,
+            : `Tuần ${session.teaching_plan_week || getWeekIndexFromDate(
+                Number(sessionDate?.slice(0, 4)) || currentYear,
+                Number(sessionDate?.slice(5, 7)) || currentMonth,
+                Number(sessionDate?.slice(8, 10)) || 1,
+              )}`,
         ],
       });
 
@@ -1604,6 +1642,21 @@ function CalendarDetail() {
     }
     return map;
   }, [selectedCard, sessionsByDate, schedulesByDate]);
+
+  // Mở chi tiết một mục lịch công tác từ cột phải. Dựng đúng dạng mà hộp thoại
+  // chi tiết đang đọc (kind/title/time/raw) để dùng lại chính hộp thoại đó.
+  const openScheduleDetail = useCallback((schedule) => {
+    if (!schedule) return;
+    setDetailSession({
+      id: `c-${schedule.id}`,
+      kind: "schedule",
+      title: schedule.title,
+      time: schedule.time_label || "",
+      subtitle: WORK_CARDS.find((c) => c.id === schedule.category)?.label || "",
+      color: scheduleStatusMeta[schedule.status]?.color || "#94a3b8",
+      raw: schedule,
+    });
+  }, []);
 
   // Nhắc việc hôm nay + sự kiện sắp tới (từ lịch công tác).
   const todaySchedules = useMemo(
@@ -1994,7 +2047,7 @@ function CalendarDetail() {
         lesson_objective: createForm.lesson_objective.trim(),
         teaching_plan_month: sessionMonth,
         teaching_plan_year: sessionYear,
-        teaching_plan_week: getWeekIndexFromDay(sessionDay),
+        teaching_plan_week: getWeekIndexFromDate(sessionYear, sessionMonth, sessionDay),
         status: createForm.status,
         source_system: "manual",
       };
@@ -2839,7 +2892,7 @@ function CalendarDetail() {
                     const draftDate = base >= todayString ? base : todayString;
                     const [dy, dm, dday] = draftDate.split("-").map(Number);
                     setIsCreateOpen(true);
-                    setCreateForm((prev) => ({ ...prev, teacher: canSelectTeacherForCreate ? (prev.teacher || selectedTeacherId || "") : "", start_at: `${draftDate}T18:00`, end_at: `${draftDate}T19:30`, teaching_plan_month: dm, teaching_plan_year: dy, teaching_plan_week: getWeekIndexFromDay(dday) }));
+                    setCreateForm((prev) => ({ ...prev, teacher: canSelectTeacherForCreate ? (prev.teacher || selectedTeacherId || "") : "", start_at: `${draftDate}T18:00`, end_at: `${draftDate}T19:30`, teaching_plan_month: dm, teaching_plan_year: dy, teaching_plan_week: getWeekIndexFromDate(dy, dm, dday) }));
                   }}>+ Thêm ca dạy</button>
                 )}
               </div>
@@ -2854,6 +2907,25 @@ function CalendarDetail() {
                 {canSubmitTeachingPlan && (<button className="btn ghost sm" onClick={handleSubmitMonthPlan} disabled={Boolean(planActionLoading) || !sessions.length || !isSubmitWindowOpen}>{planActionLoading === "submit" ? "Đang gửi..." : "Gửi duyệt lịch tháng"}</button>)}
               </div>
             </div>
+
+            {/* setNotice được gọi 20 chỗ và setScheduleError 15 chỗ, nhưng hai biến
+                này chưa bao giờ được render ở đâu — bấm Xoá thì ca dạy biến mất mà
+                không một dòng chữ, bấm Xuất Excel cũng im lặng. Đó chính là cảm giác
+                "nút không ăn" dù API đã chạy xong. */}
+            {scheduleError ? (
+              <div className="alert red" style={{ marginBottom: 14 }} role="alert">
+                <span>⚠️</span>
+                <div style={{ flex: 1 }}>{scheduleError}</div>
+                <button type="button" className="btn ghost sm" onClick={() => setScheduleError("")}>Đóng</button>
+              </div>
+            ) : null}
+            {notice ? (
+              <div className="alert green" style={{ marginBottom: 14 }} role="status">
+                <span>✅</span>
+                <div style={{ flex: 1 }}>{notice}</div>
+                <button type="button" className="btn ghost sm" onClick={() => setNotice("")}>Đóng</button>
+              </div>
+            ) : null}
 
             <div className="kpi-grid cols-4">
               {calendarKpis.map((k) => {
@@ -2881,19 +2953,30 @@ function CalendarDetail() {
                 // sau nút "Xem thêm" của ngày đó (tránh hiển thị quá nhiều lịch cùng lúc).
                 const visibleIdsByDay = new Map();
                 const hiddenCountByDay = new Map();
+                const untimedByDay = new Map();
                 const hoursSet = new Set();
                 days.forEach((d) => {
-                  const dayItems = (gridItemsByDate.get(d.id) || [])
-                    .slice()
-                    .sort((a, b) => (parseHour(a.time) ?? 0) - (parseHour(b.time) ?? 0));
+                  const all = gridItemsByDate.get(d.id) || [];
+                  // Lịch công tác phần lớn chỉ có nhãn kiểu "Truyền thông • Tháng 8",
+                  // không có HH:MM (298/346 bản ghi). Lưới chia theo giờ nên trước đây
+                  // chúng bị loại sạch: chip đếm ra 8 việc mà lưới trống trơn. Tệ hơn,
+                  // khi sắp xếp chúng bị coi là 0h nên đứng đầu và chiếm hết 5 suất
+                  // hiển thị, đẩy nốt các mục CÓ giờ của ngày đó ra ngoài.
+                  // Nay tách riêng vào hàng "Cả ngày".
+                  const untimed = all.filter((it) => parseHour(it.time) == null);
+                  const timed = all
+                    .filter((it) => parseHour(it.time) != null)
+                    .sort((a, b) => parseHour(a.time) - parseHour(b.time));
+                  untimedByDay.set(d.id, untimed);
                   const shown = expandedDays.has(d.id)
-                    ? dayItems
-                    : dayItems.slice(0, MAX_VISIBLE_EVENTS);
+                    ? timed
+                    : timed.slice(0, MAX_VISIBLE_EVENTS);
                   visibleIdsByDay.set(d.id, new Set(shown.map((it) => it.id)));
-                  hiddenCountByDay.set(d.id, dayItems.length - shown.length);
+                  hiddenCountByDay.set(d.id, timed.length - shown.length);
                   // Chỉ lấy hàng giờ từ các buổi đang hiển thị để không tạo dòng trống.
                   shown.forEach((it) => { const h = parseHour(it.time); if (h != null) hoursSet.add(h); });
                 });
+                const anyUntimed = days.some((d) => (untimedByDay.get(d.id) || []).length > 0);
                 const hours = [...hoursSet].sort((a, b) => a - b);
                 const anyMoreControls = days.some(
                   (d) => (hiddenCountByDay.get(d.id) || 0) > 0 || expandedDays.has(d.id),
@@ -3062,7 +3145,33 @@ function CalendarDetail() {
                       <div className="sched">
                         <div className="sc-h"></div>
                         {days.map((d) => (<div className="sc-h" key={d.id}>{d.weekdayLabel}<small>{d.subtitle}</small></div>))}
-                        {hours.length === 0 ? (
+                        {anyUntimed ? (
+                          <>
+                            <div className="sc-t">Cả ngày</div>
+                            {days.map((d) => (
+                              <div className="sc-c" key={`ad-${d.id}`}>
+                                {(untimedByDay.get(d.id) || []).map((it, idx) => (
+                                  <div
+                                    className="lesson normal"
+                                    key={it.id}
+                                    title={it.title}
+                                    style={{ cursor: "pointer", borderLeft: `3px solid ${it.color}` }}
+                                    onClick={() => setDetailSession(it)}
+                                  >
+                                    <span style={{ minWidth: 0 }}>
+                                      <b>
+                                        <img className="avatar" alt="" src={avatarUrl(it.owner || it.title, idx)} loading="lazy" />
+                                        {it.classLabel || it.title}
+                                      </b>
+                                      {it.ownerLabel ? <small className="lesson__who">{it.ownerLabel}</small> : null}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            ))}
+                          </>
+                        ) : null}
+                        {hours.length === 0 && !anyUntimed ? (
                           <div className="sc-c" style={{ gridColumn: "1 / -1", textAlign: "center", padding: "24px", color: "var(--muted)" }}>{isLoading ? "Đang tải..." : "Không có lịch trong tuần này."}</div>
                         ) : hours.map((h) => (
                           <Fragment key={h}>
@@ -3145,7 +3254,27 @@ function CalendarDetail() {
                 {todaySchedules.length === 0 && (planStatusCounts.submitted || 0) === 0 ? (
                   <div className="li"><div className="li-body"><div className="li-sub">Hôm nay không có nhắc việc.</div></div></div>
                 ) : todaySchedules.map((t) => (
-                  <div className="li" key={t.id}><div className="ico-sm" style={{ background: "var(--primary-soft)", color: "var(--primary)" }}>•</div><div className="li-body"><div className="li-title">{t.title}</div></div><span className="small bold muted">{t.time_label || "--"}</span></div>
+                  // Bấm được để mở chi tiết: trước đây là div trơn, nhìn y hệt dòng
+                  // "Phê duyệt chờ xử lý" ngay bên dưới (vốn bấm được) nên người dùng
+                  // bấm mãi không ra gì.
+                  <div
+                    className="li"
+                    key={t.id}
+                    role="button"
+                    tabIndex={0}
+                    style={{ cursor: "pointer" }}
+                    onClick={() => openScheduleDetail(t)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        openScheduleDetail(t);
+                      }
+                    }}
+                  >
+                    <div className="ico-sm" style={{ background: "var(--primary-soft)", color: "var(--primary)" }}>•</div>
+                    <div className="li-body"><div className="li-title">{t.title}</div></div>
+                    <span className="small bold muted">{t.time_label || "--"}</span>
+                  </div>
                 ))}
               </div>
             </div>
@@ -3153,7 +3282,31 @@ function CalendarDetail() {
             <div className="card">
               <div className="card-head"><h3>Phê duyệt chờ xử lý</h3></div>
               <div className="list">
-                <div className="li"><div className="ico-sm" style={{ background: "var(--primary-soft)", color: "var(--primary)" }}>📄</div><div className="li-body"><div className="li-title">Lịch báo giảng</div></div><span className="li-end" style={{ color: "var(--primary)" }}>{planStatusCounts.submitted || 0}</span></div>
+                {/* Hai dòng dưới bấm được để mở đúng hộp duyệt, riêng dòng này trước
+                    đây là div trơn không có onClick — nhìn giống hệt nhau mà chỉ
+                    một cái ấn được. Nối vào cùng chỗ với nút "Duyệt lịch báo giảng
+                    tháng" ở đầu trang. */}
+                <div
+                  className="li"
+                  {...(canManageSessions
+                    ? {
+                        role: "button",
+                        tabIndex: 0,
+                        onClick: handleOpenReviewPlan,
+                        onKeyDown: (event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            handleOpenReviewPlan();
+                          }
+                        },
+                        style: { cursor: "pointer", ...((planStatusCounts.submitted || 0) > 0 ? {} : { opacity: 0.6 }) },
+                      }
+                    : {})}
+                >
+                  <div className="ico-sm" style={{ background: "var(--primary-soft)", color: "var(--primary)" }}>📄</div>
+                  <div className="li-body"><div className="li-title">Lịch báo giảng</div></div>
+                  <span className="li-end" style={{ color: "var(--primary)" }}>{planStatusCounts.submitted || 0}</span>
+                </div>
                 {renderStaffApprovalRow("leave_shift", "🗓", "Đơn xin nghỉ / đổi ca", staffPending.leave_shift, canReviewLeaveShift)}
                 {renderStaffApprovalRow("proposal", "✎", "Đề xuất - yêu cầu", staffPending.proposal, canReviewProposal)}
               </div>
@@ -3165,7 +3318,20 @@ function CalendarDetail() {
                 {upcomingSchedules.length === 0 ? (
                   <div className="li"><div className="li-body"><div className="li-sub">Chưa có sự kiện sắp tới.</div></div></div>
                 ) : upcomingSchedules.map((e) => (
-                  <div className="li" key={e.id}>
+                  <div
+                    className="li"
+                    key={e.id}
+                    role="button"
+                    tabIndex={0}
+                    style={{ cursor: "pointer" }}
+                    onClick={() => openScheduleDetail(e)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        openScheduleDetail(e);
+                      }
+                    }}
+                  >
                     <div style={{ width: 44, textAlign: "center", background: "var(--primary-soft)", borderRadius: 10, padding: "5px 0", flexShrink: 0 }}>
                       <div style={{ fontWeight: 800, fontSize: 16, color: "var(--primary)" }}>{e.event_date?.slice(8, 10)}</div>
                       <div style={{ fontSize: 9, fontWeight: 700, color: "var(--primary)" }}>THG {Number(e.event_date?.slice(5, 7))}</div>
@@ -3791,8 +3957,8 @@ function CalendarDetail() {
                           end_at: nextEnd,
                           teaching_plan_month: month || prev.teaching_plan_month,
                           teaching_plan_year: year || prev.teaching_plan_year,
-                          teaching_plan_week: day
-                            ? getWeekIndexFromDay(day)
+                          teaching_plan_week: day && year && month
+                            ? getWeekIndexFromDate(year, month, day)
                             : prev.teaching_plan_week,
                         };
                       });
