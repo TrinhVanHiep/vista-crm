@@ -2,8 +2,9 @@
 // và mã lớp roster (vd "V501", "901"). Roster canonical hoá số 3 chữ số thành V###.
 export function normCode(code) {
   let c = (code || "").toString().trim().toUpperCase();
+  c = c.replace(/\s+/g, "");           // bỏ khoảng trắng: "F 205" -> "F205" (khớp "f205")
   c = c.replace(/-\d{4}$/, "");        // bỏ hậu tố năm: 901-2026 -> 901
-  c = c.replace(/^V([3-9]\d{2})$/, "$1"); // V501 -> 501
+  c = c.replace(/^V([3-9]\d{2})$/, "$1"); // dữ liệu cũ: V501 -> 501
   return c;
 }
 
