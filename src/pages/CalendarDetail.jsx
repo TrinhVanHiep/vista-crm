@@ -796,6 +796,30 @@ function CalendarDetail() {
   const [reviewReasonTarget, setReviewReasonTarget] = useState(null);
   const [reviewReasonText, setReviewReasonText] = useState("");
   const [reviewReasonError, setReviewReasonError] = useState("");
+  // Các hộp thoại của màn này viết tay từ trước, không cái nào đóng được bằng Esc
+  // (bấm Esc xong hộp thoại vẫn nằm nguyên). Gom về một chỗ xử lý thay vì sửa
+  // rải rác 7 hộp thoại trong file, và đóng theo thứ tự trong-ra-ngoài để hộp
+  // mở sau cùng đóng trước.
+  useEffect(() => {
+    const closers = [
+      [reviewReasonTarget, () => setReviewReasonTarget(null)],
+      [reportSessionId, () => setReportSessionId(null)],
+      [detailSession, () => setDetailSession(null)],
+      [isCreateOpen, () => setIsCreateOpen(false)],
+      [isImportOpen, () => setIsImportOpen(false)],
+      [isStaffCreateOpen, () => setIsStaffCreateOpen(false)],
+      [staffReviewGroup, () => setStaffReviewGroup(null)],
+      [isReviewOpen, () => setIsReviewOpen(false)],
+    ];
+    const topMost = closers.find(([isOpen]) => Boolean(isOpen));
+    if (!topMost) return undefined;
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") topMost[1]();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [reviewReasonTarget, reportSessionId, detailSession, isCreateOpen, isImportOpen, isStaffCreateOpen, staffReviewGroup, isReviewOpen]);
+
   const [createForm, setCreateForm] = useState({
     center: "",
     classroom: "",
@@ -1554,6 +1578,10 @@ function CalendarDetail() {
           id: `s-${s.id}`,
           kind: "session",
           title: `${s.classroom_name || "Lớp"} - ${shortTeacherName(s.teacher_name)}`,
+          // Tách sẵn để ô lịch tuần xuống dòng ở đúng chỗ. Nối thành một chuỗi
+          // rồi để trình duyệt tự ngắt thì ra "Nguyễ / n Việt".
+          classLabel: s.classroom_name || "Lớp",
+          ownerLabel: shortTeacherName(s.teacher_name),
           time: formatTimeRange(s.start_at, s.end_at),
           subtitle: s.lesson_topic ? `Nội dung dạy: ${truncateText(s.lesson_topic, 60)}` : "",
           color: performanceLegend[mapSessionStatusToBoardStatus(s.status)]?.color || "#94a3b8",
@@ -2803,24 +2831,29 @@ function CalendarDetail() {
                   <h1>Lịch làm việc</h1>
                   <p>Quản lý lịch dạy, lịch báo giảng và kế hoạch vận hành theo tuần</p>
                 </div>
-                <div className="flex" style={{ gap: 8, flexWrap: "wrap" }}>
-              <button className="btn ghost" onClick={handleExportCalendarReport} disabled={isLoading}>Xuất Excel</button>
-              {canCreateTeachingPlan && (<button className="btn ghost" onClick={() => openImportModal("teaching")}>Nhập lịch dạy</button>)}
-              {canManageSessions && (<button className="btn ghost" onClick={() => openImportModal("schedule")}>Nhập lịch công tác</button>)}
-              {canManageSessions && (<button className="btn ghost" onClick={handleOpenReviewPlan}>Duyệt lịch báo giảng tháng</button>)}
-              <button className="btn ghost" onClick={() => openStaffCreateModal("leave")}>Tạo đơn nhân sự</button>
-              {canSubmitTeachingPlan && (<button className="btn ghost" onClick={handleSubmitMonthPlan} disabled={Boolean(planActionLoading) || !sessions.length || !isSubmitWindowOpen}>{planActionLoading === "submit" ? "Đang gửi..." : "Gửi duyệt lịch tháng"}</button>)}
-              {canCreateTeachingPlan && (
-                <button className="btn primary" onClick={() => {
-                  setCreateError("");
-                  const base = `${selectedYear}-${pad2(selectedMonth)}-01`;
-                  const draftDate = base >= todayString ? base : todayString;
-                  const [dy, dm, dday] = draftDate.split("-").map(Number);
-                  setIsCreateOpen(true);
-                  setCreateForm((prev) => ({ ...prev, teacher: canSelectTeacherForCreate ? (prev.teacher || selectedTeacherId || "") : "", start_at: `${draftDate}T18:00`, end_at: `${draftDate}T19:30`, teaching_plan_month: dm, teaching_plan_year: dy, teaching_plan_week: getWeekIndexFromDay(dday) }));
-                }}>+ Thêm ca dạy</button>
-              )}
-                </div>
+                {/* Hành động chính đứng cạnh tiêu đề. Trước đây cả 6 nút cùng một
+                    hàng nên trên laptop 1280px chúng tràn xuống 2 hàng và "+ Thêm
+                    ca dạy" — việc hay làm nhất — lại bị đẩy xuống dưới cùng. */}
+                {canCreateTeachingPlan && (
+                  <button className="btn primary" onClick={() => {
+                    setCreateError("");
+                    const base = `${selectedYear}-${pad2(selectedMonth)}-01`;
+                    const draftDate = base >= todayString ? base : todayString;
+                    const [dy, dm, dday] = draftDate.split("-").map(Number);
+                    setIsCreateOpen(true);
+                    setCreateForm((prev) => ({ ...prev, teacher: canSelectTeacherForCreate ? (prev.teacher || selectedTeacherId || "") : "", start_at: `${draftDate}T18:00`, end_at: `${draftDate}T19:30`, teaching_plan_month: dm, teaching_plan_year: dy, teaching_plan_week: getWeekIndexFromDay(dday) }));
+                  }}>+ Thêm ca dạy</button>
+                )}
+              </div>
+              {/* Các thao tác phụ thành thanh riêng, dùng hết bề ngang nên vừa một
+                  hàng thay vì chen với tiêu đề. */}
+              <div className="cal-toolbar">
+                <button className="btn ghost sm" onClick={handleExportCalendarReport} disabled={isLoading}>Xuất Excel</button>
+                {canCreateTeachingPlan && (<button className="btn ghost sm" onClick={() => openImportModal("teaching")}>Nhập lịch dạy</button>)}
+                {canManageSessions && (<button className="btn ghost sm" onClick={() => openImportModal("schedule")}>Nhập lịch công tác</button>)}
+                {canManageSessions && (<button className="btn ghost sm" onClick={handleOpenReviewPlan}>Duyệt lịch báo giảng tháng</button>)}
+                <button className="btn ghost sm" onClick={() => openStaffCreateModal("leave")}>Tạo đơn nhân sự</button>
+                {canSubmitTeachingPlan && (<button className="btn ghost sm" onClick={handleSubmitMonthPlan} disabled={Boolean(planActionLoading) || !sessions.length || !isSubmitWindowOpen}>{planActionLoading === "submit" ? "Đang gửi..." : "Gửi duyệt lịch tháng"}</button>)}
               </div>
             </div>
 
@@ -2918,23 +2951,33 @@ function CalendarDetail() {
                         ))}
                       </div>
                     </div>
-                    <div className="grid c5" style={{ marginBottom: 14 }}>
-                      {WORK_CARDS.map((c) => (
-                        <button key={c.id} type="button" className="card flex-between" style={{ boxShadow: "none", background: "#FBF7F1", textAlign: "left", cursor: "pointer", border: selectedCard === c.id ? `1px solid ${c.color}` : "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" }} onClick={() => setSelectedCard(c.id)}>
-                        <div style={{ display: "flex", gap: 10 }}>
-                          <div className="ico-sm" style={{ background: "var(--primary-soft)", color: "var(--primary)" }}>▦</div>
-                          <div>
-                            <b style={{ fontSize: 13 }}>{c.label}</b>
-                            <div className="small muted">{cardCounts[c.id] || 0} việc</div>
-                            <span className="card-link small">{selectedCard === c.id ? "Đang xem trên lịch" : "Xem trên lịch →"}</span>
-                          </div>
-                        </div>
-                        <span style={{ color: "var(--muted)" }}>›</span>
-                        </button>
-                      ))}
+                    {/* Đây là BỘ LỌC lịch, không phải thẻ thống kê. Bản cũ vẽ 5 thẻ to
+                        3 dòng chữ, chiếm 3 hàng và đẩy chính cái lịch xuống dưới màn
+                        hình. Dạng chip 1 hàng giữ nguyên chức năng mà nhường chỗ cho
+                        nội dung chính. */}
+                    <div className="cal-filters" role="group" aria-label="Lọc lịch theo nhóm công việc">
+                      {WORK_CARDS.map((c) => {
+                        const active = selectedCard === c.id;
+                        return (
+                          <button
+                            key={c.id}
+                            type="button"
+                            className={`cal-chip${active ? " is-active" : ""}`}
+                            aria-pressed={active}
+                            onClick={() => setSelectedCard(c.id)}
+                          >
+                            <i className="cal-chip__dot" style={{ background: c.color }} />
+                            {c.label}
+                            <span className="cal-chip__count">{cardCounts[c.id] || 0}</span>
+                          </button>
+                        );
+                      })}
                     </div>
                     <div className="tbl-wrap">
-                      <div className="sched" style={{ minWidth: "980px" }}>
+                      {/* Không đặt min-width cứng ở đây: 980px rộng hơn cột nội dung
+                          nên T7 và CN luôn bị đẩy ra ngoài, phải kéo ngang mới thấy.
+                          Bề rộng tối thiểu để trong vista4.css, chỉ bật ở màn hẹp. */}
+                      <div className="sched">
                         <div className="sc-h"></div>
                         {days.map((d) => (<div className="sc-h" key={d.id}>{d.weekdayLabel}<small>{d.subtitle}</small></div>))}
                         {hours.length === 0 ? (
@@ -2950,10 +2993,17 @@ function CalendarDetail() {
                               return (
                                 <div className="sc-c" key={d.id}>
                                   {cell.map((it, idx) => (
-                                    <div className="lesson normal" key={it.id} style={{ cursor: "pointer", borderLeft: `3px solid ${it.color}` }} onClick={() => setDetailSession(it)}>
-                                      <img className="avatar" alt="" src={avatarUrl(it.owner || it.title, idx)} style={{ width: 18, height: 18, borderRadius: "50%", flexShrink: 0 }} />
+                                    <div className="lesson normal" key={it.id} title={`${it.title}${it.time ? ` • ${it.time}` : ""}`} style={{ cursor: "pointer", borderLeft: `3px solid ${it.color}` }} onClick={() => setDetailSession(it)}>
+                                      {/* Ảnh đại diện nằm CÙNG DÒNG với tên lớp thay vì
+                                          thành một cột riêng: cột ngày chỉ rộng ~110px,
+                                          để avatar chiếm một cột thì phần chữ còn quá hẹp
+                                          và "F 205 - Nguyễn Việt" vỡ thành 5 dòng. */}
                                       <span style={{ minWidth: 0 }}>
-                                        <b>{it.title}</b>
+                                        <b>
+                                          <img className="avatar" alt="" src={avatarUrl(it.owner || it.title, idx)} loading="lazy" />
+                                          {it.classLabel || it.title}
+                                        </b>
+                                        {it.ownerLabel ? <small className="lesson__who">{it.ownerLabel}</small> : null}
                                         <small>{it.time}</small>
                                         {it.kind === "session" && it.raw?.teaching_plan_status ? (
                                           <span
