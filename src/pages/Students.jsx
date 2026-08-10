@@ -522,6 +522,7 @@ function Students() {
                 <button type="button" className="btn ghost" onClick={() => navigate("/chuong-trinh")}>📚 Chi tiết theo chương trình →</button>
                 {canManage ? (
                   <>
+                    <button type="button" className="btn ghost" onClick={() => navigate("/quan-ly-lop")}>⚙️ Quản lý lớp</button>
                     <button type="button" className="btn ghost" onClick={handleExport} disabled={exporting}>{exporting ? "Đang xuất..." : "⬇ Xuất Excel"}</button>
                     <button type="button" className="btn ghost" onClick={() => { setImportResult(null); setModal("import"); }}>📥 Nhập HS</button>
                     <button type="button" className="btn ghost" onClick={() => { setRosterResult(null); setModal("roster"); }}>🗂️ Nhập lớp + HS</button>

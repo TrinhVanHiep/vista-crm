@@ -351,6 +351,17 @@ export async function listClassroomsAll() {
   return Array.isArray(data) ? data : [];
 }
 
+// --- Quản lý lớp học (đổi tên lớp / đổi chương trình) — quyền admin ---
+export async function createClassroom(payload) {
+  const { data } = await apiClient.post("/classrooms/classrooms/", payload);
+  return data;
+}
+
+export async function updateClassroom(classroomId, payload) {
+  const { data } = await apiClient.patch(`/classrooms/classrooms/${classroomId}/`, payload);
+  return data;
+}
+
 export async function listTeacherCentersClassrooms() {
   const { data } = await apiClient.get("/teachers/teachers/my_centers_classrooms/");
   return Array.isArray(data) ? data : [];
