@@ -1,8 +1,10 @@
 export const ROUTE_PERMISSIONS = {
   dashboard: ['superadmin', 'admin'],
   courses: ['superadmin', 'admin', 'teacher', 'student'],
-  students: ['superadmin', 'admin', 'teacher'],
-  programs: ['superadmin', 'admin', 'teacher'],
+  // Mọi vai nhân sự nội bộ tra cứu được HS/lớp (để ô tìm kiếm chung dùng được);
+  // học viên thì không.
+  students: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager'],
+  programs: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager'],
   teachers: ['superadmin', 'admin'],
   attendance: ['superadmin', 'admin'],
   calendar: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager'],
@@ -12,7 +14,7 @@ export const ROUTE_PERMISSIONS = {
   // staff không có nhiệm vụ duyệt và bị backend 403 nên không đưa vào menu.
   monthlyReports: ['superadmin', 'admin', 'teacher', 'center_manager', 'training_manager'],
   reportCard: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager'],
-  employeeProfile: ['superadmin', 'admin', 'teacher'],
+  employeeProfile: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager'],
   finance: ['superadmin', 'admin'],
   documents: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager'],
   settings: ['superadmin', 'admin'],

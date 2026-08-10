@@ -701,16 +701,9 @@ function CalendarDetail() {
   const [selectedTeacherId, setSelectedTeacherId] = useState("");
   const [selectedClassroomId, setSelectedClassroomId] = useState("");
   const [selectedSessionStatus, setSelectedSessionStatus] = useState("");
-  const nextPlanPeriod = useMemo(() => {
-    if (currentMonth === 12) {
-      return { month: 1, year: currentYear + 1 };
-    }
-    return { month: currentMonth + 1, year: currentYear };
-  }, [currentMonth, currentYear]);
-  const selectedIsNextPlanPeriod =
-    selectedMonth === nextPlanPeriod.month && selectedYear === nextPlanPeriod.year;
-  const isSubmitWindowOpen =
-    canManageSessions || (selectedIsNextPlanPeriod && [27, 28].includes(now.getDate()));
+  // Không còn ép cửa sổ 27-28: gửi duyệt lịch tháng được bất kỳ lúc nào, cho
+  // bất kỳ kỳ nào (đồng bộ backend _validate_month_plan_submit_window).
+  const isSubmitWindowOpen = true;
   // Nhắc hoàn tất/chốt lịch tháng trong khoảng ngày 28 -> 30 hằng tháng.
   const isMonthClosingWindow = [28, 29, 30].includes(now.getDate());
   const todayAtStart = useMemo(
@@ -2663,12 +2656,6 @@ function CalendarDetail() {
   const handleSubmitMonthPlan = async () => {
     setScheduleError("");
     setNotice("");
-    if (!isSubmitWindowOpen) {
-      setScheduleError(
-        `Chỉ được gửi duyệt lịch báo giảng tháng sau (${pad2(nextPlanPeriod.month)}/${nextPlanPeriod.year}) trong ngày 27-28 hằng tháng.`,
-      );
-      return;
-    }
     setPlanActionLoading("submit");
     try {
       const response = await submitMonthlyTeachingPlan({
