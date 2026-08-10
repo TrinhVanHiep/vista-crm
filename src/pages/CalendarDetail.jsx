@@ -2795,18 +2795,21 @@ function CalendarDetail() {
       <div className="v4page">
         <div className="content">
           <div className="content-col">
+            {/* Tiêu đề + nút cùng một khối như các màn 4.0 khác (mẫu Students.jsx),
+                thay vì để hàng nút thành một dải riêng phía dưới. */}
             <div className="page-head">
-              <h1>Lịch làm việc</h1>
-              <p>Quản lý lịch dạy, lịch báo giảng và kế hoạch vận hành theo tuần</p>
-            </div>
-
-            <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
-              <button className="btn ghost sm" onClick={handleExportCalendarReport} disabled={isLoading}>Xuất Excel</button>
-              {canCreateTeachingPlan && (<button className="btn ghost sm" onClick={() => openImportModal("teaching")}>Nhập lịch dạy</button>)}
-              {canManageSessions && (<button className="btn ghost sm" onClick={() => openImportModal("schedule")}>Nhập lịch công tác</button>)}
-              {canManageSessions && (<button className="btn ghost sm" onClick={handleOpenReviewPlan}>Duyệt lịch báo giảng tháng</button>)}
-              <button className="btn ghost sm" onClick={() => openStaffCreateModal("leave")}>Tạo đơn nhân sự</button>
-              {canSubmitTeachingPlan && (<button className="btn ghost sm" onClick={handleSubmitMonthPlan} disabled={Boolean(planActionLoading) || !sessions.length || !isSubmitWindowOpen}>{planActionLoading === "submit" ? "Đang gửi..." : "Gửi duyệt lịch tháng"}</button>)}
+              <div className="flex-between" style={{ alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
+                <div>
+                  <h1>Lịch làm việc</h1>
+                  <p>Quản lý lịch dạy, lịch báo giảng và kế hoạch vận hành theo tuần</p>
+                </div>
+                <div className="flex" style={{ gap: 8, flexWrap: "wrap" }}>
+              <button className="btn ghost" onClick={handleExportCalendarReport} disabled={isLoading}>Xuất Excel</button>
+              {canCreateTeachingPlan && (<button className="btn ghost" onClick={() => openImportModal("teaching")}>Nhập lịch dạy</button>)}
+              {canManageSessions && (<button className="btn ghost" onClick={() => openImportModal("schedule")}>Nhập lịch công tác</button>)}
+              {canManageSessions && (<button className="btn ghost" onClick={handleOpenReviewPlan}>Duyệt lịch báo giảng tháng</button>)}
+              <button className="btn ghost" onClick={() => openStaffCreateModal("leave")}>Tạo đơn nhân sự</button>
+              {canSubmitTeachingPlan && (<button className="btn ghost" onClick={handleSubmitMonthPlan} disabled={Boolean(planActionLoading) || !sessions.length || !isSubmitWindowOpen}>{planActionLoading === "submit" ? "Đang gửi..." : "Gửi duyệt lịch tháng"}</button>)}
               {canCreateTeachingPlan && (
                 <button className="btn primary" onClick={() => {
                   setCreateError("");
@@ -2817,6 +2820,8 @@ function CalendarDetail() {
                   setCreateForm((prev) => ({ ...prev, teacher: canSelectTeacherForCreate ? (prev.teacher || selectedTeacherId || "") : "", start_at: `${draftDate}T18:00`, end_at: `${draftDate}T19:30`, teaching_plan_month: dm, teaching_plan_year: dy, teaching_plan_week: getWeekIndexFromDay(dday) }));
                 }}>+ Thêm ca dạy</button>
               )}
+                </div>
+              </div>
             </div>
 
             <div className="kpi-grid cols-4">

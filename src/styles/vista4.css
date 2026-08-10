@@ -489,3 +489,14 @@
 .v4page .card, .v4page .kpi { background: #ffffff; }
 .v4page .sched .sc-c { min-height: 62px; padding: 6px; display: flex; flex-direction: column; gap: 6px; }
 .v4page .lesson { padding: 6px 8px; }
+
+/* --- Responsive dải chỉ số: quy tắc @1400px ép 3 cột cho MỌI màn nhỏ hơn,
+   nên trên điện thoại 3 thẻ (~420px) tràn khỏi khung (~250px). --- */
+@media(max-width:900px){.v4page .kpi-grid,.v4page .kpi-grid.cols-4,.v4page .kpi-grid.cols-5{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.v4page .kpi-grid,.v4page .kpi-grid.cols-4,.v4page .kpi-grid.cols-5{grid-template-columns:1fr}}
+
+/* --- Thống nhất lề trái giữa các màn ---
+   Màn có cột phải bọc thêm .content (padding ngang 22px), màn không có thì
+   .content-col là con trực tiếp -> tiêu đề lệch 22px khi bấm qua lại.
+   Khung ngoài (main) đã có lề rồi nên bỏ lề NGANG của .content, giữ lề dọc. */
+.v4page .content{padding-left:0;padding-right:0}

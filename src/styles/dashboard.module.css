@@ -3262,3 +3262,68 @@
   font-size: 12px;
   color: var(--color-muted);
 }
+
+/* ==========================================================================
+   RESPONSIVE — máy tính bảng & điện thoại
+   Khối override phía trên không có media query nên đè lên mọi breakpoint cũ:
+   menu vẫn giữ 220px kể cả trên màn 375px -> menu rộng hơn cả màn hình, nội
+   dung bị ép còn ~250px. Đặt các quy tắc dưới CUỐI FILE để chắc chắn thắng.
+   ========================================================================== */
+@media (max-width: 992px) {
+  /* Thu menu về dạng icon: vẫn vào được mọi mục, nội dung có đủ chỗ. */
+  .dashboard,
+  .dashboard--collapsed {
+    grid-template-columns: 60px minmax(0, 1fr);
+  }
+
+  .dashboard__sidebar {
+    padding: 16px 6px;
+  }
+
+  .dashboard__brand-name,
+  .dashboard__nav-label {
+    display: none;
+  }
+
+  .dashboard__brand {
+    justify-content: center;
+  }
+
+  .dashboard__nav-item {
+    justify-content: center;
+    padding: 10px;
+    gap: 0;
+  }
+
+  /* Nút thu gọn/mở rộng không còn ý nghĩa khi đã ép dạng icon. */
+  .dashboard__sidebar-toggle {
+    display: none;
+  }
+
+  /* Thanh trên: cho xuống dòng thay vì ép 1 hàng khiến các nút đè nhau. */
+  .dashboard__topbar {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px 14px;
+  }
+
+  .dashboard__search {
+    order: 3;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .dashboard__content {
+    padding: 16px 14px 32px;
+  }
+}
+
+@media (max-width: 576px) {
+  .dashboard {
+    padding: 0;
+  }
+
+  .dashboard__content {
+    padding: 12px 10px 28px;
+  }
+}
