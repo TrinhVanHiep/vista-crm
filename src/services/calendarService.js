@@ -229,6 +229,11 @@ export async function listMonthlyScorecards(params = {}) {
   return normalizeCollection(data);
 }
 
+export async function getMonthlyScorecard(scorecardId) {
+  const { data } = await apiClient.get(`/monthly-scorecards/${scorecardId}/`);
+  return data;
+}
+
 export async function listStudentScores(params = {}) {
   const { data } = await apiClient.get("/student-scores/", { params });
   return normalizeCollection(data);

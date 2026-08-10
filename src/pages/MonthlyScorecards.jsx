@@ -1631,6 +1631,16 @@ function MonthlyScorecards() {
                               >
                                 {canEditScorecard(scorecard) ? "Xem/Sửa" : "Xem"}
                               </button>
+                              {!isStudent ? (
+                                <button
+                                  type="button"
+                                  className={styles.secondaryButton}
+                                  title="Mở phiếu báo cáo để in / gửi phụ huynh"
+                                  onClick={() => navigate(`/phieu-bao-cao/${scorecard.id}`)}
+                                >
+                                  📄 Phiếu PH
+                                </button>
+                              ) : null}
                               {canSubmitScorecard(scorecard) ? (
                                 <button
                                   type="button"

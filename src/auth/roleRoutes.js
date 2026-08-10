@@ -5,6 +5,7 @@ const ROUTE_ORDER = [
   { path: '/courses', allowedRoles: ROUTE_PERMISSIONS.courses },
   { path: '/calendar-detail', allowedRoles: ROUTE_PERMISSIONS.calendar },
   { path: '/monthly-scorecards', allowedRoles: ROUTE_PERMISSIONS.monthlyScorecards },
+  { path: '/phieu-bao-cao/:scorecardId', allowedRoles: ROUTE_PERMISSIONS.parentReport },
   { path: '/report-card', allowedRoles: ROUTE_PERMISSIONS.reportCard },
   { path: '/monthly-reports', allowedRoles: ROUTE_PERMISSIONS.monthlyReports },
   { path: '/truyen-thong', allowedRoles: ROUTE_PERMISSIONS.media },

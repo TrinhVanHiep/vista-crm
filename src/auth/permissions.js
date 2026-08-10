@@ -9,6 +9,8 @@ export const ROUTE_PERMISSIONS = {
   attendance: ['superadmin', 'admin'],
   calendar: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager'],
   monthlyScorecards: ['superadmin', 'admin', 'teacher', 'student'],
+  // Phiếu báo cáo tháng gửi phụ huynh — do giáo viên/quản lý lập.
+  parentReport: ['superadmin', 'admin', 'teacher'],
   // Màn này chứa 2 luồng: báo cáo tháng (quản lý cơ sở duyệt) VÀ duyệt báo cáo
   // ca dạy (quản lý đào tạo duyệt) -> cả 2 vai quản lý đều cần vào.
   // staff không có nhiệm vụ duyệt và bị backend 403 nên không đưa vào menu.

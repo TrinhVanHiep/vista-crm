@@ -8,6 +8,7 @@ import Courses from './pages/Courses.jsx';
 import EmployeeProfile from './pages/EmployeeProfile.jsx';
 import CalendarDetail from './pages/CalendarDetail.jsx';
 import MonthlyScorecards from './pages/MonthlyScorecards.jsx';
+import ParentReport from './pages/ParentReport.jsx';
 import MonthlyReports from './pages/MonthlyReports.jsx';
 import DailyReport from './pages/DailyReport.jsx';
 import ComingSoon from './pages/ComingSoon.jsx';
@@ -148,6 +149,14 @@ function App() {
             element={
               <RoleGuard allowedRoles={ROUTE_PERMISSIONS.monthlyScorecards}>
                 <MonthlyScorecards />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="phieu-bao-cao/:scorecardId"
+            element={
+              <RoleGuard allowedRoles={ROUTE_PERMISSIONS.parentReport}>
+                <ParentReport />
               </RoleGuard>
             }
           />
