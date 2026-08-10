@@ -11,7 +11,8 @@ const COLOR_PALETTE = [
 
 export function getFullName(user) {
   if (!user) return "Chưa có tên";
-  const fullName = `${user.first_name || ""} ${user.last_name || ""}`.trim();
+  // Thứ tự tiếng Việt: họ + đệm rồi tên (last_name trước first_name).
+  const fullName = `${user.last_name || ""} ${user.first_name || ""}`.trim();
   return fullName || user.username || user.email || "Chưa có tên";
 }
 
