@@ -4,7 +4,9 @@ import {
   getTuitionSummary,
   createTuitionRecord,
   importTuitionFile,
+  listClassroomsAll,
 } from "../services/calendarService";
+import { normCode } from "../utils/classCode";
 import "../styles/vista4.css";
 
 const YEAR = 2026;
@@ -80,6 +82,10 @@ function Tuition() {
   const [classCode, setClassCode] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  // Mã lớp đang mở (từ danh sách lớp) -> tách học phí lớp kỳ trước ra khỏi
+  // số liệu theo dõi năm nay.
+  const [activeCodes, setActiveCodes] = useState(null); // null = chưa tải xong
+  const [scope, setScope] = useState("current"); // current | all
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
@@ -106,6 +112,19 @@ function Tuition() {
     })();
     return () => { active = false; };
   }, [reloadKey]);
+
+  // Danh sách lớp đang mở -> để biết lớp nào thuộc kỳ trước.
+  useEffect(() => {
+    let active = true;
+    listClassroomsAll()
+      .then((rows) => {
+        if (active) setActiveCodes(new Set((rows || []).map((c) => normCode(c.class_code))));
+      })
+      .catch(() => {
+        if (active) setActiveCodes(new Set());
+      });
+    return () => { active = false; };
+  }, []);
 
   // Records (filter by class / search).
   useEffect(() => {
@@ -195,7 +214,44 @@ function Tuition() {
   };
 
   const inputProps = { className: "", style: {} };
-  const collectedPct = summary.total_fee ? Math.round((summary.collected / summary.total_fee) * 100) : 0;
+  // Chia lớp trong học phí thành "đang học" và "kỳ trước" (không còn trong
+  // danh sách lớp) để theo dõi năm nay không bị lệch số.
+  const { currentClasses, pastClasses } = useMemo(() => {
+    const all = summary.by_class || [];
+    if (!activeCodes) return { currentClasses: all, pastClasses: [] };
+    const cur = [];
+    const past = [];
+    all.forEach((c) => (activeCodes.has(normCode(c.class_code)) ? cur : past).push(c));
+    return { currentClasses: cur, pastClasses: past };
+  }, [summary.by_class, activeCodes]);
+
+  // KPI theo phạm vi đang chọn.
+  const kpi = useMemo(() => {
+    if (scope === "all" || !activeCodes) {
+      return {
+        students: summary.students,
+        total_fee: summary.total_fee,
+        collected: summary.collected,
+        discount: summary.discount,
+        remaining: summary.remaining,
+        classCount: (summary.by_class || []).length,
+      };
+    }
+    const num = (v) => Number(v) || 0;
+    return currentClasses.reduce(
+      (acc, c) => ({
+        students: acc.students + num(c.students),
+        total_fee: acc.total_fee + num(c.total_fee),
+        collected: acc.collected + num(c.paid_1) + num(c.paid_2),
+        discount: acc.discount + num(c.discount),
+        remaining: acc.remaining + num(c.remaining),
+        classCount: acc.classCount + 1,
+      }),
+      { students: 0, total_fee: 0, collected: 0, discount: 0, remaining: 0, classCount: 0 },
+    );
+  }, [scope, activeCodes, currentClasses, summary]);
+
+  const collectedPct = kpi.total_fee ? Math.round((kpi.collected / kpi.total_fee) * 100) : 0;
   const totalPages = Math.max(1, Math.ceil(recordCount / PAGE_SIZE));
   const startIdx = recordCount === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
   const endIdx = (page - 1) * PAGE_SIZE + records.length;
@@ -223,11 +279,27 @@ function Tuition() {
           </div>
         ) : null}
 
+        {pastClasses.length ? (
+          <div
+            className="card"
+            style={{ padding: "10px 14px", marginBottom: 12, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", fontSize: 12.5 }}
+          >
+            <span>
+              Có <strong>{pastClasses.length} lớp kỳ trước</strong> đã kết thúc
+              ({pastClasses.map((c) => c.class_code).join(", ")}) — dữ liệu vẫn giữ để tra cứu.
+            </span>
+            <select value={scope} onChange={(e) => setScope(e.target.value)} style={{ padding: "5px 10px", borderRadius: 8 }}>
+              <option value="current">Chỉ tính lớp đang học</option>
+              <option value="all">Tính cả lớp kỳ trước</option>
+            </select>
+          </div>
+        ) : null}
+
         <div className="kpi-grid cols-4">
-          <Kpi icon="👥" iconBg="#eef2fb" iconColor="#3b82f6" label="Số học sinh" value={summary.students} sub={`${summary.by_class?.length || 0} lớp`} />
-          <Kpi icon="💰" iconBg="#e9f7ef" iconColor="#2e9e5b" label="Tổng học phí" value={`${fmtCompact(summary.total_fee)}₫`} sub={fmtVnd(summary.total_fee)} />
-          <Kpi icon="✅" iconBg="#e9f7ef" iconColor="#2e9e5b" label="Đã thu" value={`${fmtCompact(summary.collected)}₫`} sub={`${collectedPct}% · ưu đãi ${fmtCompact(summary.discount)}₫`} />
-          <Kpi icon="⚠️" iconBg="#fdf2e3" iconColor="#d9822b" label="Còn thiếu" value={`${fmtCompact(summary.remaining)}₫`} sub={fmtVnd(summary.remaining)} />
+          <Kpi icon="👥" iconBg="#eef2fb" iconColor="#3b82f6" label="Số học sinh" value={kpi.students} sub={`${kpi.classCount} lớp`} />
+          <Kpi icon="💰" iconBg="#e9f7ef" iconColor="#2e9e5b" label="Tổng học phí" value={`${fmtCompact(kpi.total_fee)}₫`} sub={fmtVnd(kpi.total_fee)} />
+          <Kpi icon="✅" iconBg="#e9f7ef" iconColor="#2e9e5b" label="Đã thu" value={`${fmtCompact(kpi.collected)}₫`} sub={`${collectedPct}% · ưu đãi ${fmtCompact(kpi.discount)}₫`} />
+          <Kpi icon="⚠️" iconBg="#fdf2e3" iconColor="#d9822b" label="Còn thiếu" value={`${fmtCompact(kpi.remaining)}₫`} sub={fmtVnd(kpi.remaining)} />
         </div>
 
         {modal === "manual" && (
@@ -312,9 +384,22 @@ function Tuition() {
                 style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid var(--border)", background: "#fff", font: "inherit", fontSize: 13 }}
               >
                 <option value="">Tất cả lớp</option>
-                {(summary.by_class || []).map((c, i) => (
-                  <option key={`${c.class_code}-${i}`} value={c.class_code}>{c.class_code || "(chưa gán lớp)"} · {c.program || ""} ({c.students})</option>
-                ))}
+                <optgroup label="Lớp đang học">
+                  {currentClasses.map((c, i) => (
+                    <option key={`cur-${c.class_code}-${i}`} value={c.class_code}>
+                      {c.class_code || "(chưa gán lớp)"} · {c.program || ""} ({c.students})
+                    </option>
+                  ))}
+                </optgroup>
+                {pastClasses.length ? (
+                  <optgroup label="Lớp kỳ trước (đã kết thúc)">
+                    {pastClasses.map((c, i) => (
+                      <option key={`past-${c.class_code}-${i}`} value={c.class_code}>
+                        {c.class_code || "(chưa gán lớp)"} · {c.program || ""} ({c.students})
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null}
               </select>
               <input
                 type="text"
