@@ -54,13 +54,84 @@ export async function reviewStaffRequest(requestId, payload) {
   return data;
 }
 
+// --- Truyền thông (kế hoạch nội dung + nghiệm thu) --------------------------
+// Các tham số lọc backend hỗ trợ cho /media-reports/ và /media-reports/summary/.
+const MEDIA_REPORT_PARAM_KEYS = [
+  "year",
+  "month",
+  "week", // 1-5, tuần trong tháng
+  "program", // khớp gần đúng program_name
+  "classroom", // id lớp hoặc mã lớp
+  "status", // draft | submitted | approved
+  "channel", // zalo | facebook | youtube | tiktok | website
+  "search",
+  "center",
+  "report_date",
+  "date_from",
+  "date_to",
+  "page",
+  "page_size",
+];
+
+// Bỏ các tham số rỗng để không gửi ?status=&program= lên API.
+function cleanMediaParams(params = {}) {
+  const cleaned = {};
+  MEDIA_REPORT_PARAM_KEYS.forEach((key) => {
+    const value = params[key];
+    if (value === undefined || value === null || value === "") return;
+    cleaned[key] = value;
+  });
+  return cleaned;
+}
+
 export async function listMediaReports(params = {}) {
-  const { data } = await apiClient.get("/media-reports/", { params });
+  const { data } = await apiClient.get("/media-reports/", {
+    params: cleanMediaParams(params),
+  });
   return normalizeCollection(data);
+}
+
+// API phân trang mặc định 10 bản ghi/trang -> gom đủ trang cho màn kế hoạch.
+export async function listAllMediaReports(params = {}, maxPages = 30) {
+  const results = [];
+  let count = 0;
+  for (let page = 1; page <= maxPages; page += 1) {
+    // eslint-disable-next-line no-await-in-loop
+    const chunk = await listMediaReports({ ...params, page });
+    results.push(...chunk.results);
+    count = chunk.count || results.length;
+    if (!chunk.next || !chunk.results.length) break;
+  }
+  return { results, count: count || results.length };
+}
+
+export async function getMediaSummary(params = {}) {
+  const { data } = await apiClient.get("/media-reports/summary/", {
+    params: cleanMediaParams(params),
+  });
+  return (
+    data || {
+      campaigns: 0,
+      this_week: 0,
+      pending_acceptance: 0,
+      completion_rate: 0,
+      classes_active: 0,
+      programs_active: 0,
+      by_channel: [],
+      acceptance: {},
+      upcoming: [],
+    }
+  );
 }
 
 export async function createMediaReport(payload) {
   const { data } = await apiClient.post("/media-reports/", payload);
+  return data;
+}
+
+// Cập nhật nội dung truyền thông: trạng thái, nghiệm thu, chỉ số thực tế.
+export async function updateMediaReport(reportId, payload) {
+  const { data } = await apiClient.patch(`/media-reports/${reportId}/`, payload);
   return data;
 }
 

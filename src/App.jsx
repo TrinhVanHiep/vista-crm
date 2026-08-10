@@ -14,6 +14,7 @@ import MonthlyReports from './pages/MonthlyReports.jsx';
 import DailyReport from './pages/DailyReport.jsx';
 import ComingSoon from './pages/ComingSoon.jsx';
 import Tuition from './pages/Tuition.jsx';
+import MediaPlan from './pages/MediaPlan.jsx';
 import Finance from './pages/Finance.jsx';
 import CreateAccount from './pages/CreateAccount.jsx';
 import Students from './pages/Students.jsx';
@@ -189,7 +190,7 @@ function App() {
             path="truyen-thong"
             element={
               <RoleGuard allowedRoles={ROUTE_PERMISSIONS.media}>
-                <ComingSoon />
+                <MediaPlan />
               </RoleGuard>
             }
           />
