@@ -338,7 +338,15 @@ const buildMonthWeeks = (year, month) => {
         inMonth: dayDate.getMonth() === month - 1,
       };
     });
-    weeks.push({ id: `grid-week-${weekIndex}`, label: `Tuần ${weekIndex}`, days });
+    // Kèm luôn khoảng ngày vào nhãn. Chỉ số tuần được tính theo tháng đang chọn,
+    // nên khi lùi qua đầu tháng nhãn chạy 3 -> 2 -> 1 -> 4 và trông như bị nhảy;
+    // thực ra tháng đã đổi, nhưng ô chọn tháng nằm tận góc trên nên không ai để ý.
+    weeks.push({
+      id: `grid-week-${weekIndex}`,
+      label: `Tuần ${weekIndex}`,
+      rangeLabel: `${days[0].subtitle} – ${days[6].subtitle}`,
+      days,
+    });
     cursor = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + 7);
     weekIndex += 1;
   }
@@ -731,7 +739,11 @@ function CalendarDetail() {
   const [detailSession, setDetailSession] = useState(null);
   // Trang Lịch mới: thẻ công việc + chế độ xem + lịch công tác.
   const [selectedCard, setSelectedCard] = useState("teaching_plan");
-  const [calendarView, setCalendarView] = useState("month"); // month | week | day
+  // "week" = lưới giờ của một tuần, "month" = lưới cả tháng.
+  // Trước đây state này được đặt "month" rồi KHÔNG BAO GIỜ đổi (setCalendarView
+  // không được gọi ở đâu), nên màn chỉ có đúng một cách xem dù yêu cầu là xem
+  // được cả tuần lẫn tháng. Mặc định "week" để giữ nguyên cách hiển thị cũ.
+  const [calendarView, setCalendarView] = useState("week");
   // Mỗi cột ngày trong board tuần chỉ hiện tối đa MAX_VISIBLE_EVENTS buổi;
   // ngày nào được mở rộng thì hiện hết (tránh hiển thị quá nhiều lịch cùng lúc).
   const [expandedDays, setExpandedDays] = useState(() => new Set());
@@ -1530,24 +1542,10 @@ function CalendarDetail() {
     return grouped;
   }, [schedules]);
 
-  // Cột lịch theo chế độ xem: Tháng (đủ tuần), Tuần (1 tuần), Ngày (1 ngày).
-  const visibleWeeks = useMemo(() => {
-    if (calendarView === "month") return monthWeeks;
-    if (calendarView === "week") {
-      const wk =
-        monthWeeks.find((w) => w.days.some((d) => d.id === focusDate)) || monthWeeks[0];
-      return wk ? [wk] : [];
-    }
-    const dayInfo = monthWeeks.flatMap((w) => w.days).find((d) => d.id === focusDate);
-    if (dayInfo) return [{ id: "day-1", label: "Ngày", days: [dayInfo] }];
-    const [fy, fm, fd] = focusDate.split("-").map(Number);
-    const weekdayIndex = (new Date(fy, fm - 1, fd).getDay() + 6) % 7;
-    return [{
-      id: "day-1", label: "Ngày",
-      days: [{ id: focusDate, day: fd, weekdayLabel: WEEKDAY_LABELS[weekdayIndex],
-        subtitle: `${pad2(fd)}/${pad2(fm)}`, inMonth: fm === selectedMonth }],
-    }];
-  }, [calendarView, monthWeeks, focusDate, selectedMonth]);
+  // Phạm vi DỮ LIỆU luôn là cả tháng, không phụ thuộc đang xem tuần hay tháng:
+  // đổi cách xem chỉ là đổi cách vẽ, không phải tải lại. (Nhánh "day" cũ đã bỏ vì
+  // không có lối nào vào được.)
+  const visibleWeeks = monthWeeks;
 
   const visibleDateIds = useMemo(
     () => new Set(visibleWeeks.flatMap((w) => w.days.map((d) => d.id))),
@@ -2933,11 +2931,43 @@ function CalendarDetail() {
                 return (
                   <div className="card">
                     <div className="card-head">
-                      <h3>Lịch dạy theo tuần — {WORK_CARDS.find((c) => c.id === selectedCard)?.label}</h3>
+                      <h3>
+                        {calendarView === "month" ? "Lịch dạy theo tháng" : "Lịch dạy theo tuần"}
+                        {" — "}
+                        {WORK_CARDS.find((c) => c.id === selectedCard)?.label}
+                      </h3>
                       <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                        <button className="btn ghost sm" onClick={() => shiftWeek(-1)}>‹</button>
-                        <span className="badge gray">{week?.label || "Tuần"}</span>
-                        <button className="btn ghost sm" onClick={() => shiftWeek(1)}>›</button>
+                        {/* Chuyển Tuần / Tháng. Yêu cầu là xem được cả hai, nhưng
+                            trước đây không có nút nào đổi nên chỉ xem được tuần. */}
+                        <div className="view-switch" role="group" aria-label="Chế độ xem lịch">
+                          <button
+                            type="button"
+                            className={calendarView === "week" ? "is-active" : ""}
+                            aria-pressed={calendarView === "week"}
+                            onClick={() => setCalendarView("week")}
+                          >Tuần</button>
+                          <button
+                            type="button"
+                            className={calendarView === "month" ? "is-active" : ""}
+                            aria-pressed={calendarView === "month"}
+                            onClick={() => setCalendarView("month")}
+                          >Tháng</button>
+                        </div>
+                        {calendarView === "week" ? (
+                          <>
+                            <button className="btn ghost sm" onClick={() => shiftWeek(-1)}>‹</button>
+                            <span className="badge gray week-badge">
+                              {week?.label || "Tuần"}
+                              {week?.rangeLabel ? <small>{week.rangeLabel}</small> : null}
+                            </span>
+                            <button className="btn ghost sm" onClick={() => shiftWeek(1)}>›</button>
+                          </>
+                        ) : (
+                          <span className="badge gray week-badge">
+                            Tháng {selectedMonth}
+                            <small>{selectedYear}</small>
+                          </span>
+                        )}
                       </div>
                       {/* Chú giải phải mô tả ĐÚNG màu đang vẽ trên lịch: vạch màu mỗi ô
                           lấy từ performanceLegend theo TRẠNG THÁI (xem it.color), không
@@ -2973,6 +3003,58 @@ function CalendarDetail() {
                         );
                       })}
                     </div>
+                    {calendarView === "month" ? (
+                      <div className="tbl-wrap">
+                        <div className="mgrid">
+                          {WEEKDAY_LABELS.map((label) => (
+                            <div className="mg-h" key={label}>{label}</div>
+                          ))}
+                          {monthWeeks.flatMap((wk) => wk.days).map((d) => {
+                            const dayItems = (gridItemsByDate.get(d.id) || [])
+                              .slice()
+                              .sort((a, b) => (parseHour(a.time) ?? 0) - (parseHour(b.time) ?? 0));
+                            const isExp = expandedDays.has(d.id);
+                            const shown = isExp ? dayItems : dayItems.slice(0, MAX_VISIBLE_EVENTS);
+                            const hidden = dayItems.length - shown.length;
+                            return (
+                              <div
+                                className={`mg-c${d.inMonth ? "" : " is-out"}${d.id === todayString ? " is-today" : ""}`}
+                                key={`m-${d.id}`}
+                              >
+                                <div className="mg-d">{d.day}</div>
+                                {shown.map((it) => (
+                                  <button
+                                    type="button"
+                                    className="mg-item"
+                                    key={it.id}
+                                    title={`${it.title}${it.time ? ` • ${it.time}` : ""}`}
+                                    style={{ borderLeft: `3px solid ${it.color}` }}
+                                    onClick={() => setDetailSession(it)}
+                                  >
+                                    <b>{it.classLabel || it.title}</b>
+                                    <small>{it.time}</small>
+                                  </button>
+                                ))}
+                                {hidden > 0 ? (
+                                  <button type="button" className="mg-more" onClick={() => toggleDayExpand(d.id)}>
+                                    +{hidden} xem thêm
+                                  </button>
+                                ) : isExp && dayItems.length > MAX_VISIBLE_EVENTS ? (
+                                  <button type="button" className="mg-more" onClick={() => toggleDayExpand(d.id)}>
+                                    Thu gọn
+                                  </button>
+                                ) : null}
+                              </div>
+                            );
+                          })}
+                        </div>
+                        {!isLoading && gridItemsByDate.size === 0 ? (
+                          <p className="small muted" style={{ textAlign: "center", padding: "16px 0 4px" }}>
+                            Không có lịch trong tháng này.
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : (
                     <div className="tbl-wrap">
                       {/* Không đặt min-width cứng ở đây: 980px rộng hơn cột nội dung
                           nên T7 và CN luôn bị đẩy ra ngoài, phải kéo ngang mới thấy.
@@ -3045,6 +3127,7 @@ function CalendarDetail() {
                         )}
                       </div>
                     </div>
+                    )}
                   </div>
                 );
               })()}
