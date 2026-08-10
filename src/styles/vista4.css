@@ -1,4 +1,10 @@
-.v4page{--primary:#F26522; --primary-dark:#D9480F; --primary-soft:#FEF0E6; --primary-100:#FDE3D3;
+/* ==========================================================================
+   BỘ TOKEN THIẾT KẾ — khai báo ở :root để dùng được ở MỌI nơi.
+   Trước đây khai báo trên .v4page nên bất kỳ thứ gì render ngoài .v4page
+   (điển hình: các modal của màn Lịch) đều mất sạch màu — nhãn thành chữ đen
+   không nền. Đưa lên :root là sửa cả lớp lỗi đó một lần.
+   ========================================================================== */
+:root{--primary:#F26522; --primary-dark:#D9480F; --primary-soft:#FEF0E6; --primary-100:#FDE3D3;
   --red-title:#C0392B; --danger:#E03131; --danger-soft:#FDEDED;
   --success:#2E9E5B; --success-soft:#E8F6EE;
   --warn:#F5A623; --warn-soft:#FEF6E7;
@@ -7,7 +13,9 @@
   --bg:#FAF4EC; --card:#FFFFFF; --border:#F0E4D7; --border-soft:#F7EFE5;
   --text:#43301F; --text-2:#7A6A58; --muted:#A99A88;
   --radius:14px; --shadow:0 1px 3px rgba(120,80,40,.06),0 4px 14px rgba(120,80,40,.05);
-  font-size:14px;}
+  /* Thang khoảng cách dùng chung để các màn không tự chế số lẻ */
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px; --sp-6:32px;}
+.v4page{font-size:14px;}
 .v4page *{margin:0;padding:0;box-sizing:border-box}
 .v4page{scroll-behavior:smooth}
 .v4page{font-family:'Be Vietnam Pro',-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}

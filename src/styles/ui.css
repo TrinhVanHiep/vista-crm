@@ -1,0 +1,183 @@
+/* ==========================================================================
+   TẦNG GIAO DIỆN DÙNG CHUNG (src/ui/*)
+   Dùng token ở :root nên hoạt động ở MỌI nơi — kể cả modal render ngoài .v4page.
+   Đây là nguồn chuẩn duy nhất; các màn không tự chế lại nút/bảng/hộp thoại nữa.
+   ========================================================================== */
+
+/* ---------- Nút ---------- */
+.ui-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .15s ease, color .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+.ui-btn--sm { font-size: 12px; padding: 7px 12px; border-radius: 9px; }
+.ui-btn__icon { display: inline-flex; }
+
+.ui-btn--primary { background: var(--primary); color: #fff; box-shadow: 0 4px 12px rgba(242, 101, 34, .28); }
+.ui-btn--primary:hover:not(:disabled) { background: var(--primary-dark); }
+
+.ui-btn--ghost { background: var(--card); color: var(--text); border-color: var(--border); }
+.ui-btn--ghost:hover:not(:disabled) { background: var(--primary-soft); color: var(--primary); border-color: var(--primary-100); }
+
+.ui-btn--danger { background: var(--danger-soft); color: var(--danger); border-color: #F3C9C9; }
+.ui-btn--danger:hover:not(:disabled) { background: var(--danger); color: #fff; }
+
+.ui-btn--link { background: none; color: var(--primary); padding: 4px 2px; box-shadow: none; }
+.ui-btn--link:hover:not(:disabled) { text-decoration: underline; }
+
+.ui-btn:disabled { opacity: .55; cursor: not-allowed; box-shadow: none; }
+
+/* ---------- Hộp thoại ---------- */
+.ui-modal__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(48, 32, 18, .45);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: ui-fade .14s ease;
+}
+.ui-modal {
+  width: 100%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 18px 48px rgba(60, 40, 20, .22);
+  font-family: 'Be Vietnam Pro', -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  animation: ui-pop .16s ease;
+}
+.ui-modal--sm { max-width: 460px; }
+.ui-modal--md { max-width: 640px; }
+.ui-modal--lg { max-width: 940px; }
+
+.ui-modal__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px 12px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.ui-modal__title { font-size: 16px; font-weight: 800; color: var(--text); margin: 0; }
+.ui-modal__sub { font-size: 12.5px; color: var(--text-2); margin: 4px 0 0; }
+.ui-modal__close {
+  flex-shrink: 0;
+  width: 32px; height: 32px;
+  display: grid; place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--card);
+  color: var(--text-2);
+  cursor: pointer;
+}
+.ui-modal__close:hover { background: var(--primary-soft); color: var(--primary); }
+.ui-modal__close svg { width: 16px; height: 16px; }
+
+.ui-modal__body { padding: 16px 20px; overflow: auto; }
+.ui-modal__foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 12px 20px 18px;
+  border-top: 1px solid var(--border-soft);
+}
+
+@keyframes ui-fade { from { opacity: 0 } to { opacity: 1 } }
+@keyframes ui-pop { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
+
+/* ---------- Đầu trang ---------- */
+.ui-page-head__row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.ui-page-head__actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ---------- Bảng ---------- */
+.ui-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ui-table th {
+  text-align: left;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .3px;
+  color: var(--muted);
+  padding: 10px 12px;
+  background: #FBF7F1;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.ui-table td { padding: 11px 12px; border-bottom: 1px solid var(--border-soft); vertical-align: middle; }
+.ui-table tbody tr:last-child td { border-bottom: none; }
+.ui-table tbody tr:hover { background: #FDFAF6; }
+.ui-table .t-center { text-align: center; }
+.ui-table .t-right { text-align: right; }
+.ui-table__row--click { cursor: pointer; }
+.ui-table__state { padding: 26px 12px !important; text-align: center; color: var(--muted); }
+
+/* ---------- Trạng thái rỗng ---------- */
+.ui-empty { padding: 34px 16px; text-align: center; color: var(--text-2); }
+.ui-empty__icon { font-size: 30px; margin-bottom: 8px; }
+.ui-empty__title { font-weight: 700; color: var(--text); font-size: 14px; }
+.ui-empty__hint { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+.ui-empty__action { margin-top: 14px; }
+
+/* ---------- Trường nhập ---------- */
+.ui-field { display: flex; flex-direction: column; gap: 5px; }
+.ui-field__label { font-size: 12px; font-weight: 700; color: var(--text-2); }
+.ui-field__req { color: var(--danger); }
+.ui-field__hint { font-size: 11.5px; color: var(--muted); }
+.ui-field__error { font-size: 11.5px; color: var(--danger); font-weight: 600; }
+.ui-field input,
+.ui-field select,
+.ui-field textarea {
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 9px 12px;
+  width: 100%;
+}
+.ui-field input:focus,
+.ui-field select:focus,
+.ui-field textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+/* ---------- Lưới form dùng chung ---------- */
+.ui-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 576px) {
+  .ui-modal__head, .ui-modal__body, .ui-modal__foot { padding-left: 14px; padding-right: 14px; }
+  .ui-modal__foot .ui-btn { flex: 1 1 auto; }
+}
