@@ -38,6 +38,17 @@
 
 .ui-btn:disabled { opacity: .55; cursor: not-allowed; box-shadow: none; }
 
+/* vista4.css có dòng reset .v4page button{border:none;background:none}. Bộ chọn
+   đó nặng 0-1-1, nặng hơn .ui-btn--* (0-1-0), nên nút chuẩn nằm trong .v4page
+   bị mất sạch nền và viền (nút chính thành chữ trắng trên nền trong suốt).
+   Nhân đôi class để tầng dùng chung luôn thắng — sửa một lần cho mọi màn,
+   thay vì mỗi màn tự vá lại nút. */
+.ui-btn.ui-btn { border-style: solid; border-width: 1px; border-color: transparent; }
+.ui-btn.ui-btn--primary { background: var(--primary); }
+.ui-btn.ui-btn--ghost { background: var(--card); border-color: var(--border); }
+.ui-btn.ui-btn--danger { background: var(--danger-soft); border-color: #F3C9C9; }
+.ui-btn.ui-btn--link { background: none; }
+
 /* ---------- Hộp thoại ---------- */
 .ui-modal__backdrop {
   position: fixed;
@@ -89,6 +100,8 @@
   color: var(--text-2);
   cursor: pointer;
 }
+/* Cùng lý do với .ui-btn ở trên: thắng reset .v4page button. */
+.ui-modal__close.ui-modal__close { border: 1px solid var(--border); background: var(--card); }
 .ui-modal__close:hover { background: var(--primary-soft); color: var(--primary); }
 .ui-modal__close svg { width: 16px; height: 16px; }
 
@@ -181,3 +194,6 @@
   .ui-modal__head, .ui-modal__body, .ui-modal__foot { padding-left: 14px; padding-right: 14px; }
   .ui-modal__foot .ui-btn { flex: 1 1 auto; }
 }
+
+/* Dòng bảng bấm được: viền focus rõ khi đi bằng bàn phím. */
+.ui-table__row--click:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }

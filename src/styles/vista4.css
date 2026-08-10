@@ -508,3 +508,7 @@
    .content-col là con trực tiếp -> tiêu đề lệch 22px khi bấm qua lại.
    Khung ngoài (main) đã có lề rồi nên bỏ lề NGANG của .content, giữ lề dọc. */
 .v4page .content{padding-left:0;padding-right:0}
+
+/* .alert chỉ có biến thể red/orange -> màn Báo cáo tháng phải hardcode hex.
+   Bổ sung green để dùng token thay vì màu rời rạc. */
+.v4page .alert.green{background:var(--success-soft);color:var(--success)}

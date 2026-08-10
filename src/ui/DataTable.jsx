@@ -11,6 +11,7 @@ export default function DataTable({
   columns = [],
   rows = [],
   loading = false,
+  loadingText = "Đang tải...",
   empty = "Chưa có dữ liệu.",
   rowKey = (row, i) => row?.id ?? i,
   onRowClick,
@@ -35,7 +36,7 @@ export default function DataTable({
           {loading ? (
             <tr>
               <td colSpan={columns.length} className="ui-table__state">
-                Đang tải...
+                {loadingText}
               </td>
             </tr>
           ) : rows.length ? (
@@ -44,6 +45,20 @@ export default function DataTable({
                 key={rowKey(row, i)}
                 onClick={onRowClick ? () => onRowClick(row, i) : undefined}
                 className={onRowClick ? "ui-table__row--click" : undefined}
+                // Dòng bấm được thì phải dùng được bằng bàn phím / trình đọc màn
+                // hình (bản cũ dạng thẻ có role=button + Enter/Space).
+                role={onRowClick ? "button" : undefined}
+                tabIndex={onRowClick ? 0 : undefined}
+                onKeyDown={
+                  onRowClick
+                    ? (e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          onRowClick(row, i);
+                        }
+                      }
+                    : undefined
+                }
               >
                 {columns.map((c) => (
                   <td key={c.key} className={alignCls(c.align)}>

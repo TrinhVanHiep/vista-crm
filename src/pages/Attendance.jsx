@@ -9,6 +9,19 @@ import {
   probeAttendanceDevice,
   syncAttendanceDevice,
 } from "../services/attendanceService";
+import {
+  Page,
+  PageHeader,
+  Card,
+  DataTable,
+  Button,
+  Badge,
+  KpiGrid,
+  Kpi,
+  EmptyState,
+  Field,
+} from "../ui";
+import "../styles/vista4.css";
 import styles from "../styles/attendance.module.css";
 
 const monthOptions = Array.from({ length: 12 }, (_, index) => ({
@@ -18,10 +31,22 @@ const monthOptions = Array.from({ length: 12 }, (_, index) => ({
 
 const matchStatusOptions = [
   { value: "all", label: "Tất cả trạng thái" },
-  { value: "matched", label: "Đã map nhân sự" },
-  { value: "unmatched", label: "Chưa map nhân sự" },
+  { value: "matched", label: "Đã khớp nhân sự" },
+  { value: "unmatched", label: "Chưa khớp nhân sự" },
   { value: "ignored", label: "Bỏ qua" },
 ];
+
+const matchStatusLabels = {
+  matched: "Đã khớp",
+  unmatched: "Chưa khớp",
+  ignored: "Bỏ qua",
+};
+
+const matchStatusTones = {
+  matched: "green",
+  unmatched: "orange",
+  ignored: "gray",
+};
 
 const formatCurrency = (value) =>
   `${new Intl.NumberFormat("vi-VN").format(Math.round(Number(value) || 0))} ₫`;
@@ -73,6 +98,25 @@ const toFilterDateTime = (year, month, endOfMonth = false) => {
   const secondPart = String(date.getSeconds()).padStart(2, "0");
   return `${yearPart}-${monthPart}-${dayPart}T${hourPart}:${minutePart}:${secondPart}${sign}${hours}:${minutes}`;
 };
+
+/** Tiêu đề thẻ: dòng tên + dòng mô tả ngắn, dùng chung cho mọi Card của màn này. */
+const cardTitle = (title, description) => (
+  <div>
+    <h3>{title}</h3>
+    {description ? (
+      <p className="small muted" style={{ marginTop: 3, fontWeight: 500 }}>
+        {description}
+      </p>
+    ) : null}
+  </div>
+);
+
+const kvRow = (label, value) => (
+  <div className="kv">
+    <span className="k">{label}</span>
+    <span className="v">{value}</span>
+  </div>
+);
 
 function Attendance() {
   const now = new Date();
@@ -183,7 +227,7 @@ function Attendance() {
 
         if (failedParts.length) {
           setPageError(
-            "Một phần dữ liệu attendance chưa tải được. Kiểm tra API backend và quyền truy cập.",
+            "Một phần dữ liệu chấm công chưa tải được. Kiểm tra kết nối và quyền truy cập.",
           );
         }
       } catch (error) {
@@ -308,7 +352,7 @@ function Attendance() {
           setHasNextEvents(false);
           setHasPrevEvents(false);
           setPageError(
-            getErrorMessage(error, "Không tải được lịch sử event attendance."),
+            getErrorMessage(error, "Không tải được lịch sử chấm công."),
           );
         }
       } finally {
@@ -337,11 +381,11 @@ function Attendance() {
     try {
       const result = await probeAttendanceDevice(selectedDeviceId);
       setProbeResult(result);
-      setPageNotice("Đã probe thiết bị thành công.");
+      setPageNotice("Đã kiểm tra kết nối thiết bị thành công.");
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Probe thiết bị thất bại. Kiểm tra IP, tài khoản và mạng nội bộ.",
+        "Kiểm tra kết nối thiết bị thất bại. Kiểm tra địa chỉ, tài khoản và mạng nội bộ.",
       );
       setProbeResult({
         ok: false,
@@ -368,7 +412,7 @@ function Attendance() {
       });
       setSyncResult(result);
       setPageNotice(
-        `Đã đồng bộ ${formatNumber(result?.created_count)} event từ thiết bị.`,
+        `Đã đồng bộ ${formatNumber(result?.created_count)} lượt chấm công từ thiết bị.`,
       );
       setEventPage(1);
       const [payrollData, classroomData, eventData] = await Promise.all([
@@ -397,7 +441,7 @@ function Attendance() {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Đồng bộ event thất bại. Kiểm tra endpoint ISAPI hoặc cấu hình thiết bị.",
+        "Đồng bộ dữ liệu thất bại. Kiểm tra kết nối hoặc cấu hình thiết bị.",
       );
       setSyncResult({
         ok: false,
@@ -414,198 +458,197 @@ function Attendance() {
   const selectedSyncJson = formatJson(syncResult);
   const deviceWebhookUrl = selectedDevice?.webhook_url || "--";
 
-  return (
-    <div className={styles.page}>
-      <header className={styles.hero}>
-        <div className={styles.heroCopy}>
-          <span className={styles.badge}>Attendance Test View</span>
-          <h1>Chấm công, lương và lịch sử event</h1>
-          <p>
-            Màn hình này dùng để kiểm tra luồng Hikvision từ thiết bị vào CRM:
-            probe thiết bị, sync log, xem bảng công và theo dõi lương tạm tính
-            theo tháng.
-          </p>
-        </div>
+  const currentMatchStatusLabel =
+    matchStatusOptions.find((item) => item.value === selectedMatchStatus)?.label ||
+    "Tất cả trạng thái";
 
-        <div className={styles.heroActions}>
-          <label className={styles.select}>
-            <span>Năm</span>
-            <select value={year} onChange={(event) => setYear(Number(event.target.value))}>
-              {yearOptions.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className={styles.select}>
-            <span>Tháng</span>
-            <select
-              value={month}
-              onChange={(event) => setMonth(Number(event.target.value))}
-            >
-              {monthOptions.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button
-            type="button"
-            className={styles.primaryButton}
-            onClick={handleSync}
-            disabled={!selectedDeviceId || syncing}
-          >
-            {syncing ? "Đang sync..." : "Sync từ thiết bị"}
-          </button>
-        </div>
-      </header>
+  const timelineColumns = [
+    { key: "date", header: "Ngày", width: 130 },
+    {
+      key: "events",
+      header: "Số lượt",
+      align: "right",
+      width: 100,
+      render: (row) => formatNumber(row.events),
+    },
+    {
+      key: "first_event",
+      header: "Lần chấm đầu tiên",
+      render: (row) => formatDateTime(row.first_event),
+    },
+    {
+      key: "last_event",
+      header: "Lần chấm cuối cùng",
+      render: (row) => formatDateTime(row.last_event),
+    },
+  ];
 
-      {pageNotice ? <div className={styles.notice}>{pageNotice}</div> : null}
-      {pageError ? <div className={styles.error}>{pageError}</div> : null}
-
-      <section className={styles.summaryRow}>
-        <article className={styles.summaryCard}>
-          <span>Thiết bị đang quản lý</span>
-          <strong>{formatNumber(devices.length)}</strong>
-          <small>{selectedDevice?.name || "Chưa chọn thiết bị"}</small>
-        </article>
-        <article className={styles.summaryCard}>
-          <span>Event trong bộ lọc</span>
-          <strong>{eventLoading ? "..." : formatNumber(eventCount)}</strong>
-          <small>
-            Match {formatNumber(matchedEvents)} | Unmatch {formatNumber(unmatchedEvents)}
-          </small>
-        </article>
-        <article className={styles.summaryCard}>
-          <span>Lương tạm tính giáo viên</span>
-          <strong>
-            {payrollPreview
-              ? formatCurrency(payrollPreview.salary_components?.net_salary)
-              : "--"}
-          </strong>
-          <small>
-            {selectedPayrollConfig?.teacher_name || "Chưa có cấu hình giáo viên"}
-          </small>
-        </article>
-        <article className={styles.summaryCard}>
-          <span>Doanh thu lớp thực nhận</span>
-          <strong>
-            {classroomPreview
-              ? formatCurrency(classroomPreview.actual_revenue)
-              : "--"}
-          </strong>
-          <small>
-            {selectedClassroomConfig?.classroom_name || "Chưa có cấu hình lớp"}
-          </small>
-        </article>
-      </section>
-
-      <section className={styles.grid}>
-        <article className={`${styles.panel} ${styles.panelPrimary}`}>
-          <div className={styles.panelHeader}>
-            <div>
-              <h2>Kết nối thiết bị</h2>
-              <p>Chọn terminal Hikvision để probe, sync và kiểm tra webhook.</p>
-            </div>
-            <div className={styles.panelActions}>
-              <button
-                type="button"
-                className={styles.secondaryButton}
-                onClick={handleProbe}
-                disabled={!selectedDeviceId || probing}
-              >
-                {probing ? "Đang probe..." : "Probe"}
-              </button>
-              <button
-                type="button"
-                className={styles.primaryButton}
-                onClick={handleSync}
-                disabled={!selectedDeviceId || syncing}
-              >
-                {syncing ? "Đang sync..." : "Sync"}
-              </button>
-            </div>
+  const eventColumns = [
+    {
+      key: "event_time",
+      header: "Thời gian",
+      width: 170,
+      render: (row) => formatDateTime(row.event_time),
+    },
+    {
+      key: "person",
+      header: "Nhân sự",
+      render: (row) => {
+        const personLabel =
+          row.teacher_name ||
+          row.student_name ||
+          row.person_name ||
+          row.employee_no ||
+          "--";
+        const actorType = row.teacher_name
+          ? "Giáo viên"
+          : row.student_name
+            ? "Học viên"
+            : "Chưa map";
+        return (
+          <div>
+            <strong>{personLabel}</strong>
+            <div className="small muted">{actorType}</div>
           </div>
+        );
+      },
+    },
+    {
+      key: "device_name",
+      header: "Thiết bị",
+      render: (row) => row.device_name || "--",
+    },
+    {
+      key: "verification_mode",
+      header: "Hình thức xác thực",
+      render: (row) => row.verification_mode || "--",
+    },
+    {
+      key: "event_type",
+      header: "Loại sự kiện",
+      render: (row) => (
+        <div>
+          <strong>{row.event_type || "--"}</strong>
+          <div className="small muted">
+            Mã {row.major || "--"} / {row.minor || "--"}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "match_status",
+      header: "Trạng thái",
+      width: 120,
+      render: (row) => (
+        <Badge tone={matchStatusTones[row.match_status] || "gray"}>
+          {matchStatusLabels[row.match_status] || row.match_status}
+        </Badge>
+      ),
+    },
+  ];
 
-          <div className={styles.formGrid}>
-            <label className={styles.select}>
-              <span>Thiết bị</span>
+  return (
+    <Page className={styles.page}>
+      <PageHeader
+        title="Điểm danh & Chấm công"
+        description="Theo dõi chấm công, lương và lịch sử điểm danh theo tháng"
+        actions={
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-end",
+              gap: 8,
+              flexWrap: "wrap",
+            }}
+          >
+            <Field label="Năm">
               <select
-                value={selectedDeviceId}
-                onChange={(event) => setSelectedDeviceId(event.target.value)}
+                value={year}
+                onChange={(event) => setYear(Number(event.target.value))}
+                style={{ minWidth: 100 }}
               >
-                <option value="">Chọn thiết bị</option>
-                {devices.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name}
+                {yearOptions.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
                   </option>
                 ))}
               </select>
-            </label>
-
-            <label className={styles.select}>
-              <span>Trạng thái event</span>
+            </Field>
+            <Field label="Tháng">
               <select
-                value={selectedMatchStatus}
-                onChange={(event) => setSelectedMatchStatus(event.target.value)}
+                value={month}
+                onChange={(event) => setMonth(Number(event.target.value))}
+                style={{ minWidth: 120 }}
               >
-                {matchStatusOptions.map((item) => (
+                {monthOptions.map((item) => (
                   <option key={item.value} value={item.value}>
                     {item.label}
                   </option>
                 ))}
               </select>
-            </label>
+            </Field>
+            <Button
+              variant="primary"
+              onClick={handleSync}
+              disabled={!selectedDeviceId}
+              loading={syncing}
+              loadingText="Đang đồng bộ..."
+            >
+              Đồng bộ dữ liệu
+            </Button>
           </div>
+        }
+      />
 
-          <div className={styles.deviceMeta}>
-            <div>
-              <span>Model</span>
-              <strong>{selectedDevice?.model_name || "--"}</strong>
-            </div>
-            <div>
-              <span>Base URL</span>
-              <strong>{selectedDevice ? `${selectedDevice.protocol}://${selectedDevice.ip_address}:${selectedDevice.port}` : "--"}</strong>
-            </div>
-            <div>
-              <span>Webhook</span>
-              <strong className={styles.truncate}>{deviceWebhookUrl}</strong>
-            </div>
-          </div>
+      {pageNotice ? <div className={styles.notice}>{pageNotice}</div> : null}
+      {pageError ? <div className={styles.error}>{pageError}</div> : null}
 
-          <div className={styles.jsonGrid}>
-            <div className={styles.jsonCard}>
-              <div className={styles.jsonHeader}>
-                <strong>Probe response</strong>
-              </div>
-              <pre className={styles.jsonViewer}>
-                {selectedProbeJson || "Chưa có dữ liệu probe."}
-              </pre>
-            </div>
-            <div className={styles.jsonCard}>
-              <div className={styles.jsonHeader}>
-                <strong>Sync response</strong>
-              </div>
-              <pre className={styles.jsonViewer}>
-                {selectedSyncJson || "Chưa có dữ liệu sync."}
-              </pre>
-            </div>
-          </div>
-        </article>
+      <KpiGrid cols={4}>
+        <Kpi
+          ico={<span style={{ fontSize: 18 }}>📟</span>}
+          icoClass="orange"
+          label="Thiết bị đang quản lý"
+          value={formatNumber(devices.length)}
+          sub={selectedDevice?.name || "Chưa chọn thiết bị"}
+        />
+        <Kpi
+          ico={<span style={{ fontSize: 18 }}>🕒</span>}
+          icoClass="blue"
+          label="Lượt chấm công trong bộ lọc"
+          value={eventLoading ? "..." : formatNumber(eventCount)}
+          sub={`Đã khớp ${formatNumber(matchedEvents)} | Chưa khớp ${formatNumber(unmatchedEvents)}`}
+        />
+        <Kpi
+          ico={<span style={{ fontSize: 18 }}>💰</span>}
+          icoClass="green"
+          label="Lương tạm tính giáo viên"
+          value={
+            payrollPreview
+              ? formatCurrency(payrollPreview.salary_components?.net_salary)
+              : "--"
+          }
+          sub={selectedPayrollConfig?.teacher_name || "Chưa có cấu hình giáo viên"}
+        />
+        <Kpi
+          ico={<span style={{ fontSize: 18 }}>🏫</span>}
+          icoClass="purple"
+          label="Doanh thu lớp thực nhận"
+          value={
+            classroomPreview ? formatCurrency(classroomPreview.actual_revenue) : "--"
+          }
+          sub={selectedClassroomConfig?.classroom_name || "Chưa có cấu hình lớp"}
+        />
+      </KpiGrid>
 
-        <article className={styles.panel}>
-          <div className={styles.panelHeader}>
-            <div>
-              <h2>Bảng công và lương giáo viên</h2>
-              <p>Xem số ngày có chấm công và lương tạm tính theo tháng.</p>
-            </div>
-          </div>
-
-          <div className={styles.formGrid}>
-            <label className={styles.select}>
-              <span>Giáo viên</span>
+      <div className="stack">
+        <Card
+          title={cardTitle(
+            "Bảng công và lương giáo viên",
+            "Xem số ngày có chấm công và lương tạm tính theo tháng.",
+          )}
+        >
+          <div className="ui-form-grid" style={{ marginBottom: 14 }}>
+            <Field label="Giáo viên">
               <select
                 value={selectedTeacherId}
                 onChange={(event) => setSelectedTeacherId(event.target.value)}
@@ -617,107 +660,111 @@ function Attendance() {
                   </option>
                 ))}
               </select>
-            </label>
+            </Field>
           </div>
 
           {previewLoading ? (
-            <div className={styles.empty}>Đang tải lương tạm tính...</div>
+            <EmptyState icon="⏳" title="Đang tải lương tạm tính..." />
           ) : payrollPreview ? (
             <>
-              <div className={styles.metricGrid}>
-                <div className={styles.metricCard}>
-                  <span>Thực lĩnh</span>
-                  <strong>{formatCurrency(payrollPreview.salary_components?.net_salary)}</strong>
-                </div>
-                <div className={styles.metricCard}>
-                  <span>Ngày công</span>
-                  <strong>{formatNumber(payrollPreview.attendance?.attendance_days)}</strong>
-                </div>
-                <div className={styles.metricCard}>
-                  <span>Lương dạy</span>
-                  <strong>{formatCurrency(payrollPreview.salary_components?.teaching_salary)}</strong>
-                </div>
-                <div className={styles.metricCard}>
-                  <span>Lương trực</span>
-                  <strong>{formatCurrency(payrollPreview.salary_components?.duty_salary)}</strong>
-                </div>
-              </div>
+              <KpiGrid cols={4}>
+                <Kpi
+                  ico={<span style={{ fontSize: 18 }}>💵</span>}
+                  icoClass="green"
+                  label="Thực lĩnh"
+                  value={formatCurrency(payrollPreview.salary_components?.net_salary)}
+                />
+                <Kpi
+                  ico={<span style={{ fontSize: 18 }}>📅</span>}
+                  icoClass="orange"
+                  label="Ngày công"
+                  value={formatNumber(payrollPreview.attendance?.attendance_days)}
+                />
+                <Kpi
+                  ico={<span style={{ fontSize: 18 }}>🧑‍🏫</span>}
+                  icoClass="blue"
+                  label="Lương dạy"
+                  value={formatCurrency(
+                    payrollPreview.salary_components?.teaching_salary,
+                  )}
+                />
+                <Kpi
+                  ico={<span style={{ fontSize: 18 }}>🛎️</span>}
+                  icoClass="purple"
+                  label="Lương trực"
+                  value={formatCurrency(payrollPreview.salary_components?.duty_salary)}
+                />
+              </KpiGrid>
 
-              <div className={styles.breakdown}>
-                <div className={styles.breakdownRow}>
-                  <span>Lương cơ bản prorate</span>
-                  <strong>{formatCurrency(payrollPreview.salary_components?.prorated_base_salary)}</strong>
-                </div>
-                <div className={styles.breakdownRow}>
-                  <span>Phụ cấp + sale</span>
-                  <strong>
-                    {formatCurrency(
-                      (Number(payrollPreview.salary_components?.allowance) || 0) +
-                        (Number(payrollPreview.salary_components?.sale_bonus) || 0),
-                    )}
-                  </strong>
-                </div>
-                <div className={styles.breakdownRow}>
-                  <span>Căn cứ lương dạy</span>
-                  <strong>{formatCurrency(payrollPreview.salary_components?.salary_basis_revenue_total)}</strong>
-                </div>
-                <div className={styles.breakdownRow}>
-                  <span>BHXH nhân sự</span>
-                  <strong>{formatCurrency(payrollPreview.salary_components?.insurance_deduction)}</strong>
-                </div>
-                <div className={styles.breakdownRow}>
-                  <span>Thưởng tháng</span>
-                  <strong>{formatCurrency(payrollPreview.salary_components?.monthly_bonus)}</strong>
-                </div>
-                <div className={styles.breakdownRow}>
-                  <span>Tổng thu nhập sau BHXH</span>
-                  <strong>{formatCurrency(payrollPreview.salary_components?.total_income)}</strong>
-                </div>
-              </div>
-
-              <div className={styles.timelineCard}>
-                <div className={styles.timelineHeader}>
-                  <strong>Lịch sử chấm công theo ngày</strong>
-                  <span>{timeline.length} ngày có dữ liệu</span>
-                </div>
-                {timeline.length ? (
-                  <ul className={styles.timeline}>
-                    {timeline.map((item) => (
-                      <li key={item.date} className={styles.timelineItem}>
-                        <div>
-                          <strong>{item.date}</strong>
-                          <span>{item.events} event</span>
-                        </div>
-                        <div className={styles.timelineTimes}>
-                          <span>{formatDateTime(item.first_event)}</span>
-                          <span>{formatDateTime(item.last_event)}</span>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <div className={styles.empty}>Chưa có timeline chấm công.</div>
+              <div>
+                {kvRow(
+                  "Lương cơ bản theo tỷ lệ ngày công",
+                  formatCurrency(
+                    payrollPreview.salary_components?.prorated_base_salary,
+                  ),
+                )}
+                {kvRow(
+                  "Phụ cấp + sale",
+                  formatCurrency(
+                    (Number(payrollPreview.salary_components?.allowance) || 0) +
+                      (Number(payrollPreview.salary_components?.sale_bonus) || 0),
+                  ),
+                )}
+                {kvRow(
+                  "Căn cứ lương dạy",
+                  formatCurrency(
+                    payrollPreview.salary_components?.salary_basis_revenue_total,
+                  ),
+                )}
+                {kvRow(
+                  "BHXH nhân sự",
+                  formatCurrency(
+                    payrollPreview.salary_components?.insurance_deduction,
+                  ),
+                )}
+                {kvRow(
+                  "Thưởng tháng",
+                  formatCurrency(payrollPreview.salary_components?.monthly_bonus),
+                )}
+                {kvRow(
+                  "Tổng thu nhập sau BHXH",
+                  formatCurrency(payrollPreview.salary_components?.total_income),
                 )}
               </div>
+
+              <div className="flex-between" style={{ margin: "18px 0 8px" }}>
+                <div className="section-label" style={{ marginBottom: 0 }}>
+                  Lịch sử chấm công theo ngày
+                </div>
+                <span className="small muted">
+                  {timeline.length} ngày có dữ liệu
+                </span>
+              </div>
+              <DataTable
+                columns={timelineColumns}
+                rows={timeline}
+                rowKey={(row, index) => row.date ?? index}
+                empty="Chưa có lịch sử chấm công theo ngày."
+                minWidth={560}
+              />
             </>
           ) : (
-            <div className={styles.empty}>
-              Chưa có payroll config. Hãy tạo `TeacherPayrollConfig` ở backend trước.
-            </div>
+            <EmptyState
+              icon="🧾"
+              title="Chưa có cấu hình lương cho giáo viên"
+              hint="Cần thiết lập cấu hình lương giáo viên trước khi xem lương tạm tính."
+            />
           )}
-        </article>
+        </Card>
 
-        <article className={styles.panel}>
-          <div className={styles.panelHeader}>
-            <div>
-              <h2>Học phí theo lớp</h2>
-              <p>Kiểm tra số học sinh, số buổi, doanh thu thực nhận và biên lợi nhuận.</p>
-            </div>
-          </div>
-
-          <div className={styles.formGrid}>
-            <label className={styles.select}>
-              <span>Lớp học</span>
+        <Card
+          title={cardTitle(
+            "Học phí theo lớp",
+            "Kiểm tra số học sinh, số buổi, doanh thu thực nhận và biên lợi nhuận.",
+          )}
+        >
+          <div className="ui-form-grid" style={{ marginBottom: 14 }}>
+            <Field label="Lớp học">
               <select
                 value={selectedClassroomId}
                 onChange={(event) => setSelectedClassroomId(event.target.value)}
@@ -729,190 +776,224 @@ function Attendance() {
                   </option>
                 ))}
               </select>
-            </label>
+            </Field>
           </div>
 
           {classroomPreview ? (
             <>
-              <div className={styles.metricGrid}>
-                <div className={styles.metricCard}>
-                  <span>Số học sinh</span>
-                  <strong>{formatNumber(classroomPreview.student_count)}</strong>
-                </div>
-                <div className={styles.metricCard}>
-                  <span>Số buổi / tháng</span>
-                  <strong>{formatNumber(classroomPreview.configured_sessions_per_month)}</strong>
-                </div>
-                <div className={styles.metricCard}>
-                  <span>Gross revenue</span>
-                  <strong>{formatCurrency(classroomPreview.gross_revenue)}</strong>
-                </div>
-                <div className={styles.metricCard}>
-                  <span>Estimated margin</span>
-                  <strong>{formatCurrency(classroomPreview.estimated_margin)}</strong>
-                </div>
-              </div>
+              <KpiGrid cols={4}>
+                <Kpi
+                  ico={<span style={{ fontSize: 18 }}>👥</span>}
+                  icoClass="orange"
+                  label="Số học sinh"
+                  value={formatNumber(classroomPreview.student_count)}
+                />
+                <Kpi
+                  ico={<span style={{ fontSize: 18 }}>📆</span>}
+                  icoClass="blue"
+                  label="Số buổi / tháng"
+                  value={formatNumber(
+                    classroomPreview.configured_sessions_per_month,
+                  )}
+                />
+                <Kpi
+                  ico={<span style={{ fontSize: 18 }}>💳</span>}
+                  icoClass="green"
+                  label="Doanh thu gộp"
+                  value={formatCurrency(classroomPreview.gross_revenue)}
+                />
+                <Kpi
+                  ico={<span style={{ fontSize: 18 }}>📈</span>}
+                  icoClass="purple"
+                  label="Lợi nhuận ước tính"
+                  value={formatCurrency(classroomPreview.estimated_margin)}
+                />
+              </KpiGrid>
 
-              <div className={styles.breakdown}>
-                <div className={styles.breakdownRow}>
-                  <span>Học phí / buổi</span>
-                  <strong>{formatCurrency(classroomPreview.tuition_per_session)}</strong>
-                </div>
-                <div className={styles.breakdownRow}>
-                  <span>Thực nhận / buổi</span>
-                  <strong>{formatCurrency(classroomPreview.actual_per_session)}</strong>
-                </div>
-                <div className={styles.breakdownRow}>
-                  <span>Chi phí GV ước tính</span>
-                  <strong>{formatCurrency(classroomPreview.estimated_teacher_cost)}</strong>
-                </div>
-                <div className={styles.breakdownRow}>
-                  <span>Lượt đi học thực tế</span>
-                  <strong>{formatNumber(classroomPreview.payable_student_attendance_count)}</strong>
-                </div>
-                <div className={styles.breakdownRow}>
-                  <span>Mức tính lương GV</span>
-                  <strong>{formatCurrency(classroomPreview.salary_basis_per_student)}</strong>
-                </div>
-                <div className={styles.breakdownRow}>
-                  <span>% GV mặc định</span>
-                  <strong>{classroomPreview.default_teacher_revenue_share_percent}%</strong>
-                </div>
+              <div>
+                {kvRow(
+                  "Học phí / buổi",
+                  formatCurrency(classroomPreview.tuition_per_session),
+                )}
+                {kvRow(
+                  "Thực nhận / buổi",
+                  formatCurrency(classroomPreview.actual_per_session),
+                )}
+                {kvRow(
+                  "Chi phí GV ước tính",
+                  formatCurrency(classroomPreview.estimated_teacher_cost),
+                )}
+                {kvRow(
+                  "Lượt đi học thực tế",
+                  formatNumber(classroomPreview.payable_student_attendance_count),
+                )}
+                {kvRow(
+                  "Mức tính lương GV",
+                  formatCurrency(classroomPreview.salary_basis_per_student),
+                )}
+                {kvRow(
+                  "% GV mặc định",
+                  `${classroomPreview.default_teacher_revenue_share_percent}%`,
+                )}
               </div>
             </>
           ) : (
-            <div className={styles.empty}>
-              Chưa có classroom finance config. Hãy tạo `ClassroomFinanceConfig`
-              ở backend trước.
-            </div>
-          )}
-        </article>
-      </section>
-
-      <section className={`${styles.panel} ${styles.eventsPanel}`}>
-        <div className={styles.panelHeader}>
-          <div>
-            <h2>Lịch sử chấm công</h2>
-            <p>Toàn bộ event chấm công của mọi giáo viên và học viên theo bộ lọc đang chọn.</p>
-          </div>
-          <div className={styles.panelMeta}>
-            <span>{formatNumber(eventCount)} event</span>
-            <span>{selectedMatchStatus === "all" ? "Tất cả" : selectedMatchStatus}</span>
-          </div>
-        </div>
-
-        <div className={styles.formGrid}>
-          <label className={styles.select}>
-            <span>Tìm theo tên</span>
-            <input
-              type="text"
-              value={searchInput}
-              onChange={(event) => setSearchInput(event.target.value)}
-              placeholder="Nhập tên giáo viên hoặc học viên..."
+            <EmptyState
+              icon="🏫"
+              title="Chưa có cấu hình tài chính cho lớp học"
+              hint="Cần thiết lập cấu hình học phí — chi phí của lớp trước khi xem số liệu."
             />
-          </label>
-        </div>
+          )}
+        </Card>
 
-        {bootLoading ? (
-          <div className={styles.empty}>Đang tải dữ liệu attendance...</div>
-        ) : events.length ? (
-          <>
-            <div className={styles.tableWrap}>
-              <table className={styles.table}>
-                <thead>
-                  <tr>
-                    <th>Thời gian</th>
-                    <th>Nhân sự</th>
-                    <th>Thiết bị</th>
-                    <th>Xác thực</th>
-                    <th>Sự kiện</th>
-                    <th>Trạng thái</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {events.map((item) => {
-                    const personLabel =
-                      item.teacher_name ||
-                      item.student_name ||
-                      item.person_name ||
-                      item.employee_no ||
-                      "--";
-                    const actorType = item.teacher_name
-                      ? "Giáo viên"
-                      : item.student_name
-                        ? "Học viên"
-                        : "Chưa map";
-                    return (
-                      <tr key={item.id}>
-                        <td>{formatDateTime(item.event_time)}</td>
-                        <td>
-                          <div className={styles.personCell}>
-                            <strong>{personLabel}</strong>
-                            <span>{actorType}</span>
-                          </div>
-                        </td>
-                        <td>{item.device_name || "--"}</td>
-                        <td>{item.verification_mode || "--"}</td>
-                        <td>
-                          <div className={styles.personCell}>
-                            <strong>{item.event_type || "--"}</strong>
-                            <span>
-                              major {item.major || "--"} / minor {item.minor || "--"}
-                            </span>
-                          </div>
-                        </td>
-                        <td>
-                          <span
-                            className={`${styles.statusChip} ${
-                              item.match_status === "matched"
-                                ? styles.statusMatched
-                                : item.match_status === "unmatched"
-                                  ? styles.statusUnmatched
-                                  : styles.statusIgnored
-                            }`}
-                          >
-                            {item.match_status}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+        <Card
+          title={cardTitle(
+            "Lịch sử chấm công",
+            "Toàn bộ lượt chấm công của mọi giáo viên và học viên theo bộ lọc đang chọn.",
+          )}
+          action={
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <Badge tone="gray">{formatNumber(eventCount)} lượt</Badge>
+              <Badge tone="blue">{currentMatchStatusLabel}</Badge>
             </div>
+          }
+        >
+          <div className="ui-form-grid" style={{ marginBottom: 14 }}>
+            <Field label="Trạng thái">
+              <select
+                value={selectedMatchStatus}
+                onChange={(event) => setSelectedMatchStatus(event.target.value)}
+              >
+                {matchStatusOptions.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Tìm theo tên">
+              <input
+                type="text"
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
+                placeholder="Nhập tên giáo viên hoặc học viên..."
+              />
+            </Field>
+          </div>
 
-            <div className={styles.pagination}>
-              <span>
+          <DataTable
+            columns={eventColumns}
+            rows={events}
+            loading={bootLoading || eventLoading}
+            rowKey={(row, index) => row.id ?? index}
+            empty="Chưa có lượt chấm công trong khoảng thời gian đang chọn. Bấm Đồng bộ dữ liệu để lấy dữ liệu mới từ thiết bị."
+            minWidth={880}
+          />
+
+          {events.length ? (
+            <div className="flex-between" style={{ marginTop: 12, flexWrap: "wrap" }}>
+              <span className="small muted">
                 Trang {eventPage} {eventLoading ? "• đang tải" : ""}
               </span>
-              <div className={styles.paginationButtons}>
-                <button
-                  type="button"
-                  className={styles.secondaryButton}
+              <div style={{ display: "flex", gap: 8 }}>
+                <Button
+                  size="sm"
                   onClick={() => setEventPage((current) => Math.max(1, current - 1))}
                   disabled={!hasPrevEvents || eventLoading}
                 >
                   Trang trước
-                </button>
-                <button
-                  type="button"
-                  className={styles.secondaryButton}
+                </Button>
+                <Button
+                  size="sm"
                   onClick={() => setEventPage((current) => current + 1)}
                   disabled={!hasNextEvents || eventLoading}
                 >
                   Trang sau
-                </button>
+                </Button>
               </div>
             </div>
-          </>
-        ) : (
-          <div className={styles.empty}>
-            Chưa có event trong khoảng thời gian đang chọn. Bạn có thể bấm
-            `Sync từ thiết bị` để test ngay.
+          ) : null}
+        </Card>
+
+        <Card
+          title={cardTitle(
+            "Kết nối thiết bị điểm danh",
+            "Chọn máy điểm danh để kiểm tra kết nối và lấy dữ liệu chấm công về hệ thống.",
+          )}
+          action={
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <Button
+                onClick={handleProbe}
+                disabled={!selectedDeviceId}
+                loading={probing}
+                loadingText="Đang kiểm tra..."
+              >
+                Kiểm tra kết nối
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleSync}
+                disabled={!selectedDeviceId}
+                loading={syncing}
+                loadingText="Đang đồng bộ..."
+              >
+                Đồng bộ dữ liệu
+              </Button>
+            </div>
+          }
+        >
+          <div className="ui-form-grid" style={{ marginBottom: 14 }}>
+            <Field
+              label="Thiết bị"
+              hint="Thiết bị đang chọn cũng là bộ lọc cho lịch sử chấm công phía trên."
+            >
+              <select
+                value={selectedDeviceId}
+                onChange={(event) => setSelectedDeviceId(event.target.value)}
+              >
+                <option value="">Chọn thiết bị</option>
+                {devices.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
           </div>
-        )}
-      </section>
-    </div>
+
+          <div>
+            {kvRow("Dòng máy", selectedDevice?.model_name || "--")}
+            {kvRow(
+              "Địa chỉ thiết bị trong mạng",
+              selectedDevice
+                ? `${selectedDevice.protocol}://${selectedDevice.ip_address}:${selectedDevice.port}`
+                : "--",
+            )}
+            <div className="kv">
+              <span className="k">Địa chỉ nhận dữ liệu tự động</span>
+              <span className={`v ${styles.truncate}`} title={deviceWebhookUrl}>
+                {deviceWebhookUrl}
+              </span>
+            </div>
+          </div>
+
+          <div className="ui-form-grid" style={{ marginTop: 16 }}>
+            <div>
+              <div className="section-label">Kết quả kiểm tra kết nối</div>
+              <pre className={styles.logBox}>
+                {selectedProbeJson || "Chưa có kết quả kiểm tra kết nối."}
+              </pre>
+            </div>
+            <div>
+              <div className="section-label">Kết quả đồng bộ gần nhất</div>
+              <pre className={styles.logBox}>
+                {selectedSyncJson || "Chưa có kết quả đồng bộ."}
+              </pre>
+            </div>
+          </div>
+        </Card>
+      </div>
+    </Page>
   );
 }
 

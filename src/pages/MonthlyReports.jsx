@@ -13,7 +13,18 @@ import {
   updateMonthlyReportSubmission,
   updateSessionReport,
 } from "../services/calendarService";
-import styles from "../styles/reports.module.css";
+import {
+  Page,
+  PageHeader,
+  Card,
+  DataTable,
+  Modal,
+  Button,
+  Badge,
+  KpiGrid,
+  Kpi,
+  Field,
+} from "../ui";
 
 const monthOptions = Array.from({ length: 12 }, (_, index) => ({
   value: index + 1,
@@ -24,11 +35,11 @@ const currentYear = new Date().getFullYear();
 const yearOptions = Array.from({ length: 5 }, (_, index) => currentYear - 2 + index);
 
 const statusMeta = {
-  draft: { label: "Nháp", tone: "neutral" },
-  submitted: { label: "Chờ duyệt", tone: "info" },
-  approved: { label: "Đã duyệt", tone: "success" },
-  rejected: { label: "Từ chối", tone: "danger" },
-  revision_required: { label: "Cần sửa", tone: "warning" },
+  draft: { label: "Nháp", tone: "gray" },
+  submitted: { label: "Chờ duyệt", tone: "blue" },
+  approved: { label: "Đã duyệt", tone: "green" },
+  rejected: { label: "Từ chối", tone: "red" },
+  revision_required: { label: "Cần sửa", tone: "orange" },
 };
 
 const decisionLabels = {
@@ -36,6 +47,27 @@ const decisionLabels = {
   reject: "Từ chối",
   "request-revision": "Yêu cầu sửa",
 };
+
+const fullSpan = { gridColumn: "1 / -1" };
+
+const checkOptionStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 8,
+  padding: "9px 12px",
+  border: "1px solid var(--border)",
+  borderRadius: 9,
+  background: "var(--card)",
+  fontSize: 13,
+  fontWeight: 600,
+  cursor: "pointer",
+};
+
+const checkInputStyle = { width: 16, height: 16, accentColor: "var(--primary)" };
+
+const cellStackStyle = { display: "grid", gap: 4, whiteSpace: "normal", maxWidth: 340 };
+
+const actionGroupStyle = { display: "flex", gap: 6, flexWrap: "wrap" };
 
 const pad2 = (value) => String(value).padStart(2, "0");
 
@@ -157,6 +189,10 @@ function MonthlyReports() {
     is_reported: false,
     reported_on_zalo: false,
   });
+
+  // Hộp thoại nhập lý do khi Từ chối / Yêu cầu sửa (thay cho window.prompt).
+  const [reviewDialog, setReviewDialog] = useState(null);
+  const [reviewNote, setReviewNote] = useState("");
 
   useEffect(() => {
     const refresh = () => {
@@ -461,13 +497,7 @@ function MonthlyReports() {
     });
   };
 
-  const handleReview = async (submissionId, decision) => {
-    let note = "";
-    if (decision !== "approve") {
-      const input = window.prompt(`Nhập lý do ${decisionLabels[decision].toLowerCase()}:`, "");
-      if (input === null || !input.trim()) return;
-      note = input.trim();
-    }
+  const runMonthlyReview = async (submissionId, decision, note) => {
     setReviewLoadingId(submissionId);
     setError("");
     try {
@@ -484,12 +514,7 @@ function MonthlyReports() {
     }
   };
 
-  const handleManualReportReview = async (reportId, decision) => {
-    let comment = "";
-    if (decision !== "approve") {
-      comment = window.prompt(`Nhập lý do ${decisionLabels[decision].toLowerCase()}:`, "") || "";
-      if (!comment.trim()) return;
-    }
+  const runManualReportReview = async (reportId, decision, comment) => {
     setManualReviewLoadingId(reportId);
     setManualError("");
     try {
@@ -519,39 +544,288 @@ function MonthlyReports() {
     }
   };
 
-  return (
-    <div className={styles.page}>
-      <header className={styles.header}>
-        <div>
-          <span className={styles.badge}>Báo cáo</span>
-          <h1>BÁO CÁO</h1>
-          <p>Báo cáo ngày theo từng ca dạy và báo cáo tổng kết tháng.</p>
-        </div>
-      </header>
+  const handleReview = (submissionId, decision) => {
+    if (decision === "approve") {
+      runMonthlyReview(submissionId, decision, "");
+      return;
+    }
+    setReviewNote("");
+    setReviewDialog({ scope: "monthly", id: submissionId, decision });
+  };
 
-      {notice && <div className={styles.badge}>{notice}</div>}
-      {error && <div className={styles.error}>{error}</div>}
+  const handleManualReportReview = (reportId, decision) => {
+    if (decision === "approve") {
+      runManualReportReview(reportId, decision, "");
+      return;
+    }
+    setReviewNote("");
+    setReviewDialog({ scope: "session", id: reportId, decision });
+  };
 
-      <section className={styles.panel}>
-        <div className={styles.panelHeader}>
-          <div>
-            <h2>Báo cáo ngày</h2>
-            <p>
-              {canReviewSession
-                ? "Quản lý đào tạo duyệt hoặc yêu cầu sửa các báo cáo giáo viên nhập tay theo từng ca dạy."
-                : isReportManager
-                ? "Theo dõi báo cáo ngày của giáo viên (quản lý đào tạo phụ trách duyệt)."
-                : "Nhập báo cáo sau buổi học, tick trạng thái đã báo cáo và gửi quản lý duyệt."}
-            </p>
+  const closeReviewDialog = () => {
+    setReviewDialog(null);
+    setReviewNote("");
+  };
+
+  const confirmReviewDialog = () => {
+    if (!reviewDialog) return;
+    const note = reviewNote.trim();
+    if (!note) return;
+    const { scope, id, decision } = reviewDialog;
+    closeReviewDialog();
+    if (scope === "monthly") {
+      runMonthlyReview(id, decision, note);
+    } else {
+      runManualReportReview(id, decision, note);
+    }
+  };
+
+  const resolveManualSession = (report) =>
+    report.session_detail ||
+    manualSessions.find((item) => item.id === report.session) ||
+    {};
+
+  const manualColumns = [
+    {
+      key: "teacher",
+      header: "Giáo viên",
+      render: (report) =>
+        report.teacher_name || resolveManualSession(report).teacher_name || "--",
+    },
+    {
+      key: "session",
+      header: "Lớp / ca dạy",
+      render: (report) => {
+        const session = resolveManualSession(report);
+        return (
+          <div style={cellStackStyle}>
+            <strong>{session.classroom_name || "--"}</strong>
+            <span className="small muted">
+              {formatDate(session.session_date)} •{" "}
+              {formatTimeRange(session.start_at, session.end_at)}
+            </span>
           </div>
-          <span className={styles.statusChip} data-tone="info">
-            {manualSummary.submitted} chờ duyệt
-          </span>
+        );
+      },
+    },
+    {
+      key: "student_count",
+      header: "Sĩ số",
+      align: "center",
+      render: (report) => report.student_count ?? "--",
+    },
+    {
+      key: "content",
+      header: "Nội dung",
+      render: (report) => (
+        <div style={cellStackStyle}>
+          <strong>{report.content_taught || "--"}</strong>
+          {report.session_evaluation ? (
+            <span className="small muted">{report.session_evaluation}</span>
+          ) : null}
+          {report.next_session_plan ? (
+            <span className="small muted">Buổi sau: {report.next_session_plan}</span>
+          ) : null}
         </div>
+      ),
+    },
+    {
+      key: "reported",
+      header: "Đã báo cáo",
+      render: (report) =>
+        getChecklistFlag(report.completion_checklist, "manual_reported")
+          ? "Đã báo cáo"
+          : "Chưa tick",
+    },
+    {
+      key: "zalo",
+      header: "Zalo",
+      render: (report) => (report.reported_on_zalo ? "Đã báo cáo" : "--"),
+    },
+    {
+      key: "status",
+      header: "Trạng thái",
+      render: (report) => (
+        <Badge tone={statusMeta[report.report_status]?.tone || "gray"}>
+          {statusMeta[report.report_status]?.label || report.report_status}
+        </Badge>
+      ),
+    },
+    {
+      key: "feedback",
+      header: "Phản hồi",
+      render: (report) => (
+        <div style={cellStackStyle}>{report.rejected_reason || "--"}</div>
+      ),
+    },
+    {
+      key: "actions",
+      header: "Hành động",
+      render: (report) =>
+        canReviewSession ? (
+          report.report_status === "submitted" ? (
+            <div style={actionGroupStyle}>
+              <Button
+                variant="primary"
+                size="sm"
+                disabled={manualReviewLoadingId === report.id}
+                onClick={() => handleManualReportReview(report.id, "approve")}
+              >
+                Duyệt
+              </Button>
+              <Button
+                size="sm"
+                disabled={manualReviewLoadingId === report.id}
+                onClick={() => handleManualReportReview(report.id, "request-revision")}
+              >
+                Yêu cầu sửa
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                disabled={manualReviewLoadingId === report.id}
+                onClick={() => handleManualReportReview(report.id, "reject")}
+              >
+                Từ chối
+              </Button>
+            </div>
+          ) : (
+            "--"
+          )
+        ) : !isReportManager && report.report_status === "revision_required" ? (
+          <Button size="sm" onClick={() => handleEditManualReport(report)}>
+            Chỉnh sửa
+          </Button>
+        ) : (
+          "--"
+        ),
+    },
+  ];
 
-        <div className={styles.filters}>
-          <label className={styles.field}>
-            <span>Tháng</span>
+  const monthlyColumns = [
+    { key: "teacher_name", header: "Giáo viên" },
+    {
+      key: "period",
+      header: "Tháng/Năm",
+      render: (item) => `${String(item.month).padStart(2, "0")}/${item.year}`,
+    },
+    {
+      key: "file",
+      header: "File",
+      render: (item) =>
+        item.file ? (
+          <a className="card-link" href={item.file} target="_blank" rel="noreferrer">
+            Xem file
+          </a>
+        ) : (
+          "--"
+        ),
+    },
+    {
+      key: "note",
+      header: "Ghi chú",
+      render: (item) => <div style={cellStackStyle}>{item.note || "--"}</div>,
+    },
+    {
+      key: "review_note",
+      header: "Phản hồi",
+      render: (item) => <div style={cellStackStyle}>{item.review_note || "--"}</div>,
+    },
+    {
+      key: "status",
+      header: "Trạng thái",
+      render: (item) => (
+        <Badge tone={statusMeta[item.status]?.tone || "gray"}>
+          {statusMeta[item.status]?.label || item.status}
+        </Badge>
+      ),
+    },
+    {
+      key: "submitted_at",
+      header: "Ngày nộp",
+      render: (item) =>
+        item.submitted_at ? new Date(item.submitted_at).toLocaleString("vi-VN") : "--",
+    },
+    {
+      key: "actions",
+      header: "Hành động",
+      render: (item) =>
+        canReviewMonthly ? (
+          item.status === "submitted" ? (
+            <div style={actionGroupStyle}>
+              <Button
+                variant="primary"
+                size="sm"
+                disabled={reviewLoadingId === item.id}
+                onClick={() => handleReview(item.id, "approve")}
+              >
+                Duyệt
+              </Button>
+              <Button
+                size="sm"
+                disabled={reviewLoadingId === item.id}
+                onClick={() => handleReview(item.id, "request-revision")}
+              >
+                Yêu cầu sửa
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                disabled={reviewLoadingId === item.id}
+                onClick={() => handleReview(item.id, "reject")}
+              >
+                Từ chối
+              </Button>
+            </div>
+          ) : (
+            "--"
+          )
+        ) : item.status === "revision_required" ? (
+          <Button size="sm" onClick={() => handleEditMonthlySubmission(item)}>
+            Chỉnh sửa
+          </Button>
+        ) : (
+          "--"
+        ),
+    },
+  ];
+
+  return (
+    <Page>
+      <PageHeader
+        crumbs={[{ label: "Báo cáo" }]}
+        title="BÁO CÁO"
+        description="Báo cáo ngày theo từng ca dạy và báo cáo tổng kết tháng."
+      />
+
+      {notice ? (
+        <div
+          className="alert green"
+          style={{ background: "#e9f7ef", color: "#1c7a45", marginBottom: 14 }}
+        >
+          {notice}
+        </div>
+      ) : null}
+      {error ? (
+        <div className="alert red" style={{ marginBottom: 14 }}>
+          {error}
+        </div>
+      ) : null}
+
+      <Card
+        title="Báo cáo ngày"
+        action={<Badge tone="blue">{manualSummary.submitted} chờ duyệt</Badge>}
+      >
+        <p className="small muted" style={{ marginBottom: 12 }}>
+          {canReviewSession
+            ? "Quản lý đào tạo duyệt hoặc yêu cầu sửa các báo cáo giáo viên nhập tay theo từng ca dạy."
+            : isReportManager
+            ? "Theo dõi báo cáo ngày của giáo viên (quản lý đào tạo phụ trách duyệt)."
+            : "Nhập báo cáo sau buổi học, tick trạng thái đã báo cáo và gửi quản lý duyệt."}
+        </p>
+
+        <div className="ui-form-grid">
+          <Field label="Tháng">
             <select
               value={manualForm.month}
               onChange={(event) =>
@@ -574,9 +848,8 @@ function MonthlyReports() {
                 </option>
               ))}
             </select>
-          </label>
-          <label className={styles.field}>
-            <span>Năm</span>
+          </Field>
+          <Field label="Năm">
             <select
               value={manualForm.year}
               onChange={(event) =>
@@ -599,36 +872,42 @@ function MonthlyReports() {
                 </option>
               ))}
             </select>
-          </label>
+          </Field>
         </div>
 
         {!isReportManager && (
-          <div className={styles.manualForm} ref={manualFormRef}>
-            <div className={styles.formGrid}>
-              <label className={`${styles.field} ${styles.formGroupFull}`}>
-                <span>Chọn ca dạy</span>
-                <select
-                  value={manualForm.session}
-                  disabled={manualLoading}
-                  onChange={(event) => handleManualSessionChange(event.target.value)}
-                >
-                  <option value="">
-                    {manualLoading ? "Đang tải ca dạy..." : "Chọn lớp / ca dạy"}
-                  </option>
-                  {manualSessions.map((session) => (
-                    <option key={session.id} value={session.id}>
-                      {formatDate(session.session_date)} - {session.classroom_name} -{" "}
-                      {formatTimeRange(session.start_at, session.end_at)}
+          <div
+            ref={manualFormRef}
+            style={{
+              marginTop: 14,
+              paddingTop: 14,
+              borderTop: "1px solid var(--border-soft)",
+            }}
+          >
+            <div className="ui-form-grid">
+              <div style={fullSpan}>
+                <Field label="Chọn ca dạy">
+                  <select
+                    value={manualForm.session}
+                    disabled={manualLoading}
+                    onChange={(event) => handleManualSessionChange(event.target.value)}
+                  >
+                    <option value="">
+                      {manualLoading ? "Đang tải ca dạy..." : "Chọn lớp / ca dạy"}
                     </option>
-                  ))}
-                </select>
-              </label>
-              <label className={styles.field}>
-                <span>Tên lớp</span>
+                    {manualSessions.map((session) => (
+                      <option key={session.id} value={session.id}>
+                        {formatDate(session.session_date)} - {session.classroom_name} -{" "}
+                        {formatTimeRange(session.start_at, session.end_at)}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              </div>
+              <Field label="Tên lớp">
                 <input type="text" value={selectedManualSession?.classroom_name || ""} readOnly />
-              </label>
-              <label className={styles.field}>
-                <span>Ca dạy</span>
+              </Field>
+              <Field label="Ca dạy">
                 <input
                   type="text"
                   value={
@@ -638,9 +917,8 @@ function MonthlyReports() {
                   }
                   readOnly
                 />
-              </label>
-              <label className={styles.field}>
-                <span>Sĩ số</span>
+              </Field>
+              <Field label="Sĩ số">
                 <input
                   type="number"
                   min="0"
@@ -653,53 +931,57 @@ function MonthlyReports() {
                     }))
                   }
                 />
-              </label>
-              <label className={`${styles.field} ${styles.formGroupFull}`}>
-                <span>Nội dung dạy</span>
-                <textarea
-                  rows={3}
-                  value={manualForm.content_taught}
-                  disabled={manualReportLocked}
-                  onChange={(event) =>
-                    setManualForm((prev) => ({
-                      ...prev,
-                      content_taught: event.target.value,
-                    }))
-                  }
-                />
-              </label>
-              <label className={`${styles.field} ${styles.formGroupFull}`}>
-                <span>Đánh giá sau buổi học</span>
-                <textarea
-                  rows={3}
-                  value={manualForm.session_evaluation}
-                  disabled={manualReportLocked}
-                  onChange={(event) =>
-                    setManualForm((prev) => ({
-                      ...prev,
-                      session_evaluation: event.target.value,
-                    }))
-                  }
-                />
-              </label>
-              <label className={`${styles.field} ${styles.formGroupFull}`}>
-                <span>Định hướng buổi sau dạy gì</span>
-                <textarea
-                  rows={3}
-                  value={manualForm.next_session_plan}
-                  disabled={manualReportLocked}
-                  onChange={(event) =>
-                    setManualForm((prev) => ({
-                      ...prev,
-                      next_session_plan: event.target.value,
-                    }))
-                  }
-                />
-              </label>
-              <div className={`${styles.checkboxGroup} ${styles.formGroupFull}`}>
-                <label className={styles.checkOption}>
+              </Field>
+              <div style={fullSpan}>
+                <Field label="Nội dung dạy">
+                  <textarea
+                    rows={3}
+                    value={manualForm.content_taught}
+                    disabled={manualReportLocked}
+                    onChange={(event) =>
+                      setManualForm((prev) => ({
+                        ...prev,
+                        content_taught: event.target.value,
+                      }))
+                    }
+                  />
+                </Field>
+              </div>
+              <div style={fullSpan}>
+                <Field label="Đánh giá sau buổi học">
+                  <textarea
+                    rows={3}
+                    value={manualForm.session_evaluation}
+                    disabled={manualReportLocked}
+                    onChange={(event) =>
+                      setManualForm((prev) => ({
+                        ...prev,
+                        session_evaluation: event.target.value,
+                      }))
+                    }
+                  />
+                </Field>
+              </div>
+              <div style={fullSpan}>
+                <Field label="Định hướng buổi sau dạy gì">
+                  <textarea
+                    rows={3}
+                    value={manualForm.next_session_plan}
+                    disabled={manualReportLocked}
+                    onChange={(event) =>
+                      setManualForm((prev) => ({
+                        ...prev,
+                        next_session_plan: event.target.value,
+                      }))
+                    }
+                  />
+                </Field>
+              </div>
+              <div style={{ ...fullSpan, display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <label style={checkOptionStyle}>
                   <input
                     type="checkbox"
+                    style={checkInputStyle}
                     checked={manualForm.is_reported}
                     disabled={manualReportLocked}
                     onChange={(event) =>
@@ -711,9 +993,10 @@ function MonthlyReports() {
                   />
                   <span>Đã báo cáo</span>
                 </label>
-                <label className={styles.checkOption}>
+                <label style={checkOptionStyle}>
                   <input
                     type="checkbox"
+                    style={checkInputStyle}
                     checked={manualForm.reported_on_zalo}
                     disabled={manualReportLocked}
                     onChange={(event) =>
@@ -728,414 +1011,246 @@ function MonthlyReports() {
               </div>
             </div>
             {manualReportLocked && (
-              <p className={styles.helpText}>
+              <p className="alert orange" style={{ marginTop: 10 }}>
                 Báo cáo này đã gửi quản lý hoặc đã được duyệt, giáo viên không thể sửa trực tiếp.
               </p>
             )}
             {selectedManualReport?.report_status === "revision_required" && (
-              <p className={styles.helpText}>
+              <p className="alert orange" style={{ marginTop: 10 }}>
                 Phản hồi quản lý: {selectedManualReport.rejected_reason || "Vui lòng chỉnh sửa và gửi lại báo cáo."}
               </p>
             )}
-            <div className={styles.formActions}>
-              <button
-                type="button"
-                className={styles.secondaryButton}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: 8,
+                flexWrap: "wrap",
+                marginTop: 12,
+              }}
+            >
+              <Button
                 disabled={manualSaving || manualReportLocked}
                 onClick={() => handleManualReportSubmit({ thenSubmit: false })}
               >
                 {manualSaving ? "Đang lưu..." : "Lưu nháp"}
-              </button>
-              <button
-                type="button"
-                className={styles.primaryButton}
+              </Button>
+              <Button
+                variant="primary"
                 disabled={manualSaving || manualReportLocked}
                 onClick={() => handleManualReportSubmit({ thenSubmit: true })}
               >
                 {manualSaving ? "Đang gửi..." : "Gửi quản lý duyệt"}
-              </button>
+              </Button>
             </div>
           </div>
         )}
 
-        {manualError && <div className={styles.error}>{manualError}</div>}
-
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Giáo viên</th>
-                <th>Lớp / ca dạy</th>
-                <th>Sĩ số</th>
-                <th>Nội dung</th>
-                <th>Đã báo cáo</th>
-                <th>Zalo</th>
-                <th>Trạng thái</th>
-                <th>Phản hồi</th>
-                <th>Hành động</th>
-              </tr>
-            </thead>
-            <tbody>
-              {manualLoading ? (
-                <tr>
-                  <td colSpan={9} className={styles.emptyCell}>
-                    Đang tải báo cáo nhập tay...
-                  </td>
-                </tr>
-              ) : manualReports.length ? (
-                manualReports.map((report) => {
-                  const session =
-                    report.session_detail ||
-                    manualSessions.find((item) => item.id === report.session) ||
-                    {};
-                  const isReported = getChecklistFlag(
-                    report.completion_checklist,
-                    "manual_reported",
-                  );
-                  return (
-                    <tr key={report.id}>
-                      <td>{report.teacher_name || session.teacher_name || "--"}</td>
-                      <td>
-                        <div className={styles.titleCell}>
-                          <strong>{session.classroom_name || "--"}</strong>
-                          <span>
-                            {formatDate(session.session_date)} •{" "}
-                            {formatTimeRange(session.start_at, session.end_at)}
-                          </span>
-                        </div>
-                      </td>
-                      <td>{report.student_count ?? "--"}</td>
-                      <td>
-                        <div className={styles.titleCell}>
-                          <strong>{report.content_taught || "--"}</strong>
-                          {report.session_evaluation ? (
-                            <span>{report.session_evaluation}</span>
-                          ) : null}
-                          {report.next_session_plan ? (
-                            <span>Buổi sau: {report.next_session_plan}</span>
-                          ) : null}
-                        </div>
-                      </td>
-                      <td>{isReported ? "Đã báo cáo" : "Chưa tick"}</td>
-                      <td>{report.reported_on_zalo ? "Đã báo cáo" : "--"}</td>
-                      <td>
-                        <span className={styles.statusChip} data-tone={statusMeta[report.report_status]?.tone || "neutral"}>
-                          {statusMeta[report.report_status]?.label || report.report_status}
-                        </span>
-                      </td>
-                      <td>{report.rejected_reason || "--"}</td>
-                      <td>
-                        {canReviewSession ? (
-                          report.report_status === "submitted" ? (
-                            <div className={styles.actionGroup}>
-                              <button
-                                type="button"
-                                className={styles.secondaryButton}
-                                disabled={manualReviewLoadingId === report.id}
-                                onClick={() => handleManualReportReview(report.id, "approve")}
-                              >
-                                Duyệt
-                              </button>
-                              <button
-                                type="button"
-                                className={styles.secondaryButton}
-                                disabled={manualReviewLoadingId === report.id}
-                                onClick={() => handleManualReportReview(report.id, "request-revision")}
-                              >
-                                Yêu cầu sửa
-                              </button>
-                              <button
-                                type="button"
-                                className={styles.secondaryButton}
-                                disabled={manualReviewLoadingId === report.id}
-                                onClick={() => handleManualReportReview(report.id, "reject")}
-                              >
-                                Từ chối
-                              </button>
-                            </div>
-                          ) : (
-                            "--"
-                          )
-                        ) : !isReportManager && report.report_status === "revision_required" ? (
-                          <button
-                            type="button"
-                            className={styles.secondaryButton}
-                            onClick={() => handleEditManualReport(report)}
-                          >
-                            Chỉnh sửa
-                          </button>
-                        ) : (
-                          "--"
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan={9} className={styles.emptyCell}>
-                    Chưa có báo cáo nhập tay trong tháng này.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section className={styles.panel}>
-        <div className={styles.panelHeader}>
-          <div>
-            <h2>Báo cáo tháng</h2>
-            <p>
-              {canReviewMonthly
-                ? "Quản lý cơ sở duyệt hoặc từ chối báo cáo tháng do giáo viên/nhân viên nộp."
-                : isReportManager
-                ? "Theo dõi báo cáo tháng (quản lý cơ sở phụ trách duyệt)."
-                : "Nộp file báo cáo tổng kết tháng và theo dõi trạng thái duyệt."}
-            </p>
-          </div>
-        </div>
-
-        {!isReportManager && (
-          <div className={styles.filters} ref={monthlyUploadRef}>
-            {editingSubmissionId && (
-              <div className={styles.helpText} style={{ width: "100%" }}>
-                Đang chỉnh sửa báo cáo được yêu cầu sửa. Có thể giữ file cũ hoặc chọn file mới.
-              </div>
-            )}
-            <form onSubmit={handleUploadSubmit} style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
-              <label className={styles.field}>
-                <span>Tháng</span>
-                <select
-                  value={uploadForm.month}
-                  onChange={(event) =>
-                    setUploadForm((prev) => ({ ...prev, month: Number(event.target.value) }))
-                  }
-                >
-                  {monthOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className={styles.field}>
-                <span>Năm</span>
-                <select
-                  value={uploadForm.year}
-                  onChange={(event) =>
-                    setUploadForm((prev) => ({ ...prev, year: Number(event.target.value) }))
-                  }
-                >
-                  {yearOptions.map((year) => (
-                    <option key={year} value={year}>
-                      {year}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className={`${styles.field} ${styles.searchField}`}>
-                <span>Ghi chú</span>
-                <input
-                  type="text"
-                  value={uploadForm.note}
-                  onChange={(event) =>
-                    setUploadForm((prev) => ({ ...prev, note: event.target.value }))
-                  }
-                  placeholder="Ghi chú cho quản lý (tuỳ chọn)"
-                />
-              </label>
-              <label className={styles.field}>
-                <span>File báo cáo</span>
-                <input
-                  key={uploadInputKey}
-                  type="file"
-                  onChange={(event) =>
-                    setUploadForm((prev) => ({ ...prev, file: event.target.files?.[0] || null }))
-                  }
-                />
-              </label>
-              <button type="submit" className={styles.primaryButton} disabled={uploadLoading}>
-                {uploadLoading
-                  ? "Đang nộp..."
-                  : editingSubmissionId
-                  ? "Cập nhật và gửi lại"
-                  : "Nộp báo cáo tháng"}
-              </button>
-              {editingSubmissionId && (
-                <button
-                  type="button"
-                  className={styles.secondaryButton}
-                  disabled={uploadLoading}
-                  onClick={handleCancelMonthlyEdit}
-                >
-                  Hủy chỉnh sửa
-                </button>
-              )}
-            </form>
-            {uploadError && <div className={styles.error} style={{ marginTop: 10 }}>{uploadError}</div>}
+        {manualError && (
+          <div className="alert red" style={{ marginTop: 12 }}>
+            {manualError}
           </div>
         )}
 
-        <section className={styles.summaryGrid}>
-        <article className={styles.summaryItem}>
-          <span>Tổng số</span>
-          <strong>{summary.total}</strong>
-        </article>
-        <article className={styles.summaryItem}>
-          <span>Chờ duyệt</span>
-          <strong>{summary.pending}</strong>
-        </article>
-        <article className={styles.summaryItem}>
-          <span>Đã duyệt</span>
-          <strong>{summary.approved}</strong>
-        </article>
-        <article className={styles.summaryItem}>
-          <span>Cần sửa</span>
-          <strong>{summary.revision}</strong>
-        </article>
-        </section>
-
-        <section className={styles.filters}>
-        <label className={styles.field}>
-          <span>Tháng</span>
-          <select value={filterMonth} onChange={(event) => setFilterMonth(event.target.value)}>
-            <option value="">Tất cả</option>
-            {monthOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className={styles.field}>
-          <span>Năm</span>
-          <select value={filterYear} onChange={(event) => setFilterYear(event.target.value)}>
-            <option value="">Tất cả</option>
-            {yearOptions.map((year) => (
-              <option key={year} value={year}>
-                {year}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className={styles.field}>
-          <span>Trạng thái</span>
-          <select value={filterStatus} onChange={(event) => setFilterStatus(event.target.value)}>
-            <option value="">Tất cả</option>
-            {Object.entries(statusMeta).map(([value, meta]) => (
-              <option key={value} value={value}>
-                {meta.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        </section>
-
-        <div className={styles.tableWrap}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>Giáo viên</th>
-              <th>Tháng/Năm</th>
-              <th>File</th>
-              <th>Ghi chú</th>
-              <th>Phản hồi</th>
-              <th>Trạng thái</th>
-              <th>Ngày nộp</th>
-              <th>Hành động</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              <tr>
-                <td colSpan={8} className={styles.emptyCell}>
-                  Đang tải...
-                </td>
-              </tr>
-            ) : submissions.length ? (
-              submissions.map((item) => (
-                <tr key={item.id}>
-                  <td>{item.teacher_name}</td>
-                  <td>
-                    {String(item.month).padStart(2, "0")}/{item.year}
-                  </td>
-                  <td>
-                    {item.file ? (
-                      <a className={styles.tableLink} href={item.file} target="_blank" rel="noreferrer">
-                        Xem file
-                      </a>
-                    ) : (
-                      "--"
-                    )}
-                  </td>
-                  <td>{item.note || "--"}</td>
-                  <td>{item.review_note || "--"}</td>
-                  <td>
-                    <span className={styles.statusChip} data-tone={statusMeta[item.status]?.tone || "neutral"}>
-                      {statusMeta[item.status]?.label || item.status}
-                    </span>
-                  </td>
-                  <td>{item.submitted_at ? new Date(item.submitted_at).toLocaleString("vi-VN") : "--"}</td>
-                  <td>
-                    {canReviewMonthly ? (
-                      item.status === "submitted" ? (
-                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                          <button
-                            type="button"
-                            className={styles.secondaryButton}
-                            disabled={reviewLoadingId === item.id}
-                            onClick={() => handleReview(item.id, "approve")}
-                          >
-                            Duyệt
-                          </button>
-                          <button
-                            type="button"
-                            className={styles.secondaryButton}
-                            disabled={reviewLoadingId === item.id}
-                            onClick={() => handleReview(item.id, "request-revision")}
-                          >
-                            Yêu cầu sửa
-                          </button>
-                          <button
-                            type="button"
-                            className={styles.secondaryButton}
-                            disabled={reviewLoadingId === item.id}
-                            onClick={() => handleReview(item.id, "reject")}
-                          >
-                            Từ chối
-                          </button>
-                        </div>
-                      ) : (
-                        "--"
-                      )
-                    ) : item.status === "revision_required" ? (
-                      <button
-                        type="button"
-                        className={styles.secondaryButton}
-                        onClick={() => handleEditMonthlySubmission(item)}
-                      >
-                        Chỉnh sửa
-                      </button>
-                    ) : (
-                      "--"
-                    )}
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={8} className={styles.emptyCell}>
-                  Chưa có báo cáo tháng nào.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+        <div style={{ marginTop: 14 }}>
+          <DataTable
+            columns={manualColumns}
+            rows={manualReports}
+            loading={manualLoading}
+            empty="Chưa có báo cáo nhập tay trong tháng này."
+            minWidth={1180}
+          />
         </div>
-      </section>
-    </div>
+      </Card>
+
+      <Card title="Báo cáo tháng">
+        <p className="small muted" style={{ marginBottom: 12 }}>
+          {canReviewMonthly
+            ? "Quản lý cơ sở duyệt hoặc từ chối báo cáo tháng do giáo viên/nhân viên nộp."
+            : isReportManager
+            ? "Theo dõi báo cáo tháng (quản lý cơ sở phụ trách duyệt)."
+            : "Nộp file báo cáo tổng kết tháng và theo dõi trạng thái duyệt."}
+        </p>
+
+        {!isReportManager && (
+          <div ref={monthlyUploadRef} style={{ marginBottom: 14 }}>
+            {editingSubmissionId && (
+              <div className="alert orange" style={{ marginBottom: 10 }}>
+                Đang chỉnh sửa báo cáo được yêu cầu sửa. Có thể giữ file cũ hoặc chọn file mới.
+              </div>
+            )}
+            <form onSubmit={handleUploadSubmit}>
+              <div className="ui-form-grid">
+                <Field label="Tháng">
+                  <select
+                    value={uploadForm.month}
+                    onChange={(event) =>
+                      setUploadForm((prev) => ({ ...prev, month: Number(event.target.value) }))
+                    }
+                  >
+                    {monthOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Năm">
+                  <select
+                    value={uploadForm.year}
+                    onChange={(event) =>
+                      setUploadForm((prev) => ({ ...prev, year: Number(event.target.value) }))
+                    }
+                  >
+                    {yearOptions.map((year) => (
+                      <option key={year} value={year}>
+                        {year}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Ghi chú">
+                  <input
+                    type="text"
+                    value={uploadForm.note}
+                    onChange={(event) =>
+                      setUploadForm((prev) => ({ ...prev, note: event.target.value }))
+                    }
+                    placeholder="Ghi chú cho quản lý (tuỳ chọn)"
+                  />
+                </Field>
+                <Field label="File báo cáo">
+                  <input
+                    key={uploadInputKey}
+                    type="file"
+                    onChange={(event) =>
+                      setUploadForm((prev) => ({ ...prev, file: event.target.files?.[0] || null }))
+                    }
+                  />
+                </Field>
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: 8,
+                  flexWrap: "wrap",
+                  marginTop: 12,
+                }}
+              >
+                {editingSubmissionId && (
+                  <Button disabled={uploadLoading} onClick={handleCancelMonthlyEdit}>
+                    Hủy chỉnh sửa
+                  </Button>
+                )}
+                <Button type="submit" variant="primary" disabled={uploadLoading}>
+                  {uploadLoading
+                    ? "Đang nộp..."
+                    : editingSubmissionId
+                    ? "Cập nhật và gửi lại"
+                    : "Nộp báo cáo tháng"}
+                </Button>
+              </div>
+            </form>
+            {uploadError && (
+              <div className="alert red" style={{ marginTop: 10 }}>
+                {uploadError}
+              </div>
+            )}
+          </div>
+        )}
+
+        <KpiGrid cols={4}>
+          <Kpi ico="📄" icoClass="blue" label="Tổng số" value={summary.total} />
+          <Kpi ico="⏳" icoClass="orange" label="Chờ duyệt" value={summary.pending} />
+          <Kpi ico="✅" icoClass="green" label="Đã duyệt" value={summary.approved} />
+          <Kpi ico="✏️" icoClass="yellow" label="Cần sửa" value={summary.revision} />
+        </KpiGrid>
+
+        <div className="ui-form-grid" style={{ marginBottom: 14 }}>
+          <Field label="Tháng">
+            <select value={filterMonth} onChange={(event) => setFilterMonth(event.target.value)}>
+              <option value="">Tất cả</option>
+              {monthOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Năm">
+            <select value={filterYear} onChange={(event) => setFilterYear(event.target.value)}>
+              <option value="">Tất cả</option>
+              {yearOptions.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Trạng thái">
+            <select value={filterStatus} onChange={(event) => setFilterStatus(event.target.value)}>
+              <option value="">Tất cả</option>
+              {Object.entries(statusMeta).map(([value, meta]) => (
+                <option key={value} value={value}>
+                  {meta.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+        </div>
+
+        <DataTable
+          columns={monthlyColumns}
+          rows={submissions}
+          loading={isLoading}
+          empty="Chưa có báo cáo tháng nào."
+          minWidth={1080}
+        />
+      </Card>
+
+      <Modal
+        open={Boolean(reviewDialog)}
+        onClose={closeReviewDialog}
+        title={reviewDialog ? decisionLabels[reviewDialog.decision] : ""}
+        subtitle={
+          reviewDialog?.scope === "monthly" ? "Báo cáo tháng" : "Báo cáo ngày"
+        }
+        size="sm"
+        footer={
+          <>
+            <Button onClick={closeReviewDialog}>Hủy</Button>
+            <Button
+              variant={reviewDialog?.decision === "reject" ? "danger" : "primary"}
+              disabled={!reviewNote.trim()}
+              onClick={confirmReviewDialog}
+            >
+              {reviewDialog ? decisionLabels[reviewDialog.decision] : ""}
+            </Button>
+          </>
+        }
+      >
+        <div className="ui-form-grid">
+          <div style={fullSpan}>
+            <Field
+              label={
+                reviewDialog
+                  ? `Nhập lý do ${decisionLabels[reviewDialog.decision].toLowerCase()}:`
+                  : ""
+              }
+              required
+            >
+              <textarea
+                rows={4}
+                autoFocus
+                value={reviewNote}
+                onChange={(event) => setReviewNote(event.target.value)}
+              />
+            </Field>
+          </div>
+        </div>
+      </Modal>
+    </Page>
   );
 }
 

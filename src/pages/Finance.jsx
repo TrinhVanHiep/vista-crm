@@ -1,5 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import apiClient from "../services/apiClient";
+import {
+  Page,
+  PageHeader,
+  Card,
+  DataTable,
+  Modal,
+  Button,
+  KpiGrid,
+  Kpi,
+  EmptyState,
+  Field,
+} from "../ui";
+import "../styles/vista4.css";
 import styles from "../styles/finance.module.css";
 
 const periodOptions = [
@@ -292,17 +305,57 @@ function Finance() {
   const startIndex = transactionCount === 0 ? 0 : (transactionPage - 1) * transactionPageSize + 1;
   const endIndex = transactionCount === 0 ? 0 : startIndex + transactions.length - 1;
 
+  const transactionColumns = [
+    {
+      key: "entry_date",
+      header: "Ngày",
+      width: 110,
+      render: (entry) => formatDate(entry.entry_date),
+    },
+    {
+      key: "name",
+      header: "Người giao dịch",
+      render: (entry) => (
+        <>
+          <strong className={styles.transactionName}>{getTransactionName(entry)}</strong>
+          {entry.description ? (
+            <span className={styles.transactionMeta}>{entry.description}</span>
+          ) : null}
+        </>
+      ),
+    },
+    {
+      key: "type",
+      header: "Loại",
+      width: 140,
+      render: (entry) => getTransactionType(entry),
+    },
+    {
+      key: "amount",
+      header: "Số tiền",
+      align: "right",
+      width: 160,
+      render: (entry) => {
+        const isIncome = entry.entry_type === "income";
+        return (
+          <span className={`money ${isIncome ? "green" : "red"}`}>
+            {isIncome ? "+" : "-"}
+            {formatCurrency(entry.amount)}
+          </span>
+        );
+      },
+    },
+  ];
+
   return (
-    <div className={styles.page}>
-      <header className={styles.header}>
-        <div>
-          <p>Doanh thu</p>
-          <h1>Thống kê thu chi</h1>
-        </div>
-        <div className={styles.headerActions}>
-          <div className={styles.filters}>
-            <label className={styles.select}>
-              <span>Kỳ</span>
+    <Page>
+      <PageHeader
+        crumbs={[{ label: "Tổng quan", to: "/" }, { label: "Tài chính" }]}
+        title="Thống kê thu chi"
+        description="Theo dõi thu, chi và lợi nhuận của trung tâm theo tháng, quý hoặc năm."
+        actions={
+          <div className={styles.headerActions}>
+            <Field label="Kỳ">
               <select
                 value={period}
                 onChange={(event) => setPeriod(event.target.value)}
@@ -313,9 +366,8 @@ function Finance() {
                   </option>
                 ))}
               </select>
-            </label>
-            <label className={styles.select}>
-              <span>Năm</span>
+            </Field>
+            <Field label="Năm">
               <select
                 value={selectedYear}
                 onChange={(event) => setSelectedYear(Number(event.target.value))}
@@ -326,10 +378,9 @@ function Finance() {
                   </option>
                 ))}
               </select>
-            </label>
+            </Field>
             {period === "month" && (
-              <label className={styles.select}>
-                <span>Tháng</span>
+              <Field label="Tháng">
                 <select
                   value={selectedMonth}
                   onChange={(event) => setSelectedMonth(Number(event.target.value))}
@@ -340,11 +391,10 @@ function Finance() {
                     </option>
                   ))}
                 </select>
-              </label>
+              </Field>
             )}
             {period === "quarter" && (
-              <label className={styles.select}>
-                <span>Quý</span>
+              <Field label="Quý">
                 <select
                   value={selectedQuarter}
                   onChange={(event) => setSelectedQuarter(Number(event.target.value))}
@@ -355,49 +405,57 @@ function Finance() {
                     </option>
                   ))}
                 </select>
-              </label>
+              </Field>
             )}
+            <Button
+              variant="primary"
+              icon="📥"
+              onClick={() => {
+                setImportError("");
+                setIsImportOpen(true);
+              }}
+            >
+              Import Excel
+            </Button>
           </div>
-          <button
-            type="button"
-            className={styles.secondaryButton}
-            onClick={() => {
-              setImportError("");
-              setIsImportOpen(true);
-            }}
-          >
-            Import Excel
-          </button>
-        </div>
-      </header>
+        }
+      />
 
       {notice && <div className={styles.notice}>{notice}</div>}
       {error && <div className={styles.error}>{error}</div>}
 
-      <section className={styles.summaryRow}>
-        <div className={styles.summaryCard}>
-          <span>Tổng thu</span>
-          <strong className={styles.positive}>{formatCurrency(totals.income)}</strong>
-          <small>{periodLabel}</small>
-        </div>
-        <div className={styles.summaryCard}>
-          <span>Tổng chi</span>
-          <strong className={styles.negative}>{formatCurrency(totals.expense)}</strong>
-          <small>{periodLabel}</small>
-        </div>
-        <div className={styles.summaryCard}>
-          <span>Lợi nhuận</span>
-          <strong>{formatCurrency(totals.net)}</strong>
-          <small>Thu - Chi</small>
-        </div>
-      </section>
+      <KpiGrid cols={3} className={styles.kpiRow}>
+        <Kpi
+          ico="💰"
+          icoClass="orange"
+          label="Tổng thu"
+          value={formatCurrency(totals.income)}
+          sub={periodLabel}
+        />
+        <Kpi
+          ico="💸"
+          icoClass="yellow"
+          label="Tổng chi"
+          value={formatCurrency(totals.expense)}
+          sub={periodLabel}
+        />
+        <Kpi
+          ico="📈"
+          icoClass="green"
+          label="Lợi nhuận"
+          value={formatCurrency(totals.net)}
+          sub="Thu - Chi"
+        />
+      </KpiGrid>
 
-      <section className={styles.chartPanel}>
-        <div className={styles.chartHeader}>
+      <Card
+        title={
           <div>
-            <h2>Biểu đồ thu chi</h2>
-            <p>So sánh thu và chi theo {periodLabel.toLowerCase()}.</p>
+            <h3>Biểu đồ thu chi</h3>
+            <p className={styles.cardSub}>So sánh thu và chi theo {periodLabel.toLowerCase()}.</p>
           </div>
+        }
+        action={
           <div className={styles.legend}>
             <span>
               <i data-tone="income" /> Thu
@@ -406,101 +464,79 @@ function Finance() {
               <i data-tone="expense" /> Chi
             </span>
           </div>
-        </div>
-        <div className={styles.chartCanvas} role="img" aria-label="Biểu đồ thu chi">
-          <div className={styles.axis}>
-            {chartTicks.map((tick) => (
-              <span key={tick}>{formatCompact(chartMax * tick)}</span>
-            ))}
-          </div>
-          <div className={styles.bars}>
-            {series.map((item) => (
-              <div key={item.label} className={styles.column}>
-                <div className={styles.barStack}>
-                  <span
-                    className={styles.bar}
-                    data-tone="income"
-                    style={{ "--bar-height": `${((item.income || 0) / chartMax) * 100}%` }}
-                    title={`Thu: ${formatCurrency(item.income || 0)}`}
-                  />
-                  <span
-                    className={styles.bar}
-                    data-tone="expense"
-                    style={{ "--bar-height": `${((item.expense || 0) / chartMax) * 100}%` }}
-                    title={`Chi: ${formatCurrency(item.expense || 0)}`}
-                  />
+        }
+      >
+        {series.length === 0 ? (
+          <EmptyState
+            icon="📊"
+            title="Chưa có dữ liệu thu chi."
+            hint={`Chưa ghi nhận khoản thu hoặc chi nào trong ${periodLabel.toLowerCase()}.`}
+          />
+        ) : (
+          <div className={styles.chartCanvas} role="img" aria-label="Biểu đồ thu chi">
+            <div className={styles.axis}>
+              {chartTicks.map((tick) => (
+                <span key={tick}>{formatCompact(chartMax * tick)}</span>
+              ))}
+            </div>
+            <div className={styles.bars}>
+              {series.map((item) => (
+                <div key={item.label} className={styles.column}>
+                  <div className={styles.barStack}>
+                    <span
+                      className={styles.bar}
+                      data-tone="income"
+                      style={{ "--bar-height": `${((item.income || 0) / chartMax) * 100}%` }}
+                      title={`Thu: ${formatCurrency(item.income || 0)}`}
+                    />
+                    <span
+                      className={styles.bar}
+                      data-tone="expense"
+                      style={{ "--bar-height": `${((item.expense || 0) / chartMax) * 100}%` }}
+                      title={`Chi: ${formatCurrency(item.expense || 0)}`}
+                    />
+                  </div>
+                  <span className={styles.label}>{item.label}</span>
                 </div>
-                <span className={styles.label}>{item.label}</span>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        )}
+      </Card>
 
-      <section className={styles.transactions}>
-        <div className={styles.transactionsHeader}>
+      <Card
+        title={
           <div>
-            <h2>Giao dịch</h2>
-            <p>Danh sách giao dịch theo {periodLabel.toLowerCase()}.</p>
+            <h3>Giao dịch</h3>
+            <p className={styles.cardSub}>Danh sách giao dịch theo {periodLabel.toLowerCase()}.</p>
           </div>
-        </div>
-        {transactionLoading && <div className={styles.state}>Đang tải giao dịch...</div>}
-        {!transactionLoading && transactionError && (
-          <div className={`${styles.state} ${styles.stateError}`}>{transactionError}</div>
+        }
+      >
+        {!transactionLoading && transactionError ? (
+          <div className={styles.stateError}>{transactionError}</div>
+        ) : (
+          <DataTable
+            columns={transactionColumns}
+            rows={transactions}
+            loading={transactionLoading}
+            empty="Chưa có giao dịch."
+            rowKey={(entry) => entry.id}
+            minWidth={640}
+          />
         )}
-        {!transactionLoading && !transactionError && transactions.length === 0 && (
-          <div className={styles.state}>Chưa có giao dịch.</div>
-        )}
-        {!transactionLoading && !transactionError && transactions.length > 0 && (
-          <div className={styles.tableWrap}>
-            <table className={styles.transactionsTable}>
-              <thead>
-                <tr>
-                  <th>Ngày</th>
-                  <th>Người giao dịch</th>
-                  <th>Loại</th>
-                  <th>Số tiền</th>
-                </tr>
-              </thead>
-              <tbody>
-                {transactions.map((entry) => {
-                  const isIncome = entry.entry_type === "income";
-                  return (
-                    <tr key={entry.id}>
-                      <td>{formatDate(entry.entry_date)}</td>
-                      <td>
-                        <strong className={styles.transactionName}>
-                          {getTransactionName(entry)}
-                        </strong>
-                        {entry.description ? (
-                          <span className={styles.transactionMeta}>{entry.description}</span>
-                        ) : null}
-                      </td>
-                      <td>{getTransactionType(entry)}</td>
-                      <td className={isIncome ? styles.amountPositive : styles.amountNegative}>
-                        {isIncome ? "+" : "-"}
-                        {formatCurrency(entry.amount)}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-        <div className={styles.transactionsFooter}>
-          <span>
+
+        <div className={styles.tableFoot}>
+          <span className="small muted">
             {startIndex}-{endIndex} / {transactionCount}
           </span>
-          <div className={styles.paginationButtons}>
-            <button
-              type="button"
-              className={styles.iconButton}
+          <div className={styles.pager}>
+            <Button
+              size="sm"
               aria-label="Trang trước"
               disabled={!hasPrev}
               onClick={() => hasPrev && setTransactionPage((prev) => Math.max(prev - 1, 1))}
             >
-              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" className={styles.pagerIcon}>
                 <path
                   d="m14 7-5 5 5 5"
                   fill="none"
@@ -510,15 +546,14 @@ function Finance() {
                   strokeLinejoin="round"
                 />
               </svg>
-            </button>
-            <button
-              type="button"
-              className={styles.iconButton}
+            </Button>
+            <Button
+              size="sm"
               aria-label="Trang sau"
               disabled={!hasNext}
               onClick={() => hasNext && setTransactionPage((prev) => prev + 1)}
             >
-              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" className={styles.pagerIcon}>
                 <path
                   d="m10 7 5 5-5 5"
                   fill="none"
@@ -528,74 +563,53 @@ function Finance() {
                   strokeLinejoin="round"
                 />
               </svg>
-            </button>
+            </Button>
           </div>
         </div>
-      </section>
+      </Card>
 
-      {isImportOpen && (
-        <div className={styles.modalBackdrop} role="dialog" aria-modal="true">
-          <div className={styles.modal}>
-            <header className={styles.modalHeader}>
-              <h2>Import doanh thu</h2>
-              <button
-                type="button"
-                className={styles.iconButton}
-                aria-label="Đóng"
-                onClick={() => setIsImportOpen(false)}
-              >
-                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                  <path
-                    d="M6 6 18 18M6 18 18 6"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </button>
-            </header>
-            <form className={styles.modalBody} onSubmit={handleImport}>
-              <p className={styles.note}>
-                Chọn file thu học phí và file chi lương theo mẫu để cập nhật biểu đồ.
-              </p>
-              <div className={styles.formGrid}>
-                <label className={styles.formGroup}>
-                  <span>File thu học phí</span>
-                  <input
-                    type="file"
-                    accept=".xlsx,.xls"
-                    onChange={(event) => setTuitionFile(event.target.files?.[0] || null)}
-                  />
-                </label>
-                <label className={styles.formGroup}>
-                  <span>File chi lương</span>
-                  <input
-                    type="file"
-                    accept=".xlsx,.xls"
-                    onChange={(event) => setSalaryFile(event.target.files?.[0] || null)}
-                  />
-                </label>
-              </div>
-              {importError && <div className={styles.error}>{importError}</div>}
-              <div className={styles.modalFooter}>
-                <button
-                  type="button"
-                  className={styles.secondaryButton}
-                  onClick={() => setIsImportOpen(false)}
-                >
-                  Đóng
-                </button>
-                <button type="submit" className={styles.primaryButton} disabled={importLoading}>
-                  {importLoading ? "Đang import..." : "Import"}
-                </button>
-              </div>
-            </form>
+      <Modal
+        open={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        title="Import doanh thu"
+        subtitle="Chọn file thu học phí và file chi lương theo mẫu để cập nhật biểu đồ."
+        size="md"
+        footer={
+          <>
+            <Button onClick={() => setIsImportOpen(false)}>Đóng</Button>
+            <Button
+              type="submit"
+              form="finance-import-form"
+              variant="primary"
+              loading={importLoading}
+              loadingText="Đang import..."
+            >
+              Import
+            </Button>
+          </>
+        }
+      >
+        <form id="finance-import-form" onSubmit={handleImport}>
+          <div className="ui-form-grid">
+            <Field label="File thu học phí">
+              <input
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={(event) => setTuitionFile(event.target.files?.[0] || null)}
+              />
+            </Field>
+            <Field label="File chi lương">
+              <input
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={(event) => setSalaryFile(event.target.files?.[0] || null)}
+              />
+            </Field>
           </div>
-        </div>
-      )}
-    </div>
+          {importError && <div className={styles.formError}>{importError}</div>}
+        </form>
+      </Modal>
+    </Page>
   );
 }
 
