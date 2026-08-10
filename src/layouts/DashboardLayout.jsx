@@ -597,43 +597,6 @@ function DashboardLayout() {
           )}
         </nav>
 
-        <div className={styles["dashboard__support-card"]} role="presentation">
-          <div
-            className={styles["dashboard__support-illustration"]}
-            aria-hidden="true"
-          >
-            <svg viewBox="0 0 140 110" focusable="false" aria-hidden="true">
-              <defs>
-                <linearGradient
-                  id="supportGradient"
-                  x1="0"
-                  y1="0"
-                  x2="1"
-                  y2="1"
-                >
-                  <stop offset="0%" stopColor="#a5c1ff" />
-                  <stop offset="100%" stopColor="#5d83ff" />
-                </linearGradient>
-              </defs>
-              <path
-                d="M15 90c12-24 34-38 62-38s50 10 60 38"
-                fill="url(#supportGradient)"
-                opacity="0.15"
-              />
-              <circle cx="72" cy="32" r="18" fill="#ffd9ec" />
-              <rect x="42" y="58" width="60" height="32" rx="12" fill="#fff" />
-              <rect
-                x="52"
-                y="48"
-                width="40"
-                height="26"
-                rx="8"
-                fill="url(#supportGradient)"
-                opacity="0.9"
-              />
-            </svg>
-          </div>
-        </div>
       </aside>
 
       <div className={styles["dashboard__main"]}>

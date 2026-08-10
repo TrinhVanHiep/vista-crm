@@ -166,7 +166,8 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: #f2f6ff;
+  /* Tông ấm theo VISTA 4.0 (trước là xanh #f2f6ff của template cũ). */
+  background: #fbf7f1;
   opacity: 0;
   transition: opacity 0.2s ease;
 }
@@ -179,7 +180,8 @@
   width: 36px;
   height: 36px;
   border-radius: 12px;
-  background: #eef3ff;
+  /* Tông ấm theo VISTA 4.0 (trước là xanh #eef3ff). */
+  background: #f6efe6;
   display: grid;
   place-items: center;
   color: #d9571f;
@@ -221,7 +223,8 @@
 }
 
 .dashboard__nav-item--active .dashboard__nav-icon {
-  background: #dce9ff;
+  /* Trước là ô vuông xanh #dce9ff đè lên viên cam của mục đang chọn. */
+  background: #f9dcc7;
 }
 
 .dashboard__nav-item--active .dashboard__nav-indicator {
@@ -3032,6 +3035,20 @@
   height: 100vh;
   padding: 20px 14px;
   background: #ffffff;
+  /* Laptop màn thấp (VD 1366x700) không đủ chỗ cho 13 mục menu -> phải cuộn
+     được, nếu không các mục cuối (Kho tài liệu, Cài đặt) bị cắt và không bấm tới. */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.dashboard__sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dashboard__sidebar::-webkit-scrollbar-thumb {
+  background: #e6dccf;
+  border-radius: 6px;
 }
 
 .dashboard__sidebar::before,

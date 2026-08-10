@@ -2901,11 +2901,16 @@ function CalendarDetail() {
                         <span className="badge gray">{week?.label || "Tuần"}</span>
                         <button className="btn ghost sm" onClick={() => shiftWeek(1)}>›</button>
                       </div>
+                      {/* Chú giải phải mô tả ĐÚNG màu đang vẽ trên lịch: vạch màu mỗi ô
+                          lấy từ performanceLegend theo TRẠNG THÁI (xem it.color), không
+                          phải theo nhóm công việc. Lấy thẳng từ nguồn để không lệch lại. */}
                       <div className="legend">
-                        <span className="lg"><i style={{ background: "#F26522" }}></i>Lớp học</span>
-                        <span className="lg"><i style={{ background: "#3B82F6" }}></i>Truyền thông</span>
-                        <span className="lg"><i style={{ background: "#2E9E5B" }}></i>Tài chính</span>
-                        <span className="lg"><i style={{ background: "#8B5CF6" }}></i>Nhân sự</span>
+                        {performanceOrder.map((key) => (
+                          <span className="lg" key={key}>
+                            <i style={{ background: performanceLegend[key].color }}></i>
+                            {performanceLegend[key].label}
+                          </span>
+                        ))}
                       </div>
                     </div>
                     <div className="grid c5" style={{ marginBottom: 14 }}>
@@ -2948,7 +2953,7 @@ function CalendarDetail() {
                                         {it.kind === "session" && it.raw?.teaching_plan_status ? (
                                           <span
                                             className={`badge ${teachingPlanStatusBadge[it.raw.teaching_plan_status] || "gray"}`}
-                                            style={{ display: "flex", width: "fit-content", marginTop: 3, fontSize: 8.5, fontWeight: 700, padding: "1px 6px", lineHeight: 1.3 }}
+                                            style={{ display: "flex", width: "fit-content", marginTop: 4, fontSize: 10.5, fontWeight: 700, padding: "2px 8px", lineHeight: 1.35 }}
                                           >
                                             {teachingPlanStatusOptions[it.raw.teaching_plan_status] || it.raw.teaching_plan_status}
                                           </span>
@@ -3952,7 +3957,9 @@ function CalendarDetail() {
                       >
                         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
                           <strong style={{ fontSize: 15, color: "#43301f" }}>{item.title}</strong>
-                          <span style={{ flexShrink: 0, fontSize: 12, fontWeight: 700, color: "var(--primary)", background: "var(--primary-soft)", borderRadius: 999, padding: "3px 10px" }}>
+                          {/* Modal này nằm NGOÀI .v4page nên var(--primary) không tồn tại
+                              -> nhãn mất hẳn nền cam. Dùng màu thật cho chắc. */}
+                          <span style={{ flexShrink: 0, fontSize: 12, fontWeight: 700, color: "#F26522", background: "#FEF0E6", borderRadius: 999, padding: "3px 10px" }}>
                             {staffRequestTypeLabels[item.request_type] || item.request_type}
                           </span>
                         </div>
