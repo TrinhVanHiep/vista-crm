@@ -3496,7 +3496,10 @@ function CalendarDetail() {
               )}
             </div>
             {detailSession.kind === "session" && canCreateTeachingPlan && (
-              <footer className={styles.modalFooter} style={{ flexWrap: "wrap", gap: 8 }}>
+              // Không đặt lại gap ở đây: .modalFooter đã là 12px và 4 hộp thoại còn
+              // lại đều dùng mức đó, riêng chỗ này từng bị đè xuống 8 nên nhìn chật
+              // hơn hẳn phần còn lại của hệ thống.
+              <footer className={styles.modalFooter} style={{ flexWrap: "wrap" }}>
                 {/* Sửa: backend cho phép teacher/staff PATCH khi lịch chưa được duyệt
                     (đặc biệt cần khi admin yêu cầu sửa -> revision_required). */}
                 {(canManageSessions ||
@@ -3525,6 +3528,9 @@ function CalendarDetail() {
                 <button
                   type="button"
                   className={styles.primaryButton}
+                  // Nới thêm trước hành động chính: nó nằm ngay cạnh "Xoá", mà hai
+                  // nút sát nhau thì rất dễ bấm nhầm sang nút xoá.
+                  style={{ marginLeft: 6 }}
                   onClick={() => {
                     const sessionId = detailSession.raw.id;
                     setDetailSession(null);
