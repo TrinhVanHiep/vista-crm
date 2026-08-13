@@ -25,6 +25,7 @@ import Attendance from './pages/Attendance.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
 import Unauthorized from './pages/Unauthorized.jsx';
+import ResetPassword from './pages/ResetPassword.jsx';
 import styles from './styles/dashboard.module.css';
 import { useAuth } from './auth/AuthProvider.jsx';
 import { getDefaultRouteForRole, isRouteAllowedForRole } from './auth/roleRoutes.js';
@@ -56,6 +57,9 @@ function App() {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      {/* Backend đã có reset_password từ lâu nhưng thiếu hẳn trang này, nên mọi
+          liên kết đặt lại mật khẩu đều rơi vào "*" rồi bị đẩy về trang chủ. */}
+      <Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
       <Route path="/unauthorized" element={<Unauthorized />} />
 
       <Route element={<ProtectedRoute />}>
