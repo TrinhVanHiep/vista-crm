@@ -599,3 +599,5 @@
   .v4page .slr-filters label{flex:1 1 140px}
   .v4page .slr-filters select{min-width:0;width:100%}
 }
+.v4page .slr-up{color:var(--success);font-weight:700;white-space:nowrap}
+.v4page .slr-down{color:var(--danger);font-weight:700;white-space:nowrap}

@@ -64,6 +64,19 @@ const TONE_TRANG_THAI = {
 
 const so1 = (v) => (Number.isFinite(Number(v)) ? Number(v).toFixed(1) : null);
 
+/** Hiển thị mức tăng/giảm so với tháng trước. null = tháng trước chưa có bảng điểm. */
+function MucThayDoi({ delta, chuThich = "mới" }) {
+  if (delta == null) return <span className="muted" title="Tháng trước chưa có bảng điểm">{chuThich}</span>;
+  // Chênh lệch dưới 0.05 điểm % thì coi như đứng yên, tránh hiện "+0.0 ▲".
+  if (Math.abs(delta) < 0.05) return <span className="muted">≈ 0</span>;
+  const tang = delta > 0;
+  return (
+    <span className={tang ? "slr-up" : "slr-down"}>
+      {tang ? "▲" : "▼"} {tang ? "+" : ""}{delta.toFixed(1)}
+    </span>
+  );
+}
+
 function tiLeChuyenCan(item) {
   const tong = Number(item.attendance_total);
   const comat = Number(item.attendance_present);
@@ -85,9 +98,11 @@ export default function StudentLearningReport() {
   const [nam, setNam] = useState(homNay.getFullYear());
   const [lopId, setLopId] = useState("");
   const [xepLoai, setXepLoai] = useState("");
+  const [chiXemGiam, setChiXemGiam] = useState(false);
 
   const [lops, setLops] = useState([]);
   const [items, setItems] = useState([]);
+  const [itemsTruoc, setItemsTruoc] = useState([]);
   const [dangTai, setDangTai] = useState(true);
   const [loi, setLoi] = useState("");
   const [dangXuat, setDangXuat] = useState(false);
@@ -109,11 +124,26 @@ export default function StudentLearningReport() {
     if (lopId) params.classroom = lopId;
     // listMonthlyScorecards trả về {results, count, ...} (normalizeCollection),
     // KHÔNG phải mảng — đọc thẳng như mảng thì lúc nào cũng ra rỗng.
-    listMonthlyScorecards(params)
-      .then((res) => { if (!huy) setItems(Array.isArray(res?.results) ? res.results : []); })
+    // Tải luôn tháng liền trước để so sánh. Tháng 1 thì lùi về tháng 12 năm trước.
+    const thangTruoc = thang === 1 ? 12 : thang - 1;
+    const namTruoc = thang === 1 ? nam - 1 : nam;
+    const paramsTruoc = { ...params, month: thangTruoc, year: namTruoc };
+
+    Promise.all([
+      listMonthlyScorecards(params),
+      // Thiếu dữ liệu tháng trước không phải lỗi (tháng đầu tiên chẳng hạn) —
+      // nuốt lỗi ở đây để không làm hỏng cả màn, cột so sánh sẽ hiện "mới".
+      listMonthlyScorecards(paramsTruoc).catch(() => ({ results: [] })),
+    ])
+      .then(([nay, truoc]) => {
+        if (huy) return;
+        setItems(Array.isArray(nay?.results) ? nay.results : []);
+        setItemsTruoc(Array.isArray(truoc?.results) ? truoc.results : []);
+      })
       .catch(() => {
         if (!huy) {
           setItems([]);
+          setItemsTruoc([]);
           setLoi("Không tải được bảng điểm. Vui lòng thử lại.");
         }
       })
@@ -121,10 +151,37 @@ export default function StudentLearningReport() {
     return () => { huy = true; };
   }, [thang, nam, lopId]);
 
-  const locTheoXepLoai = useMemo(
-    () => (xepLoai ? items.filter((i) => i.grade_label === xepLoai) : items),
-    [items, xepLoai],
+  // Kết quả tháng trước, tra theo mã học sinh.
+  const diemTruocTheoHS = useMemo(() => {
+    const m = new Map();
+    itemsTruoc.forEach((i) => {
+      const v = Number(i.total_percent);
+      if (Number.isFinite(v)) m.set(i.student, v);
+    });
+    return m;
+  }, [itemsTruoc]);
+
+  const chenhLech = (item) => {
+    const truoc = diemTruocTheoHS.get(item.student);
+    const nay = Number(item.total_percent);
+    if (!Number.isFinite(truoc) || !Number.isFinite(nay)) return null;
+    return nay - truoc;
+  };
+
+  const soEmDangGiam = useMemo(
+    () => items.filter((i) => { const d = chenhLech(i); return d != null && d < -0.05; }).length,
+    [items, diemTruocTheoHS],
   );
+
+  const danhSachHienThi = useMemo(() => {
+    let ds = xepLoai ? items.filter((i) => i.grade_label === xepLoai) : items;
+    if (chiXemGiam) {
+      ds = ds.filter((i) => { const d = chenhLech(i); return d != null && d < -0.05; });
+      // Tụt nhiều nhất lên đầu — đó là những em cần can thiệp trước.
+      ds = [...ds].sort((a, b) => (chenhLech(a) ?? 0) - (chenhLech(b) ?? 0));
+    }
+    return ds;
+  }, [items, xepLoai, chiXemGiam, diemTruocTheoHS]);
 
   const tongQuan = useMemo(() => {
     const diem = items.map((i) => Number(i.total_percent)).filter(Number.isFinite);
@@ -163,19 +220,27 @@ export default function StudentLearningReport() {
       }
       nhom.get(khoa).ds.push(i);
     });
+    // Trung bình lớp tháng trước, tính trên CÙNG danh sách học sinh đang xét để
+    // lớp thêm/bớt học sinh không bị hiểu nhầm thành điểm tăng hay giảm.
+    const tbTruoc = (ds) => trungBinh(ds.map((i) => diemTruocTheoHS.get(i.student)));
     return [...nhom.values()]
       .map((n) => ({
         id: n.id,
         ten: n.ten,
         soHS: new Set(n.ds.map((i) => i.student)).size,
         diemTB: trungBinh(n.ds.map((i) => Number(i.total_percent))),
+        delta: (() => {
+          const nay = trungBinh(n.ds.map((i) => Number(i.total_percent)));
+          const truoc = tbTruoc(n.ds);
+          return Number.isFinite(nay) && Number.isFinite(truoc) ? nay - truoc : null;
+        })(),
         ccTB: trungBinh(n.ds.map(tiLeChuyenCan)),
         canHoTro: n.ds.filter(
           (i) => i.grade_label === "Yếu" || i.grade_label === "Trung bình",
         ).length,
       }))
       .sort((a, b) => (b.diemTB ?? -1) - (a.diemTB ?? -1));
-  }, [items]);
+  }, [items, diemTruocTheoHS]);
 
   const cotLop = [
     { key: "ten", header: "Lớp", render: (r) => <b>{r.ten}</b> },
@@ -191,6 +256,12 @@ export default function StudentLearningReport() {
       header: "Chuyên cần",
       align: "right",
       render: (r) => (so1(r.ccTB) ? `${so1(r.ccTB)}%` : "--"),
+    },
+    {
+      key: "thaydoi",
+      header: "So tháng trước",
+      align: "right",
+      render: (r) => <MucThayDoi delta={r.delta} chuThich="--" />,
     },
     {
       key: "canHoTro",
@@ -223,6 +294,12 @@ export default function StudentLearningReport() {
       header: "Kết quả",
       align: "right",
       render: (r) => (so1(r.total_percent) ? `${so1(r.total_percent)}%` : "--"),
+    },
+    {
+      key: "thaydoi",
+      header: "So tháng trước",
+      align: "right",
+      render: (r) => <MucThayDoi delta={chenhLech(r)} />,
     },
     {
       key: "grade_label",
@@ -281,6 +358,7 @@ export default function StudentLearningReport() {
         { "Chỉ số": "Điểm trung bình (%)", "Giá trị": so1(tongQuan.diemTB) ?? "" },
         { "Chỉ số": "Chuyên cần trung bình (%)", "Giá trị": so1(tongQuan.ccTB) ?? "" },
         { "Chỉ số": "Cần hỗ trợ (Trung bình + Yếu)", "Giá trị": tongQuan.canHoTro },
+        { "Chỉ số": "Giảm điểm so với tháng trước", "Giá trị": soEmDangGiam },
         ...phanBo.map((x) => ({
           "Chỉ số": `Xếp loại ${x.key}`,
           "Giá trị": `${x.soLuong} (${so1(x.phanTram)}%)`,
@@ -291,6 +369,7 @@ export default function StudentLearningReport() {
         "Lớp": l.ten,
         "Sĩ số có bảng điểm": l.soHS,
         "Điểm trung bình (%)": so1(l.diemTB) ?? "",
+        "Thay đổi so tháng trước (điểm %)": l.delta == null ? "" : Number(l.delta.toFixed(1)),
         "Chuyên cần (%)": so1(l.ccTB) ?? "",
         "Cần hỗ trợ": l.canHoTro,
       })));
@@ -306,6 +385,8 @@ export default function StudentLearningReport() {
         "Tổng số buổi": i.attendance_total ?? "",
         "Chuyên cần (%)": so1(tiLeChuyenCan(i)) ?? "",
         "Kết quả (%)": so1(i.total_percent) ?? "",
+        "Tháng trước (%)": so1(diemTruocTheoHS.get(i.student)) ?? "",
+        "Thay đổi (điểm %)": (() => { const d = chenhLech(i); return d == null ? "" : Number(d.toFixed(1)); })(),
         "Xếp loại": i.grade_label || "",
         "Cảnh báo": i.crm_warning || "",
         "Trạng thái": NHAN_TRANG_THAI[i.status] || i.status || "",
@@ -448,23 +529,33 @@ export default function StudentLearningReport() {
       </Card>
 
       <Card
-        title={`Danh sách học sinh${xepLoai ? ` — xếp loại ${xepLoai}` : ""}`}
+        title={`Danh sách học sinh${xepLoai ? ` — xếp loại ${xepLoai}` : ""}${chiXemGiam ? " — đang giảm" : ""}`}
         action={
-          xepLoai ? (
-            <Button variant="ghost" size="sm" onClick={() => setXepLoai("")}>Bỏ lọc xếp loại</Button>
-          ) : null
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <Button
+              variant={chiXemGiam ? "primary" : "ghost"}
+              size="sm"
+              disabled={!soEmDangGiam}
+              onClick={() => setChiXemGiam((v) => !v)}
+            >
+              {chiXemGiam ? "Đang lọc: giảm điểm" : `Chỉ xem em đang giảm (${soEmDangGiam})`}
+            </Button>
+            {xepLoai ? (
+              <Button variant="ghost" size="sm" onClick={() => setXepLoai("")}>Bỏ lọc xếp loại</Button>
+            ) : null}
+          </div>
         }
       >
         <DataTable
           columns={cotHocSinh}
-          rows={locTheoXepLoai}
+          rows={danhSachHienThi}
           loading={dangTai}
           rowKey={(r) => r.id}
           onRowClick={(r) => navigate(`/phieu-bao-cao/${r.id}`)}
           empty="Không có học sinh nào khớp bộ lọc."
           minWidth={880}
         />
-        {!dangTai && locTheoXepLoai.length ? (
+        {!dangTai && danhSachHienThi.length ? (
           <p className="small muted" style={{ marginTop: 10 }}>
             Bấm vào một dòng để mở phiếu báo cáo gửi phụ huynh.
           </p>
