@@ -48,6 +48,14 @@ const TONE_TINH_TRANG = {
   dropped: "red",
   suspended: "orange",
 };
+// Tên kỹ năng do giáo viên tự đặt khoá khi chấm; chỉ dịch những khoá hay gặp,
+// khoá lạ thì hiện nguyên văn thay vì bỏ mất.
+const NHAN_KY_NANG = {
+  listening: "Nghe", speaking: "Nói", reading: "Đọc", writing: "Viết",
+  vocabulary: "Từ vựng", grammar: "Ngữ pháp", homework: "Bài tập về nhà",
+  pronunciation: "Phát âm", participation: "Phát biểu",
+};
+
 const TONE_XEP_LOAI = { "Giỏi": "green", "Khá": "blue", "Trung bình": "orange", "Yếu": "red" };
 
 const so1 = (v) => (Number.isFinite(Number(v)) ? Number(v).toFixed(1) : null);
@@ -74,7 +82,15 @@ const TRUONG_HO_SO = [
   { key: "parent_phone", nhan: "SĐT phụ huynh", nhom: "phu_huynh" },
   { key: "parent_email", nhan: "Email phụ huynh", nhom: "phu_huynh", loai: "email" },
   { key: "parent_relationship", nhan: "Quan hệ với học viên", nhom: "phu_huynh" },
+  { key: "current_status", nhan: "Tình trạng học vụ", nhom: "hoc_vu", loai: "select", batBuoc: true,
+    chon: [["active", "Đang theo học"], ["inactive", "Tạm nghỉ"], ["suspended", "Bảo lưu"],
+           ["graduated", "Đã hoàn thành"], ["dropped", "Đã nghỉ"]] },
+  { key: "learning_note", nhan: "Ghi chú học vụ", nhom: "hoc_vu", loai: "textarea" },
 ];
+
+// current_status luôn có giá trị (mặc định "active") nên không tính vào thanh đo
+// độ đầy đủ — nếu tính, mọi hồ sơ đều được cộng điểm miễn phí một cách vô nghĩa.
+const TRUONG_TINH_DAY_DU = TRUONG_HO_SO.filter((f) => f.key !== "current_status");
 
 const coGiaTri = (v) => v != null && String(v).trim() !== "";
 
@@ -120,11 +136,11 @@ export default function StudentProfile() {
   useEffect(() => { tai(); }, [tai]);
 
   const thieu = useMemo(
-    () => (hs ? TRUONG_HO_SO.filter((f) => !coGiaTri(hs[f.key])) : []),
+    () => (hs ? TRUONG_TINH_DAY_DU.filter((f) => !coGiaTri(hs[f.key])) : []),
     [hs],
   );
   const doDayDu = useMemo(
-    () => (hs ? Math.round(((TRUONG_HO_SO.length - thieu.length) / TRUONG_HO_SO.length) * 100) : 0),
+    () => (hs ? Math.round(((TRUONG_TINH_DAY_DU.length - thieu.length) / TRUONG_TINH_DAY_DU.length) * 100) : 0),
     [hs, thieu],
   );
 
@@ -294,6 +310,72 @@ export default function StudentProfile() {
         </Card>
       </div>
 
+      {/* Điểm theo kỹ năng của kỳ gần nhất: score_components là dict tự do do
+          giáo viên chấm (listening/speaking/reading/writing/...), nên duyệt động
+          chứ không cứng danh sách kỹ năng. */}
+      {moiNhat && moiNhat.score_components && Object.keys(moiNhat.score_components).length ? (
+        <Card title={`Điểm theo kỹ năng — ${moiNhat.period_label || "kỳ gần nhất"}`}>
+          <div className="sp-skills">
+            {Object.entries(moiNhat.score_components).map(([ten, diem]) => {
+              const v = Number(diem);
+              const pt = Number.isFinite(v) ? Math.max(0, Math.min(100, (v / 10) * 100)) : 0;
+              return (
+                <div className="sp-skill" key={ten}>
+                  <span className="sp-skill__name">{NHAN_KY_NANG[ten] || ten}</span>
+                  <span className="sp-skill__track">
+                    <span className="sp-skill__bar" style={{ width: `${pt}%` }} />
+                  </span>
+                  <span className="sp-skill__val">{Number.isFinite(v) ? v : "--"}</span>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      ) : null}
+
+      <div className="sp-2col">
+        <Card title="Lịch sử lớp học">
+          {hs.enrollments?.length ? (
+            <DataTable
+              columns={[
+                { key: "lop", header: "Lớp", render: (r) => <b>{r.classroom_code || r.classroom_name}</b> },
+                { key: "tu", header: "Từ ngày", render: (r) => ngay(r.enrolled_at) || "--" },
+                { key: "den", header: "Đến ngày", render: (r) => ngay(r.ended_at) || "đang học" },
+                { key: "tt", header: "Trạng thái", align: "center", render: (r) => r.enrollment_status || "--" },
+              ]}
+              rows={hs.enrollments}
+              rowKey={(r) => r.id}
+              minWidth={420}
+            />
+          ) : (
+            <EmptyState icon="🏫" title="Chưa có lịch sử chuyển lớp"
+                        hint={`Học viên đang ở lớp ${hs.classroom?.class_code || hs.classroom?.name || "--"}.`} />
+          )}
+        </Card>
+
+        <Card title="Người giám hộ">
+          {hs.guardians?.length ? (
+            <dl className="sp-dl">
+              {hs.guardians.map((g) => (
+                <div key={g.id}>
+                  <dt>{g.full_name}{g.is_primary_contact ? " ★" : ""}</dt>
+                  <dd>{[g.relationship, g.phone_number, g.email].filter(Boolean).join(" · ") || "--"}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : (
+            <EmptyState icon="🧑‍🤝‍🧑" title="Chưa khai báo người giám hộ"
+                        hint="Dùng khi học viên có nhiều người liên hệ (bố, mẹ, ông bà)." />
+          )}
+        </Card>
+      </div>
+
+      <Card title="Ghi chú học vụ" action={<Button variant="ghost" size="sm" onClick={moForm}>Sửa</Button>}>
+        {coGiaTri(hs.learning_note)
+          ? <p style={{ fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{hs.learning_note}</p>
+          : <p className="small muted">Chưa có ghi chú. Dùng để lưu tình hình học tập, trao đổi với phụ huynh, lưu ý riêng của em.</p>}
+      </Card>
+
       {thieu.length ? (
         <Card title={`Còn thiếu ${thieu.length} thông tin`}
               action={<Button variant="ghost" size="sm" onClick={moForm}>Bổ sung</Button>}>
@@ -320,7 +402,13 @@ export default function StudentProfile() {
         <div className="ui-form-grid">
           {TRUONG_HO_SO.map((f) => (
             <Field key={f.key} label={f.nhan}>
-              {f.loai === "select" ? (
+              {f.loai === "textarea" ? (
+                <textarea
+                  rows={3}
+                  value={form[f.key] ?? ""}
+                  onChange={(e) => setForm((p) => ({ ...p, [f.key]: e.target.value }))}
+                />
+              ) : f.loai === "select" ? (
                 <select value={form[f.key] ?? ""} onChange={(e) => setForm((p) => ({ ...p, [f.key]: e.target.value }))}>
                   <option value="">-- chọn --</option>
                   {f.chon.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
