@@ -45,6 +45,7 @@ export default function YearPlan({ suaDuoc = false }) {
   const [dangLuu, setDangLuu] = useState(false);
   // { track, thang, nam, activity?, title, status }
   const [oSua, setOSua] = useState(null);
+  const [oMucTieu, setOMucTieu] = useState(null);
 
   useEffect(() => {
     let huy = false;
@@ -118,6 +119,25 @@ export default function YearPlan({ suaDuoc = false }) {
     if (ok) setOSua(null);
   };
 
+  const luuMucTieu = async () => {
+    if (!oMucTieu?.title?.trim()) return;
+    const ok = await goiLuu("save-goal", {
+      goal: oMucTieu.id,
+      title: oMucTieu.title.trim(),
+      target_value: oMucTieu.target_value ?? "",
+      unit: oMucTieu.unit ?? "",
+      note: oMucTieu.note ?? "",
+    });
+    if (ok) setOMucTieu(null);
+  };
+
+  const tinhLaiTienDo = async () => {
+    if (!window.confirm(
+      "Tính lại tiến độ từ trạng thái các đầu việc? Số phần trăm đang nhập tay sẽ bị ghi đè."
+    )) return;
+    await goiLuu("recalc-progress", {});
+  };
+
   if (dangTai) return <p className="small muted">Đang tải kế hoạch năm học...</p>;
   if (loi || !kh) {
     return (
@@ -146,6 +166,11 @@ export default function YearPlan({ suaDuoc = false }) {
             {cheDoSua ? "Xong, thoát chỉnh sửa" : "✎ Chỉnh sửa kế hoạch"}
           </Button>
         ) : null}
+        {suaDuoc && cheDoSua ? (
+          <Button variant="ghost" onClick={tinhLaiTienDo} disabled={dangLuu}>
+            ↻ Tính lại tiến độ
+          </Button>
+        ) : null}
       </div>
 
       {loi ? (
@@ -157,7 +182,23 @@ export default function YearPlan({ suaDuoc = false }) {
 
       <div className="yp-goals">
         {(kh.goals || []).map((g) => (
-          <div className="yp-goal" key={g.id}>
+          <div
+            className={`yp-goal${cheDoSua ? " is-edit" : ""}`}
+            key={g.id}
+            {...(cheDoSua
+              ? {
+                  role: "button",
+                  tabIndex: 0,
+                  onClick: () => setOMucTieu({ ...g }),
+                  onKeyDown: (e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setOMucTieu({ ...g });
+                    }
+                  },
+                }
+              : {})}
+          >
             <span className="yp-goal__ico">{g.icon || "🎯"}</span>
             <span className="yp-goal__name">{g.title}</span>
             <span className="yp-goal__val">{g.target_value}</span>
@@ -335,6 +376,40 @@ export default function YearPlan({ suaDuoc = false }) {
                 <option key={k} value={k}>{NHAN_TRANG_THAI[k].nhan}</option>
               ))}
             </select>
+          </Field>
+        </div>
+      </Modal>
+
+      <Modal
+        open={Boolean(oMucTieu)}
+        onClose={() => setOMucTieu(null)}
+        title="Sửa mục tiêu tổng quát"
+        size="sm"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setOMucTieu(null)}>Đóng</Button>
+            <Button variant="primary" onClick={luuMucTieu} loading={dangLuu} loadingText="Đang lưu...">
+              Lưu
+            </Button>
+          </>
+        }
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <Field label="Tên mục tiêu" required>
+            <input value={oMucTieu?.title ?? ""}
+                   onChange={(e) => setOMucTieu((c) => ({ ...c, title: e.target.value }))} />
+          </Field>
+          <Field label="Con số mục tiêu" hint="Ví dụ: 450, 100%, ≥95%, Số 1">
+            <input value={oMucTieu?.target_value ?? ""}
+                   onChange={(e) => setOMucTieu((c) => ({ ...c, target_value: e.target.value }))} />
+          </Field>
+          <Field label="Đơn vị" hint="Ví dụ: học sinh — để trống nếu không cần">
+            <input value={oMucTieu?.unit ?? ""}
+                   onChange={(e) => setOMucTieu((c) => ({ ...c, unit: e.target.value }))} />
+          </Field>
+          <Field label="Ghi chú" hint="Ví dụ: Trước 31/03/2027">
+            <input value={oMucTieu?.note ?? ""}
+                   onChange={(e) => setOMucTieu((c) => ({ ...c, note: e.target.value }))} />
           </Field>
         </div>
       </Modal>

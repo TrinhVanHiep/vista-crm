@@ -12,7 +12,11 @@
 .em-tabs button:focus-visible{outline:2px solid var(--primary);outline-offset:1px}
 
 /* ---------- Kế hoạch năm học ---------- */
-.yp-head{margin-bottom:16px}
+/* Chưa đặt flex nên nút "Chỉnh sửa kế hoạch" rơi ngay sát dưới dòng phụ, dính
+   vào chữ. Cho tiêu đề và nút nằm hai đầu, có khoảng cách khi xuống dòng. */
+.yp-head{display:flex;align-items:flex-start;justify-content:space-between;
+  gap:14px 20px;flex-wrap:wrap;margin-bottom:18px}
+.yp-head>div{min-width:0}
 .yp-title{font-size:22px;font-weight:800;color:var(--red-title);line-height:1.2}
 .yp-sub{font-size:12.5px;color:var(--text-2);text-transform:uppercase;letter-spacing:.4px;margin-top:3px}
 
@@ -328,3 +332,8 @@
 .yp-acts__add button{border:1px dashed var(--border);background:none;color:var(--primary);
   font-family:inherit;font-size:11px;font-weight:700;border-radius:7px;padding:3px 8px;cursor:pointer;width:100%}
 .yp-acts__add button:hover{background:var(--primary-soft);border-color:var(--primary-100)}
+
+/* Thẻ mục tiêu bấm sửa được khi đang ở chế độ chỉnh sửa. */
+.yp-goal.is-edit{cursor:pointer;transition:border-color .15s ease,box-shadow .15s ease}
+.yp-goal.is-edit:hover{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+.yp-goal.is-edit:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
