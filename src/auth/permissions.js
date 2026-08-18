@@ -22,6 +22,9 @@ export const ROUTE_PERMISSIONS = {
   monthlyReports: ['superadmin', 'admin', 'teacher', 'center_manager', 'training_manager'],
   reportCard: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager'],
   employeeProfile: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager'],
+  // Hồ sơ học viên tách khỏi employeeProfile: đây là hồ sơ NGƯỜI HỌC, không phải
+  // hồ sơ nhân sự, nên quyền cũng phải nói đúng điều đó.
+  studentProfile: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager'],
   finance: ['superadmin', 'admin'],
   documents: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager'],
   settings: ['superadmin', 'admin'],

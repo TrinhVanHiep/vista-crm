@@ -387,6 +387,16 @@ export async function listStudents(params = {}) {
   return normalizeCollection(data);
 }
 
+export async function getStudent(studentId) {
+  const { data } = await apiClient.get(`/students/students/${studentId}/`);
+  return data;
+}
+
+export async function updateStudent(studentId, payload) {
+  const { data } = await apiClient.patch(`/students/students/${studentId}/`, payload);
+  return data;
+}
+
 export async function createStudent(payload) {
   const { data } = await apiClient.post("/students/students/", payload);
   return data;

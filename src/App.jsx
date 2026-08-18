@@ -27,6 +27,7 @@ import Register from './pages/Register.jsx';
 import Unauthorized from './pages/Unauthorized.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
 import StudentLearningReport from './pages/StudentLearningReport.jsx';
+import StudentProfile from './pages/StudentProfile.jsx';
 import styles from './styles/dashboard.module.css';
 import { useAuth } from './auth/AuthProvider.jsx';
 import { getDefaultRouteForRole, isRouteAllowedForRole } from './auth/roleRoutes.js';
@@ -127,11 +128,13 @@ function App() {
               </RoleGuard>
             }
           />
+          {/* Trước đây trỏ vào EmployeeProfile — màn dựng cho nhân sự — nên hồ sơ
+              học viên nằm cạnh "Chi tiết tính lương". Nay có màn riêng. */}
           <Route
             path="students/:studentId"
             element={
-              <RoleGuard allowedRoles={ROUTE_PERMISSIONS.employeeProfile}>
-                <EmployeeProfile />
+              <RoleGuard allowedRoles={ROUTE_PERMISSIONS.studentProfile}>
+                <StudentProfile />
               </RoleGuard>
             }
           />
