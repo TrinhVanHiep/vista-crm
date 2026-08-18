@@ -46,6 +46,8 @@ export default function YearPlan({ suaDuoc = false }) {
   // { track, thang, nam, activity?, title, status }
   const [oSua, setOSua] = useState(null);
   const [oMucTieu, setOMucTieu] = useState(null);
+  const [oTienDo, setOTienDo] = useState(null);
+  const [oKeHoach, setOKeHoach] = useState(null);
 
   useEffect(() => {
     let huy = false;
@@ -131,6 +133,35 @@ export default function YearPlan({ suaDuoc = false }) {
     if (ok) setOMucTieu(null);
   };
 
+  const luuTienDo = async () => {
+    const v = Number(oTienDo?.progress);
+    if (!Number.isFinite(v)) return;
+    const ok = await goiLuu("save-month-progress", {
+      period_month: oTienDo.thang, period_year: oTienDo.nam, progress: v,
+    });
+    if (ok) setOTienDo(null);
+  };
+
+  const luuKeHoach = async () => {
+    if (!oKeHoach?.title?.trim()) return;
+    setDangLuu(true);
+    setLoi("");
+    try {
+      const { data } = await apiClient.patch(`/school-year-plans/${kh.id}/`, {
+        title: oKeHoach.title.trim(),
+        year_label: oKeHoach.year_label ?? "",
+        overall_progress: Number(oKeHoach.overall_progress) || 0,
+      });
+      setKh(data);
+      setOKeHoach(null);
+    } catch (e) {
+      const d = e?.response?.data;
+      setLoi(d?.detail || "Không lưu được phần đầu kế hoạch.");
+    } finally {
+      setDangLuu(false);
+    }
+  };
+
   const tinhLaiTienDo = async () => {
     if (!window.confirm(
       "Tính lại tiến độ từ trạng thái các đầu việc? Số phần trăm đang nhập tay sẽ bị ghi đè."
@@ -167,9 +198,16 @@ export default function YearPlan({ suaDuoc = false }) {
           </Button>
         ) : null}
         {suaDuoc && cheDoSua ? (
-          <Button variant="ghost" onClick={tinhLaiTienDo} disabled={dangLuu}>
-            ↻ Tính lại tiến độ
-          </Button>
+          <>
+            <Button variant="ghost" onClick={() => setOKeHoach({
+              title: kh.title, year_label: kh.year_label, overall_progress: kh.overall_progress,
+            })}>
+              ✎ Sửa phần đầu
+            </Button>
+            <Button variant="ghost" onClick={tinhLaiTienDo} disabled={dangLuu}>
+              ↻ Tính lại tiến độ
+            </Button>
+          </>
         ) : null}
       </div>
 
@@ -239,22 +277,16 @@ export default function YearPlan({ suaDuoc = false }) {
                         <b>{p}%</b>
                       </span>
                       <span className="yp-prog__bar"><i style={{ width: `${p}%`, background: mau }} /></span>
+                      {/* Mở form thay vì cho gõ thẳng vào ô: sửa tại chỗ thì không
+                          rõ đang sửa cái gì, và cũng không biết đã lưu hay chưa. */}
                       {cheDoSua ? (
-                        <input
-                          className="yp-prog__inp"
-                          type="number"
-                          min="0"
-                          max="100"
-                          defaultValue={p}
-                          aria-label={`Tiến độ tháng ${nhanThang(t.m, t.y)}`}
-                          onBlur={(e) => {
-                            const v = Number(e.target.value);
-                            if (v === p || !Number.isFinite(v)) return;
-                            goiLuu("save-month-progress", {
-                              period_month: t.m, period_year: t.y, progress: v,
-                            });
-                          }}
-                        />
+                        <button
+                          type="button"
+                          className="yp-prog__edit"
+                          onClick={() => setOTienDo({ thang: t.m, nam: t.y, progress: p })}
+                        >
+                          ✎ Sửa
+                        </button>
                       ) : null}
                     </th>
                   );
@@ -410,6 +442,61 @@ export default function YearPlan({ suaDuoc = false }) {
           <Field label="Ghi chú" hint="Ví dụ: Trước 31/03/2027">
             <input value={oMucTieu?.note ?? ""}
                    onChange={(e) => setOMucTieu((c) => ({ ...c, note: e.target.value }))} />
+          </Field>
+        </div>
+      </Modal>
+
+      <Modal
+        open={Boolean(oTienDo)}
+        onClose={() => setOTienDo(null)}
+        title="Sửa tiến độ tháng"
+        subtitle={oTienDo ? `Tháng ${nhanThang(oTienDo.thang, oTienDo.nam)}` : ""}
+        size="sm"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setOTienDo(null)}>Đóng</Button>
+            <Button variant="primary" onClick={luuTienDo} loading={dangLuu} loadingText="Đang lưu...">
+              Lưu
+            </Button>
+          </>
+        }
+      >
+        <Field label="Tiến độ hoàn thành (%)" required
+               hint="Từ 0 đến 100. Muốn máy tự tính theo trạng thái đầu việc thì dùng nút “Tính lại tiến độ”.">
+          <input
+            type="number" min="0" max="100" autoFocus
+            value={oTienDo?.progress ?? 0}
+            onChange={(e) => setOTienDo((c) => ({ ...c, progress: e.target.value }))}
+          />
+        </Field>
+      </Modal>
+
+      <Modal
+        open={Boolean(oKeHoach)}
+        onClose={() => setOKeHoach(null)}
+        title="Sửa phần đầu kế hoạch"
+        size="sm"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setOKeHoach(null)}>Đóng</Button>
+            <Button variant="primary" onClick={luuKeHoach} loading={dangLuu} loadingText="Đang lưu...">
+              Lưu
+            </Button>
+          </>
+        }
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <Field label="Tên kế hoạch" required>
+            <input value={oKeHoach?.title ?? ""}
+                   onChange={(e) => setOKeHoach((c) => ({ ...c, title: e.target.value }))} />
+          </Field>
+          <Field label="Nhãn năm học" hint="Ví dụ: 2026 - 2027">
+            <input value={oKeHoach?.year_label ?? ""}
+                   onChange={(e) => setOKeHoach((c) => ({ ...c, year_label: e.target.value }))} />
+          </Field>
+          <Field label="Tiến độ tổng thể (%)">
+            <input type="number" min="0" max="100" value={oKeHoach?.overall_progress ?? 0}
+                   onChange={(e) => setOKeHoach((c) => ({ ...c, overall_progress: e.target.value }))} />
           </Field>
         </div>
       </Modal>
