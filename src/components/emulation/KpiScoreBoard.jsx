@@ -225,11 +225,18 @@ export default function KpiScoreBoard({
     };
   }, [month, year]);
 
+  // Tách hẳn xem và chấm. Mặc định là XEM: bảng hiện số trơn đúng như bản thiết
+  // kế. Bật chấm mới hiện ô nhập — trước đây lúc nào cũng bày ô nhập nên bảng
+  // trông lệch hẳn so với mẫu và rối mắt với người chỉ vào xem.
+  const [dangCham, setDangCham] = useState(false);
+
   const daDuyet = phieu?.status === "approved";
   // Phiếu đã duyệt thì backend chặn tự chấm lại; khoá luôn ở giao diện để người
   // dùng không gõ xong mới nhận lỗi 403.
-  const suaDuocTuCham = canScoreSelf && !!phieu && !daDuyet;
-  const suaDuocQuanLy = canScoreManager && !!phieu;
+  const chamDuocTuCham = canScoreSelf && !!phieu && !daDuyet;
+  const suaDuocTuCham = chamDuocTuCham && dangCham;
+  const chamDuocQuanLy = canScoreManager && !!phieu;
+  const suaDuocQuanLy = chamDuocQuanLy && dangCham;
   // Điểm cộng/trừ do chính chủ phiếu hoặc quản lý ghi nhận (khớp quyền của
   // endpoint adjust/), nên mở theo cả hai cờ chấm điểm.
   const suaDuocDieuChinh = (suaDuocTuCham || suaDuocQuanLy) && !!phieu;
@@ -353,8 +360,10 @@ export default function KpiScoreBoard({
       }
       apDungPhieu(ketQua);
       baoTin(`Đã lưu bảng chấm điểm thi đua tháng ${month}/${year}.`);
+      return true;
     } catch (e) {
       setLoi(thongDiepLoi(e, "Không lưu được điểm. Vui lòng thử lại."));
+      return false;
     } finally {
       setDangLuu(false);
     }
@@ -464,39 +473,45 @@ export default function KpiScoreBoard({
         width: 46,
         render: (r) => (r.__tong ? "" : `${dau}${soGon(r.cap)}`),
       },
-      {
-        key: "ghinhan",
-        header: "Ghi nhận",
-        align: "center",
-        width: 68,
-        render: (r) => {
-          if (r.__tong) {
-            return (
-              <b className={kieu === "bonus" ? "kpi-num kpi-num--cong" : "kpi-num kpi-num--tru"}>
-                {dau}
-                {soGon(r.__giaTri)}
-              </b>
-            );
-          }
-          if (!suaDuocDieuChinh) {
-            return <span>{nhapGhiNhan[r.id] ? `${dau}${nhapGhiNhan[r.id]}` : "—"}</span>;
-          }
-          return (
-            <input
-              className="kpi-inp"
-              type="number"
-              min="0"
-              max={Number(r.cap)}
-              step="any"
-              value={nhapGhiNhan[r.id] ?? ""}
-              aria-label={`Ghi nhận — ${r.title}`}
-              onChange={(e) =>
-                setNhapGhiNhan((cu) => ({ ...cu, [r.id]: e.target.value }))
+      // Cột "Ghi nhận" chỉ có nghĩa khi đang chấm; bản thiết kế ở chế độ xem
+      // chỉ có STT / Tiêu chí / Cách tính / Trần.
+      ...(dangCham
+        ? [
+          {
+            key: "ghinhan",
+            header: "Ghi nhận",
+            align: "center",
+            width: 68,
+            render: (r) => {
+              if (r.__tong) {
+                return (
+                  <b className={kieu === "bonus" ? "kpi-num kpi-num--cong" : "kpi-num kpi-num--tru"}>
+                    {dau}
+                    {soGon(r.__giaTri)}
+                  </b>
+                );
               }
-            />
-          );
-        },
-      },
+              if (!suaDuocDieuChinh) {
+                return <span>{nhapGhiNhan[r.id] ? `${dau}${nhapGhiNhan[r.id]}` : "—"}</span>;
+              }
+              return (
+                <input
+                  className="kpi-inp"
+                  type="number"
+                  min="0"
+                  max={Number(r.cap)}
+                  step="any"
+                  value={nhapGhiNhan[r.id] ?? ""}
+                  aria-label={`Ghi nhận — ${r.title}`}
+                  onChange={(e) =>
+                    setNhapGhiNhan((cu) => ({ ...cu, [r.id]: e.target.value }))
+                  }
+                />
+              );
+            },
+          },
+          ]
+        : []),
     ];
   };
 
@@ -627,16 +642,28 @@ export default function KpiScoreBoard({
           </div>
         </div>
         <div className="kpi-head__acts">
-          {suaDuocTuCham || suaDuocQuanLy ? (
-            <Button variant="ghost" onClick={luuDiem} loading={dangLuu} loadingText="Đang lưu...">
-              💾 Lưu điểm
-            </Button>
-          ) : null}
-          {suaDuocTuCham ? (
-            <Button variant="primary" onClick={nopPhieu} disabled={dangLuu}>
-              📤 Nộp báo cáo
-            </Button>
-          ) : null}
+          {dangCham ? (
+            <>
+              <Button variant="ghost" onClick={() => { setDangCham(false); apDungPhieu(phieu); setLoi(""); }} disabled={dangLuu}>
+                Huỷ
+              </Button>
+              <Button variant="primary" onClick={async () => { const ok = await luuDiem(); if (ok) setDangCham(false); }}
+                      loading={dangLuu} loadingText="Đang lưu...">
+                💾 Lưu điểm
+              </Button>
+            </>
+          ) : (
+            <>
+              {chamDuocTuCham || chamDuocQuanLy ? (
+                <Button variant="ghost" onClick={() => setDangCham(true)}>✎ Chấm điểm</Button>
+              ) : null}
+              {chamDuocTuCham ? (
+                <Button variant="primary" onClick={nopPhieu} disabled={dangLuu}>
+                  📤 Nộp báo cáo
+                </Button>
+              ) : null}
+            </>
+          )}
         </div>
       </div>
 
