@@ -362,3 +362,16 @@
    bảng rộng ra. */
 .kpi-tbl td.kpi-tbl__desc{white-space:normal;word-break:break-word}
 .kpi-tbl .kpi-pill,.kpi-tbl .badge{max-width:100%}
+
+/* Khối "hệ thống đã có sẵn" trong form nhập phiếu báo cáo — nói rõ cái gì KHÔNG
+   phải nhập, để không ai đi tìm ô nhập điểm. */
+.rce-daco{background:var(--primary-soft);border:1px solid var(--primary-100);border-radius:12px;
+  padding:12px 14px;margin-bottom:16px}
+.rce-daco>b{display:block;font-size:12.5px;color:var(--primary);margin-bottom:8px}
+.rce-daco ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px}
+.rce-daco li{font-size:12px;color:var(--text);line-height:1.45}
+.rce-daco li span{color:var(--text-2);font-weight:600}
+.rce-daco li i{color:var(--muted);font-style:normal;font-size:11px}
+.rce-daco>p{font-size:11.5px;color:var(--text-2);margin-top:9px}
+.ype-row--unit{grid-template-columns:100px 1fr 150px 34px}
+.ype-row--mock{grid-template-columns:1fr 100px 110px 34px}

@@ -4,6 +4,7 @@ import {
   getMonthlyScorecard,
   getMonthlyScorecardSchema,
 } from "../services/calendarService";
+import ReportCardEditor from "../components/report/ReportCardEditor";
 import { Button } from "../ui";
 import "../styles/vista4.css";
 import "../styles/parentReport.css";
@@ -315,6 +316,7 @@ export default function ParentReport() {
   const { scorecardId } = useParams();
   const navigate = useNavigate();
   const [card, setCard] = useState(null);
+  const [moForm, setMoForm] = useState(false);
   const [schema, setSchema] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -727,6 +729,13 @@ export default function ParentReport() {
           <Button size="sm" onClick={() => navigate(-1)}>
             ‹ Quay lại
           </Button>
+          {/* Chỉ mở form khi phiếu chưa duyệt: duyệt rồi mà sửa được thì con số
+              trên tờ đã gửi phụ huynh và trong hệ thống lệch nhau. */}
+          {card.status !== "approved" ? (
+            <Button size="sm" icon="✎" onClick={() => setMoForm(true)}>
+              Nhập thông tin phiếu
+            </Button>
+          ) : null}
           <Button size="sm" icon="📋" onClick={handleCopy}>
             Sao chép để gửi Zalo
           </Button>
@@ -1157,6 +1166,15 @@ export default function ParentReport() {
           <span>Hotline: 024 7300 7788 | www.vistaedu.vn</span>
         </footer>
       </div>
+
+      {/* Form nhập nằm TRONG cùng phần tử bọc: JSX chỉ trả về được một gốc. */}
+      {moForm ? (
+        <ReportCardEditor
+          card={card}
+          onDong={() => setMoForm(false)}
+          onXong={(moi) => { setCard(moi); setMoForm(false); }}
+        />
+      ) : null}
     </div>
   );
 }
