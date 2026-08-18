@@ -562,8 +562,10 @@ export default function KpiScoreBoard({
               ico={g.icon || "🏅"}
               icoClass={MAU_NHOM[i % MAU_NHOM.length]}
               label={g.name}
+              // Bản thiết kế chỉ có nhãn + số; dòng "GV x · QL y" làm thẻ cao
+              // gấp rưỡi và đẩy cả hàng xuống, trong khi số chi tiết đã có ngay
+              // trong bảng bên dưới.
               value={`${soGon(t.final)}/${soGon(t.max ?? g.max_score)}`}
-              sub={`GV ${soGon(t.self)} · QL ${soGon(t.manager)}`}
             />
           );
         })}
@@ -606,26 +608,37 @@ export default function KpiScoreBoard({
       {/* B. Bảng chấm điểm. Bảng này gộp ô theo nhóm (rowSpan) nên không dùng
           được DataTable — DataTable luôn sinh đúng một <td> cho mỗi cột. Vẫn
           mượn nguyên lớp .ui-table để trông hệt các bảng khác trong hệ thống. */}
-      <Card
-        title="1. BẢNG CHẤM ĐIỂM THI ĐUA THÁNG"
-        action={
-          <div className="kpi-acts">
+      {/* Bản thiết kế đặt tiêu đề lớn và hai nút hành động ở ĐẦU TRANG, còn tiêu
+          đề mục 1 để trơn. Trước đây em nhét hết vào tiêu đề mục 1 nên vừa chật
+          vừa khác mẫu. */}
+      <div className="kpi-head">
+        <div>
+          <h2 className="kpi-head__title">
+            BÁO CÁO THI ĐUA THÁNG {String(month).padStart(2, "0")}/{year}
+          </h2>
+          <div className="kpi-head__meta">
             <Badge tone={TONE_TRANG_THAI[phieu.status] || "gray"}>
               {NHAN_TRANG_THAI[phieu.status] || phieu.status}
             </Badge>
             {phieu.owner_name ? <span className="kpi-owner">{phieu.owner_name}</span> : null}
-            {suaDuocTuCham || suaDuocQuanLy ? (
-              <Button variant="primary" size="sm" onClick={luuDiem} loading={dangLuu} loadingText="Đang lưu...">
-                💾 Lưu điểm
-              </Button>
-            ) : null}
-            {suaDuocTuCham ? (
-              <Button size="sm" onClick={nopPhieu} disabled={dangLuu}>
-                📤 Nộp phiếu
-              </Button>
-            ) : null}
           </div>
-        }
+        </div>
+        <div className="kpi-head__acts">
+          {suaDuocTuCham || suaDuocQuanLy ? (
+            <Button variant="ghost" onClick={luuDiem} loading={dangLuu} loadingText="Đang lưu...">
+              💾 Lưu điểm
+            </Button>
+          ) : null}
+          {suaDuocTuCham ? (
+            <Button variant="primary" onClick={nopPhieu} disabled={dangLuu}>
+              📤 Nộp báo cáo
+            </Button>
+          ) : null}
+        </div>
+      </div>
+
+      <Card
+        title={`1. BẢNG CHẤM ĐIỂM THI ĐUA THÁNG ${month}`}
       >
         <div className="tbl-wrap">
           <table className="ui-table kpi-tbl">
@@ -650,7 +663,7 @@ export default function KpiScoreBoard({
               </tr>
             </thead>
             <tbody>
-              {dsNhom.map((g) => {
+              {dsNhom.map((g, gi) => {
                 const t = theoNhom[g.code] || {};
                 return (
                   <Fragment key={g.id}>
@@ -659,7 +672,14 @@ export default function KpiScoreBoard({
                       const tt = trangThaiDong(dong);
                       return (
                         <tr key={c.id}>
-                          <td className="t-center">{c.stt}</td>
+                          {/* Bản thiết kế: cột STT là SỐ THỨ TỰ NHÓM (1-4) in to,
+                              gộp ô suốt cả nhóm — không phải đánh số 1→20 từng
+                              dòng. Nhìn vào là biết đang ở nhóm mấy. */}
+                          {i === 0 ? (
+                            <td className="kpi-stt" rowSpan={g.criteria.length}>
+                              {gi + 1}
+                            </td>
+                          ) : null}
                           {i === 0 ? (
                             <td className="kpi-tbl__group" rowSpan={g.criteria.length}>
                               <span className="kpi-tbl__group-ico">{g.icon || "🏅"}</span>
@@ -672,7 +692,7 @@ export default function KpiScoreBoard({
                           <td className="t-center">{c.soTrongNhom}</td>
                           <td className="kpi-tbl__title">{c.title}</td>
                           <td className="kpi-tbl__desc">{c.description || "—"}</td>
-                          <td className="t-center">{soGon(c.max_score)}</td>
+                          <td className="t-center">{soGon(c.max_score)} điểm</td>
                           <td className="t-center">
                             {suaDuocTuCham ? (
                               <input

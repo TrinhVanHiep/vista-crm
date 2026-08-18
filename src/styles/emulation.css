@@ -299,3 +299,11 @@
 .kpi-adj-tbl th{white-space:normal;line-height:1.25}
 .kpi-adj-tbl td{padding:7px 8px;font-size:11.5px;line-height:1.4}
 .kpi-adj-tbl .kpi-inp{width:100%}
+
+/* Tiêu đề lớn + hai nút ở đầu bảng chấm, đúng bản thiết kế. */
+.kpi-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;
+  flex-wrap:wrap;margin-bottom:14px}
+.kpi-head__title{font-size:23px;font-weight:800;color:var(--red-title);line-height:1.15;letter-spacing:.2px}
+.kpi-head__meta{display:flex;align-items:center;gap:9px;margin-top:6px}
+.kpi-head__acts{display:flex;gap:9px;flex-wrap:wrap}
+.kpi-owner{font-size:12.5px;color:var(--text-2);font-weight:600}
