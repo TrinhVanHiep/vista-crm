@@ -178,7 +178,9 @@
    BỐ CỤC BẢNG CHẤM — bám bản thiết kế in trên giấy, không theo nếp 4.0.
    Cột trái là bảng chấm, cột phải là điểm cộng/trừ, hàng dưới 3 cột.
    ========================================================================== */
-.kpi-main{display:grid;grid-template-columns:minmax(0,1.72fr) minmax(0,1fr);gap:16px;align-items:start}
+/* Thu hẹp cột phải (điểm cộng/trừ) để nhường chỗ cho bảng chấm: bảng có 9 cột
+   nên cần bề ngang, còn hai bảng cộng/trừ chỉ 5 cột ngắn. */
+.kpi-main{display:grid;grid-template-columns:minmax(0,2.3fr) minmax(0,1fr);gap:16px;align-items:start}
 .kpi-main__left,.kpi-main__right{min-width:0}
 .kpi-main__left>.card+.card,.kpi-main__right>.card+.card{margin-top:16px}
 /* Bản thiết kế: khối phê duyệt rộng gấp ~2.4 lần hai khối kia (3 ô ký nằm
@@ -277,3 +279,23 @@
    rút gọn nhãn. */
 .kpi-approve__acts .ui-btn:first-child{flex:0 0 auto}
 .kpi-approve__acts .ui-btn:last-child{flex:1 1 auto}
+
+/* Tiêu đề cột thừa hưởng white-space:nowrap của bảng dùng chung. Với bảng
+   table-layout:fixed, chữ dài hơn ô sẽ TRÀN RA đè lên cột bên cạnh thay vì bị
+   cắt — đúng hiện tượng "Nhóm chủ đề#" và "Điểm tối đIểm GV chấm" dính vào nhau.
+   Cho tiêu đề xuống dòng thì cột hẹp mấy cũng không bao giờ đè nhau nữa. */
+.kpi-tbl thead th{white-space:normal;line-height:1.25;vertical-align:bottom}
+.kpi-tbl col.c-max{width:58px}
+.kpi-tbl col.c-gv{width:76px}
+.kpi-tbl col.c-ql{width:76px}
+.kpi-tbl col.c-nhom{width:92px}
+
+/* Bảng điểm cộng/trừ tự chia cột theo nội dung nên STT (một chữ số) chiếm 48px
+   trong khi "Cách tính" — cột chữ dài nhất — chỉ còn 82px. Khoá bề rộng để chỗ
+   dồn về đúng cột cần đọc. */
+.kpi-adj-tbl{table-layout:fixed;min-width:0}
+/* Bề rộng cột đặt bằng prop width trong định nghĩa cột (DataTable đổ ra inline
+   style) nên CSS ở đây không thắng được — sửa thẳng ở chỗ khai báo cột. */
+.kpi-adj-tbl th{white-space:normal;line-height:1.25}
+.kpi-adj-tbl td{padding:7px 8px;font-size:11.5px;line-height:1.4}
+.kpi-adj-tbl .kpi-inp{width:100%}

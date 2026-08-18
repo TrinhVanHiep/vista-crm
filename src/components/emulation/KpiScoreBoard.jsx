@@ -440,12 +440,15 @@ export default function KpiScoreBoard({
         key: "stt",
         header: "STT",
         align: "center",
-        width: 54,
+        // Cột chỉ chứa một chữ số; 54px là lấy mất chỗ của "Cách tính" — cột
+        // chữ dài nhất và là thứ người chấm thực sự phải đọc.
+        width: 32,
         render: (r) => (r.__tong ? "" : r.stt),
       },
       {
         key: "title",
         header: "Tiêu chí",
+        width: 86,
         render: (r) => (r.__tong ? <b>{r.title}</b> : r.title),
       },
       {
@@ -457,14 +460,14 @@ export default function KpiScoreBoard({
         key: "cap",
         header: "Trần",
         align: "center",
-        width: 82,
+        width: 46,
         render: (r) => (r.__tong ? "" : `${dau}${soGon(r.cap)}`),
       },
       {
         key: "ghinhan",
         header: "Ghi nhận",
         align: "center",
-        width: 122,
+        width: 68,
         render: (r) => {
           if (r.__tong) {
             return (
