@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import apiClient from "../../services/apiClient";
-import { Button, Card, EmptyState, Field, Modal } from "../../ui";
+import { Button, Card, EmptyState } from "../../ui";
+import YearPlanEditor from "./YearPlanEditor";
 
 /**
  * Kế hoạch năm học — khung thi đua chung mà bảng chấm từng tháng bám theo.
@@ -41,13 +42,9 @@ export default function YearPlan({ suaDuoc = false }) {
   const [kh, setKh] = useState(null);
   const [dangTai, setDangTai] = useState(true);
   const [loi, setLoi] = useState("");
-  const [cheDoSua, setCheDoSua] = useState(false);
+  const [moForm, setMoForm] = useState(false);
   const [dangLuu, setDangLuu] = useState(false);
   // { track, thang, nam, activity?, title, status }
-  const [oSua, setOSua] = useState(null);
-  const [oMucTieu, setOMucTieu] = useState(null);
-  const [oTienDo, setOTienDo] = useState(null);
-  const [oKeHoach, setOKeHoach] = useState(null);
 
   useEffect(() => {
     let huy = false;
@@ -101,66 +98,10 @@ export default function YearPlan({ suaDuoc = false }) {
     }
   };
 
-  const luuDauViec = async () => {
-    if (!oSua?.title?.trim()) return;
-    const ok = await goiLuu("save-activity", {
-      activity: oSua.activity,
-      track: oSua.track,
-      period_month: oSua.thang,
-      period_year: oSua.nam,
-      title: oSua.title.trim(),
-      status: oSua.status,
-    });
-    if (ok) setOSua(null);
-  };
 
-  const xoaDauViec = async () => {
-    if (!oSua?.activity) return;
-    if (!window.confirm(`Xoá đầu việc "${oSua.title}"?`)) return;
-    const ok = await goiLuu("delete-activity", { activity: oSua.activity });
-    if (ok) setOSua(null);
-  };
 
-  const luuMucTieu = async () => {
-    if (!oMucTieu?.title?.trim()) return;
-    const ok = await goiLuu("save-goal", {
-      goal: oMucTieu.id,
-      title: oMucTieu.title.trim(),
-      target_value: oMucTieu.target_value ?? "",
-      unit: oMucTieu.unit ?? "",
-      note: oMucTieu.note ?? "",
-    });
-    if (ok) setOMucTieu(null);
-  };
 
-  const luuTienDo = async () => {
-    const v = Number(oTienDo?.progress);
-    if (!Number.isFinite(v)) return;
-    const ok = await goiLuu("save-month-progress", {
-      period_month: oTienDo.thang, period_year: oTienDo.nam, progress: v,
-    });
-    if (ok) setOTienDo(null);
-  };
 
-  const luuKeHoach = async () => {
-    if (!oKeHoach?.title?.trim()) return;
-    setDangLuu(true);
-    setLoi("");
-    try {
-      const { data } = await apiClient.patch(`/school-year-plans/${kh.id}/`, {
-        title: oKeHoach.title.trim(),
-        year_label: oKeHoach.year_label ?? "",
-        overall_progress: Number(oKeHoach.overall_progress) || 0,
-      });
-      setKh(data);
-      setOKeHoach(null);
-    } catch (e) {
-      const d = e?.response?.data;
-      setLoi(d?.detail || "Không lưu được phần đầu kế hoạch.");
-    } finally {
-      setDangLuu(false);
-    }
-  };
 
   const tinhLaiTienDo = async () => {
     if (!window.confirm(
@@ -190,24 +131,14 @@ export default function YearPlan({ suaDuoc = false }) {
         {/* Chỉ quản lý/admin thấy nút này; mặc định vẫn là chế độ xem để người
             đọc bình thường không bấm nhầm vào ô nhập. */}
         {suaDuoc ? (
-          <Button
-            variant={cheDoSua ? "primary" : "ghost"}
-            onClick={() => { setCheDoSua((v) => !v); setOSua(null); }}
-          >
-            {cheDoSua ? "Xong, thoát chỉnh sửa" : "✎ Chỉnh sửa kế hoạch"}
-          </Button>
-        ) : null}
-        {suaDuoc && cheDoSua ? (
-          <>
-            <Button variant="ghost" onClick={() => setOKeHoach({
-              title: kh.title, year_label: kh.year_label, overall_progress: kh.overall_progress,
-            })}>
-              ✎ Sửa phần đầu
-            </Button>
+          <div style={{ display: "flex", gap: 9, flexWrap: "wrap" }}>
             <Button variant="ghost" onClick={tinhLaiTienDo} disabled={dangLuu}>
               ↻ Tính lại tiến độ
             </Button>
-          </>
+            <Button variant="primary" onClick={() => setMoForm(true)}>
+              ✎ Chỉnh sửa kế hoạch
+            </Button>
+          </div>
         ) : null}
       </div>
 
@@ -221,21 +152,8 @@ export default function YearPlan({ suaDuoc = false }) {
       <div className="yp-goals">
         {(kh.goals || []).map((g) => (
           <div
-            className={`yp-goal${cheDoSua ? " is-edit" : ""}`}
+            className="yp-goal"
             key={g.id}
-            {...(cheDoSua
-              ? {
-                  role: "button",
-                  tabIndex: 0,
-                  onClick: () => setOMucTieu({ ...g }),
-                  onKeyDown: (e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      setOMucTieu({ ...g });
-                    }
-                  },
-                }
-              : {})}
           >
             <span className="yp-goal__ico">{g.icon || "🎯"}</span>
             <span className="yp-goal__name">{g.title}</span>
@@ -277,17 +195,6 @@ export default function YearPlan({ suaDuoc = false }) {
                         <b>{p}%</b>
                       </span>
                       <span className="yp-prog__bar"><i style={{ width: `${p}%`, background: mau }} /></span>
-                      {/* Mở form thay vì cho gõ thẳng vào ô: sửa tại chỗ thì không
-                          rõ đang sửa cái gì, và cũng không biết đã lưu hay chưa. */}
-                      {cheDoSua ? (
-                        <button
-                          type="button"
-                          className="yp-prog__edit"
-                          onClick={() => setOTienDo({ thang: t.m, nam: t.y, progress: p })}
-                        >
-                          ✎ Sửa
-                        </button>
-                      ) : null}
                     </th>
                   );
                 })}
@@ -309,48 +216,16 @@ export default function YearPlan({ suaDuoc = false }) {
                     const viec = cot?.activities || [];
                     return (
                       <td key={t.key}>
-                        <ul className={`yp-acts${cheDoSua ? " is-edit" : ""}`}>
+                        <ul className="yp-acts">
                           {viec.map((a) => (
                             <li
                               key={a.id}
                               title={a.status_label || NHAN_TRANG_THAI[a.status]?.nhan}
-                              {...(cheDoSua
-                                ? {
-                                    role: "button",
-                                    tabIndex: 0,
-                                    onClick: () => setOSua({
-                                      track: tr.id, thang: t.m, nam: t.y,
-                                      activity: a.id, title: a.title, status: a.status,
-                                    }),
-                                    onKeyDown: (e) => {
-                                      if (e.key === "Enter" || e.key === " ") {
-                                        e.preventDefault();
-                                        setOSua({
-                                          track: tr.id, thang: t.m, nam: t.y,
-                                          activity: a.id, title: a.title, status: a.status,
-                                        });
-                                      }
-                                    },
-                                  }
-                                : {})}
                             >
                               <i style={{ background: NHAN_TRANG_THAI[a.status]?.mau || "#A99A88" }} />
                               {a.title}
                             </li>
                           ))}
-                          {cheDoSua ? (
-                            <li className="yp-acts__add">
-                              <button
-                                type="button"
-                                onClick={() => setOSua({
-                                  track: tr.id, thang: t.m, nam: t.y,
-                                  activity: null, title: "", status: "chua_bat_dau",
-                                })}
-                              >
-                                + Thêm việc
-                              </button>
-                            </li>
-                          ) : null}
                         </ul>
                       </td>
                     );
@@ -372,134 +247,17 @@ export default function YearPlan({ suaDuoc = false }) {
         </div>
       </Card>
 
-      <Modal
-        open={Boolean(oSua)}
-        onClose={() => setOSua(null)}
-        title={oSua?.activity ? "Sửa đầu việc" : "Thêm đầu việc"}
-        subtitle={oSua ? `Tháng ${nhanThang(oSua.thang, oSua.nam)}` : ""}
-        size="sm"
-        footer={
-          <>
-            {oSua?.activity ? (
-              <Button variant="danger" onClick={xoaDauViec} disabled={dangLuu}>Xoá</Button>
-            ) : null}
-            <Button variant="ghost" onClick={() => setOSua(null)}>Đóng</Button>
-            <Button variant="primary" onClick={luuDauViec} loading={dangLuu} loadingText="Đang lưu...">
-              Lưu
-            </Button>
-          </>
-        }
-      >
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <Field label="Nội dung đầu việc" required>
-            <input
-              value={oSua?.title ?? ""}
-              autoFocus
-              onChange={(e) => setOSua((c) => ({ ...c, title: e.target.value }))}
-              placeholder="Ví dụ: Ổn định sĩ số"
-            />
-          </Field>
-          <Field label="Trạng thái">
-            <select
-              value={oSua?.status ?? "chua_bat_dau"}
-              onChange={(e) => setOSua((c) => ({ ...c, status: e.target.value }))}
-            >
-              {THU_TU_TRANG_THAI.map((k) => (
-                <option key={k} value={k}>{NHAN_TRANG_THAI[k].nhan}</option>
-              ))}
-            </select>
-          </Field>
-        </div>
-      </Modal>
 
-      <Modal
-        open={Boolean(oMucTieu)}
-        onClose={() => setOMucTieu(null)}
-        title="Sửa mục tiêu tổng quát"
-        size="sm"
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setOMucTieu(null)}>Đóng</Button>
-            <Button variant="primary" onClick={luuMucTieu} loading={dangLuu} loadingText="Đang lưu...">
-              Lưu
-            </Button>
-          </>
-        }
-      >
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <Field label="Tên mục tiêu" required>
-            <input value={oMucTieu?.title ?? ""}
-                   onChange={(e) => setOMucTieu((c) => ({ ...c, title: e.target.value }))} />
-          </Field>
-          <Field label="Con số mục tiêu" hint="Ví dụ: 450, 100%, ≥95%, Số 1">
-            <input value={oMucTieu?.target_value ?? ""}
-                   onChange={(e) => setOMucTieu((c) => ({ ...c, target_value: e.target.value }))} />
-          </Field>
-          <Field label="Đơn vị" hint="Ví dụ: học sinh — để trống nếu không cần">
-            <input value={oMucTieu?.unit ?? ""}
-                   onChange={(e) => setOMucTieu((c) => ({ ...c, unit: e.target.value }))} />
-          </Field>
-          <Field label="Ghi chú" hint="Ví dụ: Trước 31/03/2027">
-            <input value={oMucTieu?.note ?? ""}
-                   onChange={(e) => setOMucTieu((c) => ({ ...c, note: e.target.value }))} />
-          </Field>
-        </div>
-      </Modal>
 
-      <Modal
-        open={Boolean(oTienDo)}
-        onClose={() => setOTienDo(null)}
-        title="Sửa tiến độ tháng"
-        subtitle={oTienDo ? `Tháng ${nhanThang(oTienDo.thang, oTienDo.nam)}` : ""}
-        size="sm"
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setOTienDo(null)}>Đóng</Button>
-            <Button variant="primary" onClick={luuTienDo} loading={dangLuu} loadingText="Đang lưu...">
-              Lưu
-            </Button>
-          </>
-        }
-      >
-        <Field label="Tiến độ hoàn thành (%)" required
-               hint="Từ 0 đến 100. Muốn máy tự tính theo trạng thái đầu việc thì dùng nút “Tính lại tiến độ”.">
-          <input
-            type="number" min="0" max="100" autoFocus
-            value={oTienDo?.progress ?? 0}
-            onChange={(e) => setOTienDo((c) => ({ ...c, progress: e.target.value }))}
-          />
-        </Field>
-      </Modal>
 
-      <Modal
-        open={Boolean(oKeHoach)}
-        onClose={() => setOKeHoach(null)}
-        title="Sửa phần đầu kế hoạch"
-        size="sm"
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setOKeHoach(null)}>Đóng</Button>
-            <Button variant="primary" onClick={luuKeHoach} loading={dangLuu} loadingText="Đang lưu...">
-              Lưu
-            </Button>
-          </>
-        }
-      >
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <Field label="Tên kế hoạch" required>
-            <input value={oKeHoach?.title ?? ""}
-                   onChange={(e) => setOKeHoach((c) => ({ ...c, title: e.target.value }))} />
-          </Field>
-          <Field label="Nhãn năm học" hint="Ví dụ: 2026 - 2027">
-            <input value={oKeHoach?.year_label ?? ""}
-                   onChange={(e) => setOKeHoach((c) => ({ ...c, year_label: e.target.value }))} />
-          </Field>
-          <Field label="Tiến độ tổng thể (%)">
-            <input type="number" min="0" max="100" value={oKeHoach?.overall_progress ?? 0}
-                   onChange={(e) => setOKeHoach((c) => ({ ...c, overall_progress: e.target.value }))} />
-          </Field>
-        </div>
-      </Modal>
+      {moForm ? (
+        <YearPlanEditor
+          kh={kh}
+          cacThang={cacThang}
+          onDong={() => setMoForm(false)}
+          onXong={(moi) => { setKh(moi); setMoForm(false); }}
+        />
+      ) : null}
     </div>
   );
 }

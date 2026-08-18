@@ -321,22 +321,35 @@
 .kpi-tbl__group-ico{display:inline-flex;align-items:center;justify-content:center;
   width:34px;height:34px;border-radius:50%;background:var(--primary-soft);margin:0 auto 5px}
 
-/* ---------- Chế độ nhập liệu kế hoạch năm ---------- */
-/* Nút mở form sửa tiến độ, thay cho ô nhập tại chỗ. */
-.yp-prog__edit{display:block;margin:6px auto 0;border:1px solid var(--border);background:var(--card);
-  color:var(--primary);font-family:inherit;font-size:10.5px;font-weight:700;border-radius:7px;
-  padding:2px 9px;cursor:pointer}
-.yp-prog__edit:hover{background:var(--primary-soft);border-color:var(--primary-100)}
-.yp-prog__edit:focus-visible{outline:2px solid var(--primary);outline-offset:1px}
-.yp-acts.is-edit li[role="button"]{cursor:pointer;border-radius:6px;padding:2px 4px;margin:0 -4px;
-  transition:background .12s ease}
-.yp-acts.is-edit li[role="button"]:hover{background:var(--primary-soft)}
-.yp-acts.is-edit li[role="button"]:focus-visible{outline:2px solid var(--primary);outline-offset:1px}
-.yp-acts__add button{border:1px dashed var(--border);background:none;color:var(--primary);
-  font-family:inherit;font-size:11px;font-weight:700;border-radius:7px;padding:3px 8px;cursor:pointer;width:100%}
-.yp-acts__add button:hover{background:var(--primary-soft);border-color:var(--primary-100)}
 
-/* Thẻ mục tiêu bấm sửa được khi đang ở chế độ chỉnh sửa. */
-.yp-goal.is-edit{cursor:pointer;transition:border-color .15s ease,box-shadow .15s ease}
-.yp-goal.is-edit:hover{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
-.yp-goal.is-edit:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+/* ---------- Form chỉnh sửa kế hoạch năm (một chỗ cho mọi thứ) ---------- */
+.ype-tabs{display:flex;flex-wrap:wrap;gap:3px;background:#F3EBE0;border-radius:999px;padding:4px;margin-bottom:16px}
+.ype-tabs button{flex:1 1 auto;border:none;background:none;font-family:inherit;font-size:12.5px;
+  font-weight:700;color:var(--text-2);padding:7px 12px;border-radius:999px;cursor:pointer;white-space:nowrap}
+.ype-tabs button:hover{color:var(--primary)}
+.ype-tabs button.is-active{background:var(--card);color:var(--primary);box-shadow:0 1px 3px rgba(60,40,20,.14)}
+.ype-tabs button:focus-visible{outline:2px solid var(--primary);outline-offset:1px}
+
+.ype-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.ype-rows{display:flex;flex-direction:column;gap:9px}
+.ype-row{display:grid;gap:8px;align-items:center}
+.ype-row--goal{grid-template-columns:1.5fr 1fr .9fr 1.4fr}
+.ype-row--prog{grid-template-columns:130px 90px 20px}
+.ype-row--act{grid-template-columns:1fr 150px 34px}
+.ype-row.is-xoa input,.ype-row.is-xoa select{opacity:.45;text-decoration:line-through}
+.ype-row input,.ype-row select{font-family:inherit;font-size:12.5px;color:var(--text);background:var(--card);
+  border:1px solid var(--border);border-radius:9px;padding:8px 10px;width:100%;min-width:0}
+.ype-row input:focus,.ype-row select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+.ype-lbl{font-size:12.5px;font-weight:700;color:var(--text-2)}
+.ype-unit{font-size:12.5px;color:var(--muted);font-weight:600}
+.ype-del{border:1px solid var(--border);background:var(--card);color:var(--danger);border-radius:9px;
+  cursor:pointer;font-size:13px;line-height:1;padding:8px 0}
+.ype-del:hover{background:var(--danger-soft)}
+.ype-track{margin-top:16px}
+.ype-track__head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.ype-track__head b{font-size:12.5px;color:var(--text)}
+.ype-track .ype-row{margin-bottom:8px}
+@media (max-width:700px){
+  .ype-row--goal{grid-template-columns:1fr 1fr}
+  .ype-row--act{grid-template-columns:1fr 120px 34px}
+}
