@@ -11,6 +11,9 @@ export const ROUTE_PERMISSIONS = {
   monthlyScorecards: ['superadmin', 'admin', 'teacher', 'student'],
   // Phiếu báo cáo tháng gửi phụ huynh — do giáo viên/quản lý lập.
   parentReport: ['superadmin', 'admin', 'teacher'],
+  // Báo cáo kết quả học tập là màn TỔNG HỢP để theo dõi chất lượng, nên quản lý
+  // cơ sở và quản lý đào tạo xem được; học viên thì không (sẽ thấy cả trung tâm).
+  studentLearningReport: ['superadmin', 'admin', 'teacher', 'center_manager', 'training_manager'],
   // Quản lý lớp (đổi mã/tên lớp, gán chương trình) — backend chỉ cho admin.
   classManager: ['superadmin', 'admin'],
   // Màn này chứa 2 luồng: báo cáo tháng (quản lý cơ sở duyệt) VÀ duyệt báo cáo

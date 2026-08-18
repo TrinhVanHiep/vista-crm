@@ -576,3 +576,26 @@
 /* .alert chỉ có biến thể red/orange -> màn Báo cáo tháng phải hardcode hex.
    Bổ sung green để dùng token thay vì màu rời rạc. */
 .v4page .alert.green{background:var(--success-soft);color:var(--success)}
+
+/* ---------- Báo cáo kết quả học tập ---------- */
+.v4page .slr-filters{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:16px}
+.v4page .slr-filters label{display:flex;flex-direction:column;gap:5px}
+.v4page .slr-filters span{font-size:12px;font-weight:700;color:var(--text-2)}
+.v4page .slr-filters select{font-family:inherit;font-size:13px;color:var(--text);background:var(--card);
+  border:1px solid var(--border);border-radius:9px;padding:8px 12px;min-width:140px}
+.v4page .slr-filters select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+
+/* Phân bố xếp loại: thanh ngang, đọc được ngay cả khi số liệu bằng 0. */
+.v4page .slr-dist{display:flex;flex-direction:column;gap:10px}
+.v4page .slr-dist__row{display:grid;grid-template-columns:96px 1fr 96px;align-items:center;gap:12px}
+.v4page .slr-dist__label{font-size:12.5px;font-weight:700;color:var(--text-2)}
+.v4page .slr-dist__track{height:12px;background:#F3EBE0;border-radius:999px;overflow:hidden}
+.v4page .slr-dist__bar{display:block;height:100%;border-radius:999px;transition:width .5s cubic-bezier(.2,.7,.3,1)}
+.v4page .slr-dist__num{font-size:12.5px;font-weight:700;color:var(--text);text-align:right}
+.v4page .slr-dist__num small{font-weight:600;color:var(--muted)}
+.v4page .slr-warn{color:#D98200;font-size:12px;font-weight:600}
+@media (max-width:600px){
+  .v4page .slr-dist__row{grid-template-columns:78px 1fr 74px;gap:8px}
+  .v4page .slr-filters label{flex:1 1 140px}
+  .v4page .slr-filters select{min-width:0;width:100%}
+}

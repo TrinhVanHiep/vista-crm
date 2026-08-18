@@ -160,6 +160,17 @@ const navItems = [
     ),
   },
   {
+    label: "Kết quả học tập",
+    to: "/bao-cao-hoc-tap",
+    allowedRoles: ROUTE_PERMISSIONS.studentLearningReport,
+    icon: navIcon(
+      <>
+        <path d="M22 10L12 5 2 10l10 5 10-5z" />
+        <path d="M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5" />
+      </>
+    ),
+  },
+  {
     label: "Báo cáo",
     to: "/report-card",
     allowedRoles: ROUTE_PERMISSIONS.reportCard,

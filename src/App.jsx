@@ -26,6 +26,7 @@ import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
 import Unauthorized from './pages/Unauthorized.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
+import StudentLearningReport from './pages/StudentLearningReport.jsx';
 import styles from './styles/dashboard.module.css';
 import { useAuth } from './auth/AuthProvider.jsx';
 import { getDefaultRouteForRole, isRouteAllowedForRole } from './auth/roleRoutes.js';
@@ -171,6 +172,14 @@ function App() {
             element={
               <RoleGuard allowedRoles={ROUTE_PERMISSIONS.parentReport}>
                 <ParentReport />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="bao-cao-hoc-tap"
+            element={
+              <RoleGuard allowedRoles={ROUTE_PERMISSIONS.studentLearningReport}>
+                <StudentLearningReport />
               </RoleGuard>
             }
           />
