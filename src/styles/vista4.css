@@ -605,6 +605,10 @@
 /* ---------- Hồ sơ học viên ---------- */
 .v4page .sp-2col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
 .v4page .sp-2col>.card+.card{margin-top:0}
+/* Giãn cách giữa các khối dựa vào ".card + .card", nên khối nào KHÔNG phải card
+   sẽ cắt đứt chuỗi: card đứng ngay sau .sp-2col bị dính sát 0px. Cho .sp-2col
+   đẩy phần tử liền sau ra, bất kể phần tử đó là gì. */
+.v4page .sp-2col + *{margin-top:16px}
 .v4page .sp-dl{display:flex;flex-direction:column;gap:0}
 .v4page .sp-dl>div{display:grid;grid-template-columns:150px 1fr;gap:12px;padding:9px 0;
   border-bottom:1px solid var(--border-soft)}
