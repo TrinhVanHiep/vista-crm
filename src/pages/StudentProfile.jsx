@@ -4,6 +4,7 @@ import {
   getStudent,
   updateStudent,
   listMonthlyScorecards,
+  listTuitionRecords,
 } from "../services/calendarService";
 import {
   Badge,
@@ -58,6 +59,12 @@ const NHAN_KY_NANG = {
 
 const TONE_XEP_LOAI = { "Giỏi": "green", "Khá": "blue", "Trung bình": "orange", "Yếu": "red" };
 
+const tien = (v) => {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return "--";
+  return `${new Intl.NumberFormat("vi-VN").format(Math.round(n))} ₫`;
+};
+
 const so1 = (v) => (Number.isFinite(Number(v)) ? Number(v).toFixed(1) : null);
 const ngay = (v) => (v ? new Date(v).toLocaleDateString("vi-VN") : null);
 const hoTen = (u) => `${u?.last_name || ""} ${u?.first_name || ""}`.trim() || u?.username || "--";
@@ -100,6 +107,7 @@ export default function StudentProfile() {
 
   const [hs, setHs] = useState(null);
   const [bangDiem, setBangDiem] = useState([]);
+  const [hocPhi, setHocPhi] = useState([]);
   const [dangTai, setDangTai] = useState(true);
   const [loi, setLoi] = useState("");
   const [thongBao, setThongBao] = useState("");
@@ -119,6 +127,10 @@ export default function StudentProfile() {
       const sc = await listMonthlyScorecards({ student: studentId, page_size: 100 }).catch(
         () => ({ results: [] }),
       );
+      const hp = await listTuitionRecords({ student: studentId, page_size: 50 }).catch(
+        () => ({ results: [] }),
+      );
+      setHocPhi(Array.isArray(hp?.results) ? hp.results : []);
       const ds = Array.isArray(sc?.results) ? sc.results : [];
       ds.sort(
         (a, b) =>
@@ -370,6 +382,43 @@ export default function StudentProfile() {
         </Card>
       </div>
 
+      <Card title="Học phí">
+        {hocPhi.length ? (
+          <>
+            <DataTable
+              columns={[
+                { key: "nam", header: "Năm", align: "center", render: (r) => r.year },
+                { key: "lop", header: "Lớp", render: (r) => r.class_code || "--" },
+                { key: "ct", header: "Chương trình", render: (r) => r.program || "--" },
+                { key: "tong", header: "Tổng học phí", align: "right", render: (r) => tien(r.total_fee) },
+                { key: "gg", header: "Giảm", align: "right", render: (r) => (Number(r.discount) > 0 ? tien(r.discount) : "--") },
+                { key: "dn", header: "Đã nộp", align: "right",
+                  render: (r) => tien(Number(r.paid_1 || 0) + Number(r.paid_2 || 0)) },
+                { key: "cl", header: "Còn lại", align: "right",
+                  render: (r) => {
+                    const n = Number(r.remaining);
+                    return <b className={n > 0 ? "slr-down" : "slr-up"}>{tien(n)}</b>;
+                  } },
+              ]}
+              rows={hocPhi}
+              rowKey={(r) => r.id}
+              minWidth={720}
+            />
+            {hocPhi.some((r) => Number(r.remaining) > 0) ? (
+              <p className="small" style={{ marginTop: 10, color: "var(--danger)", fontWeight: 600 }}>
+                Học viên còn nợ học phí.
+              </p>
+            ) : null}
+          </>
+        ) : (
+          <EmptyState
+            icon="💳"
+            title="Chưa nối được bản ghi học phí"
+            hint="Bản ghi học phí khớp với hồ sơ theo tên và lớp. Nếu tên trong file học phí khác với tên trong danh sách học sinh thì phải sửa cho khớp rồi chạy lại lệnh nối."
+          />
+        )}
+      </Card>
+
       <Card title="Ghi chú học vụ" action={<Button variant="ghost" size="sm" onClick={moForm}>Sửa</Button>}>
         {coGiaTri(hs.learning_note)
           ? <p style={{ fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{hs.learning_note}</p>
@@ -378,10 +427,22 @@ export default function StudentProfile() {
 
       {thieu.length ? (
         <Card title={`Còn thiếu ${thieu.length} thông tin`}
-              action={<Button variant="ghost" size="sm" onClick={moForm}>Bổ sung</Button>}>
+              action={
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <Button variant="ghost" size="sm" onClick={() => navigate("/students")}>
+                    Nhập hàng loạt từ Excel
+                  </Button>
+                  <Button variant="primary" size="sm" onClick={moForm}>Bổ sung</Button>
+                </div>
+              }>
           <div className="sp-missing">
             {thieu.map((f) => <span className="sp-chip" key={f.key}>{f.nhan}</span>)}
           </div>
+          <p className="small muted" style={{ marginTop: 12 }}>
+            Nhiều học viên cùng thiếu thì nhanh nhất là ra màn Học sinh - Lớp học,
+            bấm "Xuất Excel" để lấy danh sách sẵn cột, điền vào rồi bấm "Nhập HS"
+            để đưa ngược lên — không phải gõ từng hồ sơ.
+          </p>
         </Card>
       ) : null}
 
