@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import apiClient from "../../services/apiClient";
-import { Badge, Button, Card, DataTable, EmptyState, Field, Kpi, KpiGrid } from "../../ui";
+import { Badge, Button, Card, DataTable, EmptyState, Field, Kpi } from "../../ui";
 
 /**
  * Bảng chấm điểm thi đua tháng của MỘT người trong MỘT tháng.
@@ -550,7 +550,7 @@ export default function KpiScoreBoard({
       ) : null}
 
       {/* A. Thẻ tóm tắt: từng nhóm chủ đề, rồi bốn thẻ tổng của cả phiếu. */}
-      <KpiGrid cols={4}>
+      <div className="kpi-sum">
         {dsNhom.map((g, i) => {
           const t = theoNhom[g.code] || {};
           return (
@@ -564,9 +564,7 @@ export default function KpiScoreBoard({
             />
           );
         })}
-      </KpiGrid>
 
-      <KpiGrid cols={4}>
         <Kpi
           ico="🎯"
           icoClass="orange"
@@ -595,8 +593,13 @@ export default function KpiScoreBoard({
           value={DIEM_TRAN}
           sub={`${TONG_TIEU_CHI} điểm tiêu chí + ${TRAN_CONG} điểm cộng`}
         />
-      </KpiGrid>
+      </div>
 
+      {/* Bố cục theo bản thiết kế: bảng chấm chiếm cột trái, điểm cộng/trừ nằm
+          cột phải cùng tầm mắt — chấm tới đâu nhìn thấy thưởng phạt tới đó, thay
+          vì phải cuộn xuống cuối trang mới thấy. */}
+      <div className="kpi-main">
+        <div className="kpi-main__left">
       {/* B. Bảng chấm điểm. Bảng này gộp ô theo nhóm (rowSpan) nên không dùng
           được DataTable — DataTable luôn sinh đúng một <td> cho mỗi cột. Vẫn
           mượn nguyên lớp .ui-table để trông hệt các bảng khác trong hệ thống. */}
@@ -623,6 +626,13 @@ export default function KpiScoreBoard({
       >
         <div className="tbl-wrap">
           <table className="ui-table kpi-tbl">
+            {/* Khoá bề rộng từng cột: bảng 9 cột trong nửa màn hình, để trình
+                duyệt tự chia thì cột mô tả nuốt hết chỗ của hai cột điểm. */}
+            <colgroup>
+              <col className="c-stt" /><col className="c-nhom" /><col className="c-idx" />
+              <col className="c-tieuchi" /><col className="c-mota" /><col className="c-max" />
+              <col className="c-gv" /><col className="c-ql" /><col className="c-tt" />
+            </colgroup>
             <thead>
               <tr>
                 <th className="t-center" style={{ width: 54 }}>STT</th>
@@ -721,6 +731,9 @@ export default function KpiScoreBoard({
         ) : null}
       </Card>
 
+        </div>
+
+        <div className="kpi-main__right">
       {/* C. Điểm cộng / điểm trừ. */}
       <Card title="2. ĐIỂM CỘNG / ĐIỂM TRỪ">
         <h4 className="kpi-sub">A. ĐIỂM CỘNG (tối đa +{TRAN_CONG} điểm)</h4>
@@ -729,7 +742,7 @@ export default function KpiScoreBoard({
           columns={cotDieuChinh("bonus")}
           rows={dongDieuChinh(quyTacCong, "bonus", tong.bonus_total, "Tổng điểm cộng")}
           empty="Chưa khai báo quy tắc điểm cộng."
-          minWidth={720}
+          minWidth={0}
         />
 
         <h4 className="kpi-sub kpi-sub--tru">B. ĐIỂM TRỪ (tối đa -{TRAN_TRU} điểm)</h4>
@@ -738,11 +751,16 @@ export default function KpiScoreBoard({
           columns={cotDieuChinh("penalty")}
           rows={dongDieuChinh(quyTacTru, "penalty", tong.penalty_total, "Tổng điểm trừ")}
           empty="Chưa khai báo quy tắc điểm trừ."
-          minWidth={720}
+          minWidth={0}
         />
       </Card>
 
       {/* D. Ba ô ký duyệt. */}
+        </div>
+      </div>
+
+      {/* Hàng dưới cùng chia 3 cột đúng bản thiết kế. */}
+      <div className="kpi-bottom">
       <Card title="3. PHÊ DUYỆT">
         <div className="kpi-approve">
           {O_DUYET.map((o) => {
@@ -892,6 +910,7 @@ export default function KpiScoreBoard({
           cộng {soGon(tong.bonus_total)} − trừ {soGon(tong.penalty_total)}).
         </p>
       </Card>
+      </div>
     </div>
   );
 }

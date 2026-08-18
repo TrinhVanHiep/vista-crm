@@ -163,17 +163,6 @@ const navItems = [
     ),
   },
   {
-    label: "Bảng điểm học viên",
-    to: "/monthly-scorecards",
-    allowedRoles: ROUTE_PERMISSIONS.monthlyScorecards,
-    icon: navIcon(
-      <>
-        <path d="M7 4h10v5a5 5 0 0 1-10 0V4z" />
-        <path d="M7 5H4v2a3.5 3.5 0 0 0 3.5 3.5M17 5h3v2a3.5 3.5 0 0 1-3.5 3.5M12 14v4m-4 3h8m-6.5-3h5" />
-      </>
-    ),
-  },
-  {
     label: "Kết quả học tập",
     to: "/bao-cao-hoc-tap",
     allowedRoles: ROUTE_PERMISSIONS.studentLearningReport,

@@ -454,6 +454,13 @@ export default function StudentLearningReport() {
         title="Báo cáo kết quả học tập"
         description={`Kết quả học tập của học sinh theo tháng — Tháng ${thang}/${nam}`}
         actions={
+          <>
+          {/* Mục "Bảng điểm học viên" đã bỏ khỏi menu cho gọn, nhưng đó vẫn là
+              lối vào DUY NHẤT để giáo viên nhập điểm. Đặt nút ở đây — nơi người
+              ta đang xem kết quả và nhận ra cần sửa/nhập thêm. */}
+          <Button variant="ghost" onClick={() => navigate("/monthly-scorecards")}>
+            Nhập bảng điểm học viên
+          </Button>
           <Button
             variant="primary"
             onClick={xuatExcel}
@@ -463,6 +470,7 @@ export default function StudentLearningReport() {
           >
             ⬇ Xuất Excel toàn bộ học viên
           </Button>
+          </>
         }
       />
 
