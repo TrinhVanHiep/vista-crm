@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import apiClient from "../../services/apiClient";
 import { Badge, Button, Card, DataTable, EmptyState, Field, Kpi } from "../../ui";
+import { ICON_NHOM, IcCong, IcCup, IcSao, IcTru } from "./KpiIcons";
 
 /**
  * Bảng chấm điểm thi đua tháng của MỘT người trong MỘT tháng.
@@ -559,7 +560,9 @@ export default function KpiScoreBoard({
           return (
             <Kpi
               key={g.id}
-              ico={g.icon || "🏅"}
+              // Icon vẽ bằng SVG theo mã nhóm: emoji mỗi hệ điều hành một kiểu,
+              // không đặt được màu và trông không giống bản thiết kế.
+              ico={(() => { const I = ICON_NHOM[g.code]; return I ? <I /> : (g.icon || "🏅"); })()}
               icoClass={MAU_NHOM[i % MAU_NHOM.length]}
               label={g.name}
               // Bản thiết kế chỉ có nhãn + số; dòng "GV x · QL y" làm thẻ cao
@@ -571,28 +574,28 @@ export default function KpiScoreBoard({
         })}
 
         <Kpi
-          ico="🎯"
+          ico={<IcCup />}
           icoClass="orange"
           label="Điểm KPI tháng"
           value={`${soGon(tong.criteria_total)}/${TONG_TIEU_CHI}`}
           sub={`Xếp loại tạm tính: ${tong.rating || "—"}`}
         />
         <Kpi
-          ico="➕"
+          ico={<IcCong />}
           icoClass="green"
           label="Điểm cộng"
           value={`+${soGon(tong.bonus_total)}`}
           sub={`Tối đa +${TRAN_CONG} điểm`}
         />
         <Kpi
-          ico="➖"
+          ico={<IcTru />}
           icoClass="red"
           label="Điểm trừ"
           value={`-${soGon(tong.penalty_total)}`}
           sub={`Tối đa -${TRAN_TRU} điểm`}
         />
         <Kpi
-          ico="🏆"
+          ico={<IcSao />}
           icoClass="purple"
           label="Điểm trần"
           value={DIEM_TRAN}
@@ -647,7 +650,7 @@ export default function KpiScoreBoard({
             <colgroup>
               <col className="c-stt" /><col className="c-nhom" /><col className="c-idx" />
               <col className="c-tieuchi" /><col className="c-mota" /><col className="c-max" />
-              <col className="c-gv" /><col className="c-ql" /><col className="c-tt" />
+              <col className="c-gv" /><col className="c-tt" />
             </colgroup>
             <thead>
               <tr>
@@ -657,8 +660,7 @@ export default function KpiScoreBoard({
                 <th style={{ width: 230 }}>Tiêu chí</th>
                 <th>Mô tả / Chỉ mục</th>
                 <th className="t-center" style={{ width: 86 }}>Điểm tối đa</th>
-                <th className="t-center" style={{ width: 108 }}>Điểm GV chấm</th>
-                <th className="t-center" style={{ width: 108 }}>Điểm QL chấm</th>
+                <th className="t-center" style={{ width: 108 }}>Điểm đạt</th>
                 <th className="t-center" style={{ width: 128 }}>Trạng thái</th>
               </tr>
             </thead>
@@ -682,7 +684,9 @@ export default function KpiScoreBoard({
                           ) : null}
                           {i === 0 ? (
                             <td className="kpi-tbl__group" rowSpan={g.criteria.length}>
-                              <span className="kpi-tbl__group-ico">{g.icon || "🏅"}</span>
+                              <span className="kpi-tbl__group-ico">
+                                {(() => { const I = ICON_NHOM[g.code]; return I ? <I /> : (g.icon || "🏅"); })()}
+                              </span>
                               <b>{g.name}</b>
                               <span className="kpi-tbl__group-sum">
                                 {soGon(t.final)}/{soGon(t.max ?? g.max_score)} điểm
@@ -693,8 +697,31 @@ export default function KpiScoreBoard({
                           <td className="kpi-tbl__title">{c.title}</td>
                           <td className="kpi-tbl__desc">{c.description || "—"}</td>
                           <td className="t-center">{soGon(c.max_score)} điểm</td>
+                          {/* MỘT cột "Điểm đạt" như bản thiết kế, nhưng không mất
+                              việc chấm hai lần: ai có quyền nào thì ô nhập gắn vào
+                              cột đó, và khi quản lý chấm thì điểm giáo viên tự chấm
+                              hiện ngay bên dưới làm tham chiếu — chỗ hai bên lệch
+                              nhau vẫn nhìn ra, mà bảng không phải phình thêm cột. */}
                           <td className="t-center">
-                            {suaDuocTuCham ? (
+                            {suaDuocQuanLy ? (
+                              <>
+                                <input
+                                  className="kpi-inp"
+                                  type="number"
+                                  min="0"
+                                  max={Number(c.max_score)}
+                                  step="any"
+                                  value={nhapQuanLy[c.id] ?? ""}
+                                  aria-label={`Điểm quản lý chấm — ${c.title}`}
+                                  onChange={(e) =>
+                                    setNhapQuanLy((cu) => ({ ...cu, [c.id]: e.target.value }))
+                                  }
+                                />
+                                {dong?.self_score != null ? (
+                                  <span className="kpi-refgv">GV: {hienSo(dong.self_score)}</span>
+                                ) : null}
+                              </>
+                            ) : suaDuocTuCham ? (
                               <input
                                 className="kpi-inp"
                                 type="number"
@@ -702,31 +729,18 @@ export default function KpiScoreBoard({
                                 max={Number(c.max_score)}
                                 step="any"
                                 value={nhapTuCham[c.id] ?? ""}
-                                aria-label={`Điểm GV chấm — ${c.title}`}
+                                aria-label={`Điểm tự chấm — ${c.title}`}
                                 onChange={(e) =>
                                   setNhapTuCham((cu) => ({ ...cu, [c.id]: e.target.value }))
                                 }
                               />
                             ) : (
-                              <span>{hienSo(dong?.self_score)}</span>
-                            )}
-                          </td>
-                          <td className="t-center">
-                            {suaDuocQuanLy ? (
-                              <input
-                                className="kpi-inp"
-                                type="number"
-                                min="0"
-                                max={Number(c.max_score)}
-                                step="any"
-                                value={nhapQuanLy[c.id] ?? ""}
-                                aria-label={`Điểm QL chấm — ${c.title}`}
-                                onChange={(e) =>
-                                  setNhapQuanLy((cu) => ({ ...cu, [c.id]: e.target.value }))
-                                }
-                              />
-                            ) : (
-                              <span>{hienSo(dong?.manager_score)}</span>
+                              <>
+                                <span>{hienSo(dong?.manager_score ?? dong?.self_score)}</span>
+                                {dong?.manager_score != null && dong?.self_score != null ? (
+                                  <span className="kpi-refgv">GV: {hienSo(dong.self_score)}</span>
+                                ) : null}
+                              </>
                             )}
                           </td>
                           <td className="t-center">
@@ -736,7 +750,7 @@ export default function KpiScoreBoard({
                       );
                     })}
                     <tr className="kpi-tbl__sum">
-                      <td colSpan={9}>
+                      <td colSpan={8}>
                         Tổng điểm {g.name}: <b>{soGon(t.final)}</b> điểm
                         <span className="kpi-tbl__sum-max">
                           / {soGon(t.max ?? g.max_score)} điểm tối đa

@@ -286,8 +286,7 @@
    Cho tiêu đề xuống dòng thì cột hẹp mấy cũng không bao giờ đè nhau nữa. */
 .kpi-tbl thead th{white-space:normal;line-height:1.25;vertical-align:bottom}
 .kpi-tbl col.c-max{width:58px}
-.kpi-tbl col.c-gv{width:76px}
-.kpi-tbl col.c-ql{width:76px}
+.kpi-tbl col.c-gv{width:96px}
 .kpi-tbl col.c-nhom{width:92px}
 
 /* Bảng điểm cộng/trừ tự chia cột theo nội dung nên STT (một chữ số) chiếm 48px
@@ -307,3 +306,13 @@
 .kpi-head__meta{display:flex;align-items:center;gap:9px;margin-top:6px}
 .kpi-head__acts{display:flex;gap:9px;flex-wrap:wrap}
 .kpi-owner{font-size:12.5px;color:var(--text-2);font-weight:600}
+
+/* Điểm giáo viên tự chấm hiện nhỏ dưới ô của quản lý — giữ được chỗ đối chiếu
+   khi gộp hai cột điểm thành một. */
+.kpi-refgv{display:block;font-size:10px;color:var(--muted);font-weight:600;margin-top:3px}
+
+/* Icon SVG trong thẻ tóm tắt và ô nhóm — nền nhạt tròn như bản thiết kế. */
+.kpi-sum .kpi .ico svg{width:20px;height:20px}
+.kpi-tbl__group-ico svg{width:22px;height:22px}
+.kpi-tbl__group-ico{display:inline-flex;align-items:center;justify-content:center;
+  width:34px;height:34px;border-radius:50%;background:var(--primary-soft);margin:0 auto 5px}
