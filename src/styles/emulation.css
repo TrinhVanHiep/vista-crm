@@ -104,7 +104,8 @@
    ngoài, phải kéo ngang mới thấy — đúng thứ cần nhìn nhất lại bị giấu. Thu gọn
    phần chữ để cả 9 cột vừa trong cột trái. */
 .kpi-tbl{min-width:0;table-layout:fixed}
-.kpi-tbl col.c-stt{width:34px}
+/* 34px hẹp tới mức chữ "STT" phải xếp dọc từng chữ cái. */
+.kpi-tbl col.c-stt{width:48px}
 .kpi-tbl col.c-nhom{width:80px}
 .kpi-tbl col.c-idx{width:26px}
 /* Ảnh: Tiêu chí hẹp (~130px), Mô tả rộng (~280px). Trước đây em đặt ngược —
@@ -114,7 +115,9 @@
 .kpi-tbl col.c-max{width:50px}
 .kpi-tbl col.c-gv{width:68px}
 .kpi-tbl col.c-ql{width:68px}
-.kpi-tbl col.c-tt{width:84px}
+/* Badge "Chưa chấm" rộng 88px mà cột chỉ 84px nên nó tràn hẳn ra ngoài bảng.
+   Cột trạng thái phải đủ chứa badge dài nhất cộng đệm hai bên. */
+.kpi-tbl col.c-tt{width:110px}
 .kpi-tbl td,.kpi-tbl th{word-break:break-word}
 .kpi-tbl.kpi-tbl td{vertical-align:middle}
 .kpi-tbl.kpi-tbl .kpi-tbl__title{font-weight:700;color:var(--text);white-space:normal;line-height:1.4}
@@ -289,7 +292,8 @@
    cắt — đúng hiện tượng "Nhóm chủ đề#" và "Điểm tối đIểm GV chấm" dính vào nhau.
    Cho tiêu đề xuống dòng thì cột hẹp mấy cũng không bao giờ đè nhau nữa. */
 .kpi-tbl thead th{white-space:normal;line-height:1.25;vertical-align:bottom}
-.kpi-tbl col.c-max{width:58px}
+/* Đủ để "Điểm tối đa" xuống 2 dòng thay vì 3. */
+.kpi-tbl col.c-max{width:68px}
 .kpi-tbl col.c-gv{width:96px}
 .kpi-tbl col.c-nhom{width:92px}
 
@@ -353,3 +357,8 @@
   .ype-row--goal{grid-template-columns:1fr 1fr}
   .ype-row--act{grid-template-columns:1fr 120px 34px}
 }
+
+/* Cột mô tả nhường chỗ cho các cột cố định; chữ dài thì xuống dòng chứ không đẩy
+   bảng rộng ra. */
+.kpi-tbl td.kpi-tbl__desc{white-space:normal;word-break:break-word}
+.kpi-tbl .kpi-pill,.kpi-tbl .badge{max-width:100%}
