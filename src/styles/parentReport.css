@@ -3,7 +3,11 @@
    Dùng cùng src/pages/ParentReport.jsx qua component ParentReportSheet.jsx
    Khổ gốc: 1055 x 1491 px (tỉ lệ A4). Khi in: scale 0.7526 -> vừa A4.
    ========================================================================== */
-.pr2-root { background:#EFEBE4; padding:24px 0; display:flex; justify-content:center; }
+/* Xếp DỌC: thanh công cụ nằm trên, tờ phiếu ở dưới và cùng canh giữa. Để
+   flex hàng ngang thì thanh công cụ thành một cột hẹp bên trái còn tờ phiếu bị
+   đẩy lệch sang phải. */
+.pr2-root { background:#EFEBE4; padding:20px 16px 32px; display:flex;
+  flex-direction:column; align-items:center; gap:14px; min-height:100%; }
 .pr2-root *, .pr2-root *::before, .pr2-root *::after { box-sizing:border-box; }
 
 .pr2-sheet {
@@ -267,3 +271,16 @@
   .pr2-sheet { transform:scale(0.7526); transform-origin:top left; box-shadow:none; }
   .pr2-root, .pr2-root * { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
 }
+
+/* ---------- Thanh công cụ ----------
+   CSS cũ của thanh này nằm trong parentReport.css bản trước và đã bị ghi đè khi
+   ghép UI mới, nên nút và cảnh báo mất hết định dạng. Dựng lại, bó theo đúng bề
+   ngang tờ phiếu để mọi thứ thẳng hàng. */
+.pr2-root .pr-toolbar { width:100%; max-width:1055px; display:flex; align-items:center;
+  flex-wrap:wrap; gap:10px 14px; }
+.pr2-root .pr-crumb { font-size:13px; color:#6B5B4A; font-weight:600; }
+.pr2-root .pr-crumb a { color:#F26522; }
+.pr2-root .pr-toolbar__btns { display:flex; gap:8px; flex-wrap:wrap; margin-left:auto; }
+.pr2-root .pr-note { width:100%; max-width:1055px; font-size:12.5px; line-height:1.5;
+  background:#fff; border:1px solid #E7DCCB; border-radius:10px; padding:10px 14px; color:#43301F; }
+.pr2-root .pr-note.warn { background:#FEF6E7; border-color:#F6E0B5; color:#8A5A00; }
