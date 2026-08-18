@@ -145,8 +145,12 @@
 .ui-table td { padding: 11px 12px; border-bottom: 1px solid var(--border-soft); vertical-align: middle; }
 .ui-table tbody tr:last-child td { border-bottom: none; }
 .ui-table tbody tr:hover { background: #FDFAF6; }
-.ui-table .t-center { text-align: center; }
-.ui-table .t-right { text-align: right; }
+/* Nhân đôi class để thắng .v4page .tbl th{text-align:left} trong vista4.css.
+   Bộ chọn đó nặng 0-2-1, nặng hơn .ui-table .t-center (0-2-0), nên TIÊU ĐỀ cột
+   bị ép sang trái trong khi Ô GIÁ TRỊ vẫn căn giữa/phải — nhìn thành lệch hàng.
+   Ảnh hưởng mọi màn dùng DataTable, nên sửa ở tầng chung một lần. */
+.ui-table.ui-table .t-center { text-align: center; }
+.ui-table.ui-table .t-right { text-align: right; }
 .ui-table__row--click { cursor: pointer; }
 .ui-table__state { padding: 26px 12px !important; text-align: center; color: var(--muted); }
 

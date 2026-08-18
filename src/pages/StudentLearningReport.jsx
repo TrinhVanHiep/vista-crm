@@ -90,6 +90,8 @@ export default function StudentLearningReport() {
   const [items, setItems] = useState([]);
   const [dangTai, setDangTai] = useState(true);
   const [loi, setLoi] = useState("");
+  const [dangXuat, setDangXuat] = useState(false);
+  const [thongBao, setThongBao] = useState("");
 
   useEffect(() => {
     let huy = false;
@@ -250,6 +252,81 @@ export default function StudentLearningReport() {
     },
   ];
 
+  // Xuất Excel TOÀN BỘ học viên đang lọc, 3 sheet: tổng quan, theo lớp, chi tiết.
+  // Nạp xlsx bằng import động như màn Lịch để không kéo thư viện vào bundle chính.
+  const xuatExcel = async () => {
+    setLoi("");
+    setThongBao("");
+    setDangXuat(true);
+    try {
+      const XLSX = await import("xlsx");
+      const wb = XLSX.utils.book_new();
+      const tenLop = lopId
+        ? lops.find((l) => String(l.id) === String(lopId))
+        : null;
+
+      const themSheet = (ten, rows) => {
+        const an = rows.length ? rows : [{ "Không có dữ liệu": "" }];
+        const ws = XLSX.utils.json_to_sheet(an);
+        ws["!cols"] = Object.keys(an[0] || {}).map((k) => ({
+          wch: Math.min(Math.max(String(k).length + 6, 14), 40),
+        }));
+        XLSX.utils.book_append_sheet(wb, ws, ten);
+      };
+
+      themSheet("Tong quan", [
+        { "Chỉ số": "Kỳ báo cáo", "Giá trị": `Tháng ${thang}/${nam}` },
+        { "Chỉ số": "Phạm vi", "Giá trị": tenLop ? `Lớp ${tenLop.class_code || tenLop.name}` : "Toàn trung tâm" },
+        { "Chỉ số": "Học sinh có bảng điểm", "Giá trị": tongQuan.soHocSinh },
+        { "Chỉ số": "Điểm trung bình (%)", "Giá trị": so1(tongQuan.diemTB) ?? "" },
+        { "Chỉ số": "Chuyên cần trung bình (%)", "Giá trị": so1(tongQuan.ccTB) ?? "" },
+        { "Chỉ số": "Cần hỗ trợ (Trung bình + Yếu)", "Giá trị": tongQuan.canHoTro },
+        ...phanBo.map((x) => ({
+          "Chỉ số": `Xếp loại ${x.key}`,
+          "Giá trị": `${x.soLuong} (${so1(x.phanTram)}%)`,
+        })),
+      ]);
+
+      themSheet("Theo lop", theoLop.map((l) => ({
+        "Lớp": l.ten,
+        "Sĩ số có bảng điểm": l.soHS,
+        "Điểm trung bình (%)": so1(l.diemTB) ?? "",
+        "Chuyên cần (%)": so1(l.ccTB) ?? "",
+        "Cần hỗ trợ": l.canHoTro,
+      })));
+
+      // Sheet chi tiết luôn xuất TOÀN BỘ học viên của kỳ, không phụ thuộc bộ lọc
+      // xếp loại đang bật trên màn — người dùng bấm "xuất báo cáo cho toàn bộ học
+      // viên" thì mong đợi đủ danh sách, không phải đúng phần đang xem.
+      themSheet("Chi tiet hoc vien", items.map((i) => ({
+        "Học sinh": i.student_name || "",
+        "Lớp": i.classroom_name || "",
+        "Giáo viên": i.teacher_name || "",
+        "Số buổi có mặt": i.attendance_present ?? "",
+        "Tổng số buổi": i.attendance_total ?? "",
+        "Chuyên cần (%)": so1(tiLeChuyenCan(i)) ?? "",
+        "Kết quả (%)": so1(i.total_percent) ?? "",
+        "Xếp loại": i.grade_label || "",
+        "Cảnh báo": i.crm_warning || "",
+        "Trạng thái": NHAN_TRANG_THAI[i.status] || i.status || "",
+        "Điểm mạnh": i.strengths || "",
+        "Cần cải thiện": i.improvements || "",
+        "Mục tiêu tháng tới": i.next_goal || "",
+        "Nhận xét của giáo viên": i.teacher_comment || "",
+      })));
+
+      const hau = tenLop ? `-${(tenLop.class_code || tenLop.name).replace(/\s+/g, "")}` : "";
+      XLSX.writeFile(wb, `Bao-cao-hoc-tap-${nam}-${String(thang).padStart(2, "0")}${hau}.xlsx`, {
+        compression: true,
+      });
+      setThongBao(`Đã xuất ${items.length} học viên ra Excel.`);
+    } catch {
+      setLoi("Không xuất được Excel. Vui lòng thử lại.");
+    } finally {
+      setDangXuat(false);
+    }
+  };
+
   const boLoc = (
     <div className="slr-filters">
       <label>
@@ -295,6 +372,17 @@ export default function StudentLearningReport() {
         crumbs={[{ label: "Tổng quan", to: "/" }, { label: "Báo cáo kết quả học tập" }]}
         title="Báo cáo kết quả học tập"
         description={`Kết quả học tập của học sinh theo tháng — Tháng ${thang}/${nam}`}
+        actions={
+          <Button
+            variant="primary"
+            onClick={xuatExcel}
+            loading={dangXuat}
+            loadingText="Đang xuất..."
+            disabled={dangTai || !items.length}
+          >
+            ⬇ Xuất Excel toàn bộ học viên
+          </Button>
+        }
       />
 
       {boLoc}
@@ -303,6 +391,13 @@ export default function StudentLearningReport() {
         <div className="alert red" role="alert" style={{ marginBottom: 14 }}>
           <span>⚠️</span>
           <div>{loi}</div>
+        </div>
+      ) : null}
+      {thongBao ? (
+        <div className="alert green" role="status" style={{ marginBottom: 14 }}>
+          <span>✅</span>
+          <div style={{ flex: 1 }}>{thongBao}</div>
+          <button type="button" className="btn ghost sm" onClick={() => setThongBao("")}>Đóng</button>
         </div>
       ) : null}
 
