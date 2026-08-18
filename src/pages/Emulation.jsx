@@ -80,7 +80,7 @@ export default function Emulation() {
       </div>
 
       {tab === "kehoach" ? (
-        <YearPlan />
+        <YearPlan suaDuoc={laQuanLy} />
       ) : (
         <KpiScoreBoard
           month={thang}

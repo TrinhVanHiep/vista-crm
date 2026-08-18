@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import apiClient from "../../services/apiClient";
-import { Card, EmptyState } from "../../ui";
+import { Button, Card, EmptyState, Field, Modal } from "../../ui";
 
 /**
  * Kế hoạch năm học — khung thi đua chung mà bảng chấm từng tháng bám theo.
@@ -37,10 +37,14 @@ function VongTienDo({ phanTram, mau }) {
   );
 }
 
-export default function YearPlan() {
+export default function YearPlan({ suaDuoc = false }) {
   const [kh, setKh] = useState(null);
   const [dangTai, setDangTai] = useState(true);
   const [loi, setLoi] = useState("");
+  const [cheDoSua, setCheDoSua] = useState(false);
+  const [dangLuu, setDangLuu] = useState(false);
+  // { track, thang, nam, activity?, title, status }
+  const [oSua, setOSua] = useState(null);
 
   useEffect(() => {
     let huy = false;
@@ -77,6 +81,43 @@ export default function YearPlan() {
     return map;
   }, [kh]);
 
+  /** Mọi thao tác nhập liệu đều trả về bản kế hoạch mới nên chỉ cần một hàm. */
+  const goiLuu = async (duongDan, payload) => {
+    setDangLuu(true);
+    setLoi("");
+    try {
+      const { data } = await apiClient.post(`/school-year-plans/${kh.id}/${duongDan}/`, payload);
+      setKh(data);
+      return true;
+    } catch (e) {
+      const d = e?.response?.data;
+      setLoi(Array.isArray(d) ? d.join(" ") : d?.detail || "Không lưu được. Vui lòng thử lại.");
+      return false;
+    } finally {
+      setDangLuu(false);
+    }
+  };
+
+  const luuDauViec = async () => {
+    if (!oSua?.title?.trim()) return;
+    const ok = await goiLuu("save-activity", {
+      activity: oSua.activity,
+      track: oSua.track,
+      period_month: oSua.thang,
+      period_year: oSua.nam,
+      title: oSua.title.trim(),
+      status: oSua.status,
+    });
+    if (ok) setOSua(null);
+  };
+
+  const xoaDauViec = async () => {
+    if (!oSua?.activity) return;
+    if (!window.confirm(`Xoá đầu việc "${oSua.title}"?`)) return;
+    const ok = await goiLuu("delete-activity", { activity: oSua.activity });
+    if (ok) setOSua(null);
+  };
+
   if (dangTai) return <p className="small muted">Đang tải kế hoạch năm học...</p>;
   if (loi || !kh) {
     return (
@@ -95,7 +136,24 @@ export default function YearPlan() {
           <h2 className="yp-title">KẾ HOẠCH NĂM HỌC {kh.year_label}</h2>
           <p className="yp-sub">{kh.title}</p>
         </div>
+        {/* Chỉ quản lý/admin thấy nút này; mặc định vẫn là chế độ xem để người
+            đọc bình thường không bấm nhầm vào ô nhập. */}
+        {suaDuoc ? (
+          <Button
+            variant={cheDoSua ? "primary" : "ghost"}
+            onClick={() => { setCheDoSua((v) => !v); setOSua(null); }}
+          >
+            {cheDoSua ? "Xong, thoát chỉnh sửa" : "✎ Chỉnh sửa kế hoạch"}
+          </Button>
+        ) : null}
       </div>
+
+      {loi ? (
+        <div className="alert red" role="alert" style={{ marginBottom: 12 }}>
+          <span>⚠️</span><div style={{ flex: 1 }}>{loi}</div>
+          <button type="button" className="btn ghost sm" onClick={() => setLoi("")}>Đóng</button>
+        </div>
+      ) : null}
 
       <div className="yp-goals">
         {(kh.goals || []).map((g) => (
@@ -140,6 +198,23 @@ export default function YearPlan() {
                         <b>{p}%</b>
                       </span>
                       <span className="yp-prog__bar"><i style={{ width: `${p}%`, background: mau }} /></span>
+                      {cheDoSua ? (
+                        <input
+                          className="yp-prog__inp"
+                          type="number"
+                          min="0"
+                          max="100"
+                          defaultValue={p}
+                          aria-label={`Tiến độ tháng ${nhanThang(t.m, t.y)}`}
+                          onBlur={(e) => {
+                            const v = Number(e.target.value);
+                            if (v === p || !Number.isFinite(v)) return;
+                            goiLuu("save-month-progress", {
+                              period_month: t.m, period_year: t.y, progress: v,
+                            });
+                          }}
+                        />
+                      ) : null}
                     </th>
                   );
                 })}
@@ -161,13 +236,48 @@ export default function YearPlan() {
                     const viec = cot?.activities || [];
                     return (
                       <td key={t.key}>
-                        <ul className="yp-acts">
+                        <ul className={`yp-acts${cheDoSua ? " is-edit" : ""}`}>
                           {viec.map((a) => (
-                            <li key={a.id} title={a.status_label || NHAN_TRANG_THAI[a.status]?.nhan}>
+                            <li
+                              key={a.id}
+                              title={a.status_label || NHAN_TRANG_THAI[a.status]?.nhan}
+                              {...(cheDoSua
+                                ? {
+                                    role: "button",
+                                    tabIndex: 0,
+                                    onClick: () => setOSua({
+                                      track: tr.id, thang: t.m, nam: t.y,
+                                      activity: a.id, title: a.title, status: a.status,
+                                    }),
+                                    onKeyDown: (e) => {
+                                      if (e.key === "Enter" || e.key === " ") {
+                                        e.preventDefault();
+                                        setOSua({
+                                          track: tr.id, thang: t.m, nam: t.y,
+                                          activity: a.id, title: a.title, status: a.status,
+                                        });
+                                      }
+                                    },
+                                  }
+                                : {})}
+                            >
                               <i style={{ background: NHAN_TRANG_THAI[a.status]?.mau || "#A99A88" }} />
                               {a.title}
                             </li>
                           ))}
+                          {cheDoSua ? (
+                            <li className="yp-acts__add">
+                              <button
+                                type="button"
+                                onClick={() => setOSua({
+                                  track: tr.id, thang: t.m, nam: t.y,
+                                  activity: null, title: "", status: "chua_bat_dau",
+                                })}
+                              >
+                                + Thêm việc
+                              </button>
+                            </li>
+                          ) : null}
                         </ul>
                       </td>
                     );
@@ -188,6 +298,46 @@ export default function YearPlan() {
           <span className="yp-overall__flag">🏁</span>
         </div>
       </Card>
+
+      <Modal
+        open={Boolean(oSua)}
+        onClose={() => setOSua(null)}
+        title={oSua?.activity ? "Sửa đầu việc" : "Thêm đầu việc"}
+        subtitle={oSua ? `Tháng ${nhanThang(oSua.thang, oSua.nam)}` : ""}
+        size="sm"
+        footer={
+          <>
+            {oSua?.activity ? (
+              <Button variant="danger" onClick={xoaDauViec} disabled={dangLuu}>Xoá</Button>
+            ) : null}
+            <Button variant="ghost" onClick={() => setOSua(null)}>Đóng</Button>
+            <Button variant="primary" onClick={luuDauViec} loading={dangLuu} loadingText="Đang lưu...">
+              Lưu
+            </Button>
+          </>
+        }
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <Field label="Nội dung đầu việc" required>
+            <input
+              value={oSua?.title ?? ""}
+              autoFocus
+              onChange={(e) => setOSua((c) => ({ ...c, title: e.target.value }))}
+              placeholder="Ví dụ: Ổn định sĩ số"
+            />
+          </Field>
+          <Field label="Trạng thái">
+            <select
+              value={oSua?.status ?? "chua_bat_dau"}
+              onChange={(e) => setOSua((c) => ({ ...c, status: e.target.value }))}
+            >
+              {THU_TU_TRANG_THAI.map((k) => (
+                <option key={k} value={k}>{NHAN_TRANG_THAI[k].nhan}</option>
+              ))}
+            </select>
+          </Field>
+        </div>
+      </Modal>
     </div>
   );
 }
