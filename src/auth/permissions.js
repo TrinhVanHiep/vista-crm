@@ -9,6 +9,9 @@ export const ROUTE_PERMISSIONS = {
   attendance: ['superadmin', 'admin'],
   calendar: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager'],
   monthlyScorecards: ['superadmin', 'admin', 'teacher', 'student'],
+  // Thi đua tháng: giáo viên/nhân viên tự chấm rồi nộp, quản lý duyệt. Học viên
+  // không liên quan nên không vào.
+  emulation: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager'],
   // Phiếu báo cáo tháng gửi phụ huynh — do giáo viên/quản lý lập.
   parentReport: ['superadmin', 'admin', 'teacher'],
   // Báo cáo kết quả học tập là màn TỔNG HỢP để theo dõi chất lượng, nên quản lý

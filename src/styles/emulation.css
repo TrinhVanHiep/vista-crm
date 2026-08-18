@@ -1,0 +1,157 @@
+/* ==========================================================================
+   THI ĐUA THÁNG — kế hoạch năm học + bảng chấm điểm
+   Dùng token ở :root nên hoạt động cả ngoài .v4page.
+   ========================================================================== */
+
+/* ---------- Chuyển tab ---------- */
+.em-tabs{display:inline-flex;background:#F3EBE0;border-radius:999px;padding:4px;gap:3px;margin-bottom:18px}
+.em-tabs button{border:none;background:none;font-family:inherit;font-size:13px;font-weight:700;
+  color:var(--text-2);padding:8px 20px;border-radius:999px;cursor:pointer;transition:all .15s ease}
+.em-tabs button:hover{color:var(--primary)}
+.em-tabs button.is-active{background:var(--card);color:var(--primary);box-shadow:0 1px 3px rgba(60,40,20,.14)}
+.em-tabs button:focus-visible{outline:2px solid var(--primary);outline-offset:1px}
+
+/* ---------- Kế hoạch năm học ---------- */
+.yp-head{margin-bottom:16px}
+.yp-title{font-size:22px;font-weight:800;color:var(--red-title);line-height:1.2}
+.yp-sub{font-size:12.5px;color:var(--text-2);text-transform:uppercase;letter-spacing:.4px;margin-top:3px}
+
+.yp-goals{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px;margin-bottom:18px}
+.yp-goal{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:13px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.yp-goal__ico{font-size:19px;line-height:1}
+.yp-goal__name{font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.3px}
+.yp-goal__val{font-size:23px;font-weight:800;color:var(--primary);line-height:1.1}
+.yp-goal__unit{font-size:11.5px;color:var(--text-2);font-weight:600}
+.yp-goal__note{font-size:11px;color:var(--muted);line-height:1.35}
+
+.yp-legend{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:12px}
+.yp-lg{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2);font-weight:600}
+.yp-lg i{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+
+.yp-grid{width:100%;border-collapse:collapse;min-width:1180px}
+.yp-grid th,.yp-grid td{border:1px solid var(--border-soft);vertical-align:top}
+.yp-grid thead th{background:var(--primary);color:#fff;font-size:12px;font-weight:700;
+  padding:9px 6px;text-align:center;border-color:rgba(255,255,255,.25)}
+.yp-grid__corner{width:150px;text-align:left!important;padding-left:14px!important}
+.yp-grid__progress th{background:var(--card);border-color:var(--border-soft);padding:9px 6px}
+.yp-prog{display:flex;align-items:center;justify-content:center;gap:7px}
+.yp-prog b{font-size:12.5px;font-weight:800;color:var(--text)}
+.yp-prog__bar{display:block;height:5px;background:#F3EBE0;border-radius:999px;overflow:hidden;margin-top:6px}
+.yp-prog__bar i{display:block;height:100%;border-radius:999px}
+.yp-ring{flex-shrink:0}
+
+.yp-grid__track{background:#FBF7F1;text-align:left;padding:12px 14px;font-size:12.5px;font-weight:800;
+  color:var(--text);width:150px}
+.yp-track__ico{display:block;font-size:20px;margin-bottom:5px}
+.yp-grid tbody td{padding:9px 8px;background:var(--card)}
+.yp-acts{list-style:none;display:flex;flex-direction:column;gap:6px;margin:0;padding:0}
+.yp-acts li{display:flex;align-items:flex-start;gap:6px;font-size:11.5px;line-height:1.35;color:var(--text)}
+.yp-acts li i{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:4px}
+
+.yp-overall{display:flex;align-items:center;gap:12px}
+.yp-overall__track{position:relative;flex:1;height:12px;background:#F3EBE0;border-radius:999px}
+.yp-overall__track>i{display:block;height:100%;border-radius:999px;background:var(--primary)}
+.yp-overall__track>b{position:absolute;top:-9px;transform:translateX(-50%);background:var(--card);
+  border:1px solid var(--primary);color:var(--primary);font-size:11.5px;font-weight:800;
+  padding:2px 9px;border-radius:999px;white-space:nowrap}
+.yp-overall__flag{font-size:20px}
+
+@media (max-width:768px){
+  .yp-goals{grid-template-columns:repeat(2,1fr)}
+  .yp-title{font-size:18px}
+}
+
+/* ---------- Thanh chọn tab + kỳ ---------- */
+.em-bar{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.em-period{display:flex;gap:12px;margin-bottom:18px}
+.em-period label{display:flex;flex-direction:column;gap:5px}
+.em-period span{font-size:12px;font-weight:700;color:var(--text-2)}
+.em-period select{font-family:inherit;font-size:13px;color:var(--text);background:var(--card);
+  border:1px solid var(--border);border-radius:9px;padding:8px 12px;min-width:120px}
+.em-period select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+
+/* ==========================================================================
+   BẢNG CHẤM ĐIỂM THI ĐUA THÁNG (components/emulation/KpiScoreBoard.jsx)
+   ========================================================================== */
+
+.kpi-load{font-size:12.5px;color:var(--muted);padding:18px 2px}
+.kpi-hint{font-size:11.5px;color:var(--muted);margin-top:10px;line-height:1.5}
+.kpi-owner{font-size:12px;font-weight:700;color:var(--text-2)}
+
+.kpi-acts{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+
+/* ---------- Ô nhập điểm trong bảng ---------- */
+/* Ô nhập nằm trong bảng nên phải nhỏ và canh giữa, không dùng .ui-field input
+   (rộng 100%, padding cho form dọc) — để nguyên thì mỗi ô điểm chiếm cả cột. */
+.kpi-inp{width:74px;font-family:inherit;font-size:13px;font-weight:700;text-align:center;
+  color:var(--text);background:var(--card);border:1px solid var(--border);border-radius:8px;padding:6px 6px}
+.kpi-inp:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+.kpi-inp:disabled{background:#FBF7F1;color:var(--muted)}
+/* Bỏ mũi tên tăng/giảm: cột hẹp, mũi tên ăn mất chỗ của chính con số. */
+.kpi-inp::-webkit-outer-spin-button,.kpi-inp::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.kpi-inp[type=number]{-moz-appearance:textfield;appearance:textfield}
+
+/* ---------- Bảng chấm điểm ---------- */
+/* Mượn .ui-table của tầng dùng chung; chỉ thêm phần .tbl không lo được:
+   ô gộp theo nhóm và dòng tổng. Nhân đôi class để thắng các bộ chọn
+   .v4page ... (0-2-1) của vista4.css — cùng cách ui.css đang làm. */
+.kpi-tbl{min-width:1120px}
+.kpi-tbl.kpi-tbl td{vertical-align:middle}
+.kpi-tbl.kpi-tbl .kpi-tbl__title{font-weight:700;color:var(--text);white-space:normal;line-height:1.4}
+.kpi-tbl.kpi-tbl .kpi-tbl__desc{white-space:normal;font-size:12px;color:var(--text-2);line-height:1.45}
+
+.kpi-tbl.kpi-tbl .kpi-tbl__group{background:#FBF7F1;border-right:1px solid var(--border);
+  vertical-align:top;padding-top:14px;white-space:normal}
+.kpi-tbl__group-ico{display:block;font-size:19px;line-height:1;margin-bottom:5px}
+.kpi-tbl.kpi-tbl .kpi-tbl__group b{display:block;font-size:12.5px;font-weight:800;color:var(--text);line-height:1.35}
+.kpi-tbl__group-sum{display:inline-block;margin-top:6px;font-size:11px;font-weight:700;
+  color:var(--primary);background:var(--primary-soft);border-radius:999px;padding:3px 9px}
+
+.kpi-tbl.kpi-tbl .kpi-tbl__sum td{background:var(--primary-soft);color:var(--primary);
+  font-size:12.5px;font-weight:700;border-bottom:1px solid var(--border)}
+.kpi-tbl.kpi-tbl .kpi-tbl__sum:hover td{background:var(--primary-soft)}
+.kpi-tbl__sum-max{color:var(--text-2);font-weight:600;margin-left:6px}
+
+/* ---------- Bảng điểm cộng / điểm trừ ---------- */
+.kpi-sub{font-size:12.5px;font-weight:800;color:var(--success);text-transform:uppercase;
+  letter-spacing:.3px;margin:4px 0 9px}
+.kpi-sub--tru{color:var(--danger);margin-top:20px}
+/* DataTable gắn cả .tbl lẫn .ui-table, mà .v4page .tbl td có white-space:nowrap
+   -> cột "Cách tính" dài thành một dòng kéo bảng chạy ngang. Nhân đôi class để
+   nặng hơn bộ chọn đó. */
+.kpi-adj-tbl.kpi-adj-tbl td{white-space:normal;line-height:1.45}
+.kpi-num--cong{color:var(--success);font-size:14px}
+.kpi-num--tru{color:var(--danger);font-size:14px}
+
+/* ---------- Ba ô phê duyệt ---------- */
+.kpi-approve{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}
+.kpi-approve__box{border:1px solid var(--border);border-radius:12px;background:#FDFAF6;
+  padding:14px;display:flex;flex-direction:column;gap:9px;min-width:0}
+.kpi-approve__head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.kpi-approve__head b{font-size:13px;font-weight:800;color:var(--text)}
+.kpi-approve__desc{font-size:11.5px;color:var(--text-2);line-height:1.45;margin:0}
+.kpi-approve__acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:2px}
+.kpi-approve__by{font-size:11px;color:var(--muted);margin:0}
+
+/* Button dùng chung không có biến thể xanh lá; thêm một lớp bổ nghĩa thay vì
+   dựng nút mới, để mọi thứ khác (kích thước, trạng thái loading) giữ nguyên. */
+.ui-btn.kpi-btn-ok{background:var(--success-soft);color:var(--success);border-color:#BFE5CE}
+.ui-btn.kpi-btn-ok:hover:not(:disabled){background:var(--success);color:#fff;border-color:var(--success)}
+
+/* ---------- Ghi chú chung ---------- */
+.kpi-note__acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+
+/* ---------- Thang điểm xếp loại ---------- */
+.kpi-scale{display:grid;grid-template-columns:repeat(5,1fr);gap:11px}
+.kpi-scale__item{border:1px solid var(--border);border-radius:12px;padding:12px;
+  display:flex;flex-direction:column;align-items:flex-start;gap:6px;background:var(--card)}
+.kpi-scale__item.is-current{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+.kpi-scale__range{font-size:11.5px;color:var(--text-2);font-weight:600}
+.kpi-scale__stars{font-size:14px;color:var(--warn);letter-spacing:1px}
+.kpi-scale__stars i{color:var(--border);font-style:normal}
+
+@media (max-width:1100px){
+  .kpi-approve{grid-template-columns:1fr}
+  .kpi-scale{grid-template-columns:repeat(2,1fr)}
+}

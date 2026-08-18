@@ -149,7 +149,21 @@ const navItems = [
     ),
   },
   {
+    // Mục này trước đây trỏ vào /monthly-scorecards — vốn là màn NHẬP BẢNG ĐIỂM
+    // HỌC VIÊN, không phải thi đua. Trả lại đúng đích, và tách màn kia thành mục
+    // riêng ngay dưới với tên đúng việc nó làm.
     label: "Thi đua tháng",
+    to: "/thi-dua-thang",
+    allowedRoles: ROUTE_PERMISSIONS.emulation,
+    icon: navIcon(
+      <>
+        <path d="M7 4h10v5a5 5 0 0 1-10 0V4z" />
+        <path d="M7 5H4v2a3.5 3.5 0 0 0 3.5 3.5M17 5h3v2a3.5 3.5 0 0 1-3.5 3.5M12 14v4m-4 3h8m-6.5-3h5" />
+      </>
+    ),
+  },
+  {
+    label: "Bảng điểm học viên",
     to: "/monthly-scorecards",
     allowedRoles: ROUTE_PERMISSIONS.monthlyScorecards,
     icon: navIcon(

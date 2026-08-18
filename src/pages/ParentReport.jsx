@@ -215,7 +215,7 @@ export default function ParentReport() {
       <div className="content-col">
         <div className="page-head no-print">
           <div className="crumb">
-            <Link to="/monthly-scorecards">Thi đua tháng</Link>
+            <Link to="/monthly-scorecards">Bảng điểm học viên</Link>
             {" / "}
             <span>Phiếu báo cáo phụ huynh</span>
           </div>
