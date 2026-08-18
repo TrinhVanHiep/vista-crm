@@ -895,11 +895,14 @@ export default function KpiScoreBoard({
               className={`kpi-scale__item${tong.rating === x.ten ? " is-current" : ""}`}
               key={x.ten}
             >
-              <Badge tone={x.tone}>{x.ten}</Badge>
-              <span className="kpi-scale__range">{x.mo_ta}</span>
+              {/* Thứ tự đúng bản thiết kế: sao bên trái, tên và khoảng điểm bên phải. */}
               <span className="kpi-scale__stars" aria-label={`${x.sao} sao`}>
                 {"★".repeat(x.sao)}
                 <i>{"☆".repeat(5 - x.sao)}</i>
+              </span>
+              <span>
+                <span className="kpi-scale__name">{x.ten}: </span>
+                <span className="kpi-scale__range">{x.mo_ta}</span>
               </span>
             </div>
           ))}

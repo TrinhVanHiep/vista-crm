@@ -101,14 +101,16 @@
    phần chữ để cả 9 cột vừa trong cột trái. */
 .kpi-tbl{min-width:0;table-layout:fixed}
 .kpi-tbl col.c-stt{width:34px}
-.kpi-tbl col.c-nhom{width:96px}
+.kpi-tbl col.c-nhom{width:80px}
 .kpi-tbl col.c-idx{width:26px}
-.kpi-tbl col.c-tieuchi{width:23%}
+/* Ảnh: Tiêu chí hẹp (~130px), Mô tả rộng (~280px). Trước đây em đặt ngược —
+   Tiêu chí 185px còn Mô tả chỉ 166px — nên phần mô tả vỡ chữ, dính vào nhau. */
+.kpi-tbl col.c-tieuchi{width:148px}
 .kpi-tbl col.c-mota{width:auto}
-.kpi-tbl col.c-max{width:56px}
-.kpi-tbl col.c-gv{width:74px}
-.kpi-tbl col.c-ql{width:74px}
-.kpi-tbl col.c-tt{width:92px}
+.kpi-tbl col.c-max{width:50px}
+.kpi-tbl col.c-gv{width:68px}
+.kpi-tbl col.c-ql{width:68px}
+.kpi-tbl col.c-tt{width:84px}
 .kpi-tbl td,.kpi-tbl th{word-break:break-word}
 .kpi-tbl.kpi-tbl td{vertical-align:middle}
 .kpi-tbl.kpi-tbl .kpi-tbl__title{font-weight:700;color:var(--text);white-space:normal;line-height:1.4}
@@ -156,17 +158,20 @@
 .kpi-note__acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 
 /* ---------- Thang điểm xếp loại ---------- */
-.kpi-scale{display:grid;grid-template-columns:repeat(5,1fr);gap:11px}
-.kpi-scale__item{border:1px solid var(--border);border-radius:12px;padding:12px;
-  display:flex;flex-direction:column;align-items:flex-start;gap:6px;background:var(--card)}
-.kpi-scale__item.is-current{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
-.kpi-scale__range{font-size:11.5px;color:var(--text-2);font-weight:600}
-.kpi-scale__stars{font-size:14px;color:var(--warn);letter-spacing:1px}
-.kpi-scale__stars i{color:var(--border);font-style:normal}
+/* Thang xếp loại trong bản thiết kế là 5 DÒNG đơn giản: sao bên trái, tên và
+   khoảng điểm bên phải — không phải 5 thẻ có viền. Hai định nghĩa .kpi-scale
+   từng chồng nhau nên ra nửa nọ nửa kia. */
+.kpi-scale{display:flex;flex-direction:column;gap:2px}
+.kpi-scale__item{display:grid;grid-template-columns:82px 1fr;align-items:center;gap:10px;
+  padding:7px 8px;border-radius:9px}
+.kpi-scale__item.is-current{background:var(--primary-soft)}
+.kpi-scale__stars{font-size:13px;color:var(--warn);letter-spacing:.5px;white-space:nowrap}
+.kpi-scale__stars i{color:#E7DCCB;font-style:normal}
+.kpi-scale__range{font-size:12px;color:var(--text-2);font-weight:600}
+.kpi-scale__name{font-size:12.5px;font-weight:700;color:var(--text)}
 
 @media (max-width:1100px){
   .kpi-approve{grid-template-columns:1fr}
-  .kpi-scale{grid-template-columns:repeat(2,1fr)}
 }
 
 /* ==========================================================================
@@ -176,7 +181,9 @@
 .kpi-main{display:grid;grid-template-columns:minmax(0,1.72fr) minmax(0,1fr);gap:16px;align-items:start}
 .kpi-main__left,.kpi-main__right{min-width:0}
 .kpi-main__left>.card+.card,.kpi-main__right>.card+.card{margin-top:16px}
-.kpi-bottom{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr) minmax(0,1fr);
+/* Bản thiết kế: khối phê duyệt rộng gấp ~2.4 lần hai khối kia (3 ô ký nằm
+   ngang bên trong), nên chia 1.55/1/1 làm mỗi ô ký chỉ còn ~190px và vỡ chữ. */
+.kpi-bottom{display:grid;grid-template-columns:minmax(0,2.4fr) minmax(0,1.05fr) minmax(0,1fr);
   gap:16px;align-items:start;margin-top:16px}
 .kpi-bottom>.card+.card{margin-top:0}
 
@@ -221,10 +228,6 @@
 .kpi-btn-ok{background:#2E9E5B!important;color:#fff!important;border-color:#2E9E5B!important}
 
 /* Thang xếp loại: sao vàng + khoảng điểm. */
-.kpi-scale{display:flex;flex-direction:column;gap:9px}
-.kpi-scale>div{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.kpi-scale__stars{color:#F5A623;font-size:13px;letter-spacing:1px;white-space:nowrap}
-.kpi-scale__range{font-size:12px;color:var(--text-2);font-weight:600;white-space:nowrap}
 
 @media (max-width:1200px){
   .kpi-main{grid-template-columns:1fr}
@@ -243,3 +246,34 @@
 .kpi-sum .kpi .trend{font-size:10px}
 @media (max-width:1500px){.kpi-sum{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media (max-width:820px){.kpi-sum{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Mục 4: ô ghi chú trong bản thiết kế cao hẳn một khối, không phải 2 dòng. */
+.kpi-board textarea{min-height:132px;resize:vertical}
+.kpi-note__acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+
+/* Mục 3: ba ô ký nằm ngang, nút Duyệt / Yêu cầu chỉnh sửa cùng một dòng. */
+.kpi-approve__box{padding:11px 12px 12px}
+.kpi-approve__head{flex-wrap:wrap;line-height:1.3}
+.kpi-approve__acts .ui-btn{flex:1 1 auto;justify-content:center;padding-left:8px;padding-right:8px}
+.kpi-approve__box .ui-field__label{font-size:11.5px}
+.kpi-approve__box input,.kpi-approve__box select,.kpi-approve__box textarea{font-size:12.5px;padding:7px 9px}
+.kpi-approve__box textarea{min-height:56px}
+
+/* Ô ký rộng 216px mà hai nút cộng lại ~217px nên nút thứ hai rớt xuống dòng —
+   bản thiết kế để chúng cùng một hàng. Thu nhỏ chữ và đệm vừa đủ. */
+.kpi-approve__acts .ui-btn{font-size:11px;padding:6px 7px;gap:4px;border-radius:8px}
+.kpi-note__acts .ui-btn{font-size:11.5px;padding:7px 10px}
+
+/* Vẫn rớt dòng vì cho phép wrap: hai nút cùng flex:1 1 auto, chỉ cần hụt vài px
+   là cái sau xuống hàng rồi giãn ra chiếm trọn bề ngang. Cấm wrap và cho phép
+   co lại — bản thiết kế để chúng luôn cạnh nhau. */
+.kpi-approve__acts{flex-wrap:nowrap}
+.kpi-approve__acts .ui-btn{flex:1 1 0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi-note__acts{flex-wrap:nowrap}
+.kpi-note__acts .ui-btn{flex:0 1 auto;min-width:0;white-space:nowrap}
+
+/* Chia đều thì nút "Yêu cầu chỉnh sửa" bị cắt chữ. Cho "Duyệt" co vừa nội dung,
+   phần còn lại dành hết cho nhãn dài — giữ đúng chữ trong bản thiết kế thay vì
+   rút gọn nhãn. */
+.kpi-approve__acts .ui-btn:first-child{flex:0 0 auto}
+.kpi-approve__acts .ui-btn:last-child{flex:1 1 auto}
