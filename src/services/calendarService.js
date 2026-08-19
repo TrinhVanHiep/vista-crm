@@ -180,6 +180,16 @@ export async function importSchedules(formData) {
   return data;
 }
 
+export async function listAssignableUsers() {
+  const { data } = await apiClient.get("/schedules/schedules/assignable-users/");
+  return data;
+}
+
+export async function createSchedule(payload) {
+  const { data } = await apiClient.post("/schedules/schedules/", payload);
+  return data;
+}
+
 export async function updateTeachingSession(sessionId, payload) {
   const { data } = await apiClient.patch(`/teaching-sessions/${sessionId}/`, payload);
   return data;

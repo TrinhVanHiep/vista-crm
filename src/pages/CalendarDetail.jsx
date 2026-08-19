@@ -6,6 +6,8 @@ import {
   createSessionReport,
   createTeachingSession,
   importSchedules,
+  createSchedule,
+  listAssignableUsers,
   importTeachingSessions,
   listCompetitionFrames,
   listApprovalQueue,
@@ -185,12 +187,57 @@ const MAX_VISIBLE_EVENTS = 5;
 
 // Hàng thẻ "Công việc quản lý trong ngày". Thẻ báo giảng đứng đầu; các thẻ còn lại
 // lọc lịch công tác (Schedule) theo category tương ứng.
+// `label` là nhãn ngắn trên thẻ; `fullLabel` là tên đầy đủ đúng theo
+// Schedule.CATEGORY_CHOICES của backend, dùng cho ô chọn loại lịch, tên sheet và
+// cột "Loại lịch" trong file mẫu. Giữ hai nhãn ở CÙNG MỘT CHỖ để không xảy ra
+// cảnh thẻ ghi "Tài chính", ô chọn ghi "Tài chính - Kế toán".
 const WORK_CARDS = [
-  { id: "teaching_plan", label: "Lịch báo giảng", color: "#d9571f", source: "session" },
-  { id: "student", label: "Học sinh - Lớp học", color: "#3f8cff", source: "schedule" },
-  { id: "marketing", label: "Truyền thông", color: "#ff6b6b", source: "schedule" },
-  { id: "finance", label: "Tài chính", color: "#2f9e44", source: "schedule" },
-  { id: "hr", label: "Hành chính - Nhân sự", color: "#845ef7", source: "schedule" },
+  { id: "teaching_plan", label: "Lịch báo giảng", fullLabel: "Lịch báo giảng", color: "#d9571f", source: "session" },
+  { id: "student", label: "Học sinh - Lớp học", fullLabel: "Học sinh - Lớp học", color: "#3f8cff", source: "schedule" },
+  { id: "marketing", label: "Truyền thông", fullLabel: "Truyền thông - Bán hàng", color: "#ff6b6b", source: "schedule" },
+  { id: "finance", label: "Tài chính", fullLabel: "Tài chính - Kế toán", color: "#2f9e44", source: "schedule" },
+  { id: "hr", label: "Hành chính - Nhân sự", fullLabel: "Hành chính - Nhân sự", color: "#845ef7", source: "schedule" },
+];
+
+// Tên sheet trong file mẫu. Excel cấm : \\ / ? * [ ] và giới hạn 31 ký tự, nên
+// bỏ dấu tiếng Việt luôn cho chắc; backend khớp bằng từ khoá đã bỏ dấu.
+const SHEET_NAMES = {
+  teaching_plan: "Lich bao giang",
+  student: "Hoc sinh - Lop hoc",
+  marketing: "Truyen thong - Ban hang",
+  finance: "Tai chinh - Ke toan",
+  hr: "Hanh chinh - Nhan su",
+};
+
+// 4 loại lịch công tác (mọi loại trừ lịch báo giảng — loại đó dùng model và
+// endpoint khác nên có sheet với bộ cột riêng).
+const SCHEDULE_SHEET_TYPES = WORK_CARDS.filter((c) => c.source === "schedule").map((c) => c.id);
+
+// Bộ cột của sheet lịch báo giảng — mô tả để sinh trang hướng dẫn. Danh sách này
+// phải khớp đúng tên cột mà backend đang đọc, đừng đổi chữ.
+const TEACHING_TEMPLATE_COLUMNS = [
+  { header: "Trung tâm", required: true, meaning: "Tên trung tâm, phải khớp dữ liệu hệ thống", values: "Tên trung tâm có thật", example: "Vista Academy" },
+  { header: "Lớp", required: true, meaning: "Mã lớp hoặc tên lớp", values: "Mã lớp có thật", example: "501" },
+  { header: "Giáo viên", required: false, meaning: "Khi chính giáo viên nhập thì bỏ qua cột này, hệ thống tự gán tài khoản đang đăng nhập", values: "Mã / tên / email giáo viên", example: "Nguyễn Thị Lan" },
+  { header: "Ngày dạy", required: true, meaning: "Ngày diễn ra ca dạy. Nhập file CHO PHÉP ngày đã qua", values: "dd/mm/yyyy", example: "05/09/2026" },
+  { header: "Giờ bắt đầu", required: true, meaning: "Giờ vào ca", values: "hh:mm", example: "18:00" },
+  { header: "Giờ kết thúc", required: true, meaning: "Giờ tan ca, phải sau giờ bắt đầu", values: "hh:mm", example: "19:30" },
+  { header: "Hình thức", required: false, meaning: "Bỏ trống hoặc ghi sai đều được hiểu là online", values: "online / offline / hybrid", example: "online" },
+  { header: "Chủ đề bài học", required: false, meaning: "Nội dung bài dạy", values: "Chữ tự do", example: "Unit 1: Greetings" },
+  { header: "Ghi chú", required: false, meaning: "Ghi vào mục tiêu của ca dạy", values: "Chữ tự do", example: "" },
+];
+
+// Bộ cột dùng chung cho 4 sheet lịch công tác. Cố ý giống hệt nhau để người dùng
+// copy dòng giữa các sheet được, và để backend chỉ cần một hàm đọc duy nhất.
+const SCHEDULE_IMPORT_COLUMNS = [
+  { header: "Ngày", required: true, meaning: "Ngày thực hiện đầu việc", values: "dd/mm/yyyy", example: "03/09/2026" },
+  { header: "Hạng mục", required: false, meaning: "Nhóm việc con, ghép vào đầu tên việc", values: "Chữ tự do", example: "Lớp học" },
+  { header: "Nội dung công việc", required: true, meaning: "Tên đầu việc hiển thị trên lịch", values: "Chữ tự do", example: "Kiểm tra sĩ số lớp 501" },
+  { header: "Mô tả chi tiết", required: false, meaning: "Diễn giải thêm, xem khi bấm vào việc", values: "Chữ tự do", example: "Đối chiếu điểm danh với danh sách đăng ký" },
+  { header: "Thời gian", required: false, meaning: "Nhãn giờ. Bỏ trống thì hệ thống tự ghi theo tháng", values: "Chữ tự do", example: "08:00 - 09:30" },
+  { header: "Trạng thái", required: false, meaning: "Bỏ trống khi nhập lại để GIỮ trạng thái đã cập nhật trên hệ thống", values: "Chưa bắt đầu / Đang thực hiện / Hoàn thành / Chậm tiến độ / Đã hủy", example: "Đang thực hiện" },
+  { header: "Người phụ trách", required: false, meaning: "Người được giao việc. Nên điền email cho chắc", values: "Email / tên tài khoản / họ tên", example: "" },
+  { header: "Loại lịch", required: false, meaning: "Chỉ để đối chiếu. Phải khớp tên sheet, lệch nhau sẽ báo lỗi", values: "Đúng tên loại lịch của sheet", example: "" },
 ];
 
 const AV_COLORS = ["#F26522", "#2E9E5B", "#3B82F6", "#8B5CF6", "#E0357B", "#0EA5A5", "#D9822B"];
@@ -793,6 +840,10 @@ function CalendarDetail() {
   const [editingSessionId, setEditingSessionId] = useState(null);
   const [deletingSessionId, setDeletingSessionId] = useState(null);
   const [createLoading, setCreateLoading] = useState(false);
+  // Người có thể nhận lịch công tác. KHÔNG dùng lại danh sách `teachers`: nó chỉ
+  // được tải cho superadmin/admin/staff nên các vai khác thấy ô chọn trống, và
+  // lịch Tài chính / Nhân sự phải giao được cho kế toán, hành chính.
+  const [assignableUsers, setAssignableUsers] = useState([]);
   const [createError, setCreateError] = useState("");
   const [createClassrooms, setCreateClassrooms] = useState([]);
   const [isImportOpen, setIsImportOpen] = useState(false);
@@ -837,7 +888,7 @@ function CalendarDetail() {
       [reviewReasonTarget, () => setReviewReasonTarget(null)],
       [reportSessionId, () => setReportSessionId(null)],
       [detailSession, () => setDetailSession(null)],
-      [isCreateOpen, () => setIsCreateOpen(false)],
+      [isCreateOpen, () => { setIsCreateOpen(false); setEditingSessionId(null); }],
       [isImportOpen, () => setIsImportOpen(false)],
       [isStaffCreateOpen, () => setIsStaffCreateOpen(false)],
       [staffReviewGroup, () => setStaffReviewGroup(null)],
@@ -851,6 +902,32 @@ function CalendarDetail() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [reviewReasonTarget, reportSessionId, detailSession, isCreateOpen, isImportOpen, isStaffCreateOpen, staffReviewGroup, isReviewOpen]);
+
+  // Loại lịch mỗi vai được phép tạo — PHẢI khớp luật ở backend
+  // (schedules/permissions.py). Giáo viên chỉ nhập lịch trong phạm vi công việc
+  // của mình; Tài chính - Kế toán và Hành chính - Nhân sự là việc phòng ban khác.
+  useEffect(() => {
+    let huy = false;
+    listAssignableUsers()
+      .then((data) => {
+        if (!huy) setAssignableUsers(safeArray(data?.results));
+      })
+      .catch(() => {
+        if (!huy) setAssignableUsers([]);
+      });
+    return () => {
+      huy = true;
+    };
+  }, []);
+
+  const calendarTypeOptions = useMemo(() => {
+    const duocPhep = [];
+    if (canCreateTeachingPlan) duocPhep.push("teaching_plan");
+    if (role !== "student") {
+      duocPhep.push(...(isTeacherRole ? ["student", "marketing"] : SCHEDULE_SHEET_TYPES));
+    }
+    return WORK_CARDS.filter((card) => duocPhep.includes(card.id));
+  }, [canCreateTeachingPlan, isTeacherRole, role]);
 
   const [createForm, setCreateForm] = useState({
     center: "",
@@ -866,6 +943,17 @@ function CalendarDetail() {
     teaching_plan_year: currentYear,
     teaching_plan_week: currentWeek,
     status: "scheduled",
+    // Loại lịch đang nhập. Quyết định form hiển thị nhóm trường nào.
+    calendar_type: "teaching_plan",
+    // Trường của lịch công tác — đặt tiền tố sc_ để KHÔNG đụng `status` của ca
+    // dạy (hai miền giá trị khác nhau: scheduled/... với todo/in_progress/...).
+    sc_date: todayString,
+    sc_subcategory: "",
+    sc_title: "",
+    sc_description: "",
+    sc_time_label: "",
+    sc_status: "todo",
+    sc_assignee: "",
   });
 
   // Hệ thống hiện chỉ vận hành 1 cơ sở: tự chọn cơ sở duy nhất cho các ô
@@ -1992,8 +2080,69 @@ function CalendarDetail() {
     setNotice("");
   };
 
+  const handleCreateSchedule = async (event) => {
+    event.preventDefault();
+    const loai = createForm.calendar_type;
+    const tieuDeGoc = createForm.sc_title.trim();
+    const hangMuc = createForm.sc_subcategory.trim();
+    if (!createForm.sc_date) {
+      setCreateError("Vui lòng chọn ngày thực hiện.");
+      return;
+    }
+    if (!tieuDeGoc) {
+      setCreateError("Vui lòng nhập nội dung công việc.");
+      return;
+    }
+    // Ghép giống hệt cách backend ghép khi nhập file, để một việc nhập bằng tay
+    // và nhập bằng file ra cùng một tiêu đề (nhờ đó không sinh bản trùng).
+    const tieuDe = hangMuc ? `${hangMuc}: ${tieuDeGoc}` : tieuDeGoc;
+    if (tieuDe.length > 255) {
+      setCreateError("Hạng mục và nội dung cộng lại dài quá 255 ký tự.");
+      return;
+    }
+    const thoiGian =
+      createForm.sc_time_label.trim() ||
+      [hangMuc, `Tháng ${Number(createForm.sc_date.slice(5, 7))}`].filter(Boolean).join(" • ");
+
+    setCreateLoading(true);
+    setCreateError("");
+    try {
+      const payload = {
+        title: tieuDe,
+        description: createForm.sc_description.trim(),
+        category: loai,
+        event_date: createForm.sc_date,
+        time_label: thoiGian,
+        status: createForm.sc_status,
+      };
+      if (createForm.sc_assignee) payload.assigned_to_id = Number(createForm.sc_assignee);
+      await createSchedule(payload);
+      setIsCreateOpen(false);
+      setCreateForm((prev) => ({
+        ...prev,
+        sc_title: "",
+        sc_subcategory: "",
+        sc_description: "",
+        sc_time_label: "",
+        sc_status: "todo",
+        sc_assignee: "",
+      }));
+      const nhan = WORK_CARDS.find((c) => c.id === loai)?.fullLabel || "lịch công tác";
+      setNotice(`Đã thêm "${tieuDe}" vào ${nhan}.`);
+      setReloadKey((value) => value + 1);
+    } catch (error) {
+      setCreateError(getErrorMessage(error, "Không thể tạo lịch công tác."));
+    } finally {
+      setCreateLoading(false);
+    }
+  };
+
   const handleCreateSession = async (event) => {
     event.preventDefault();
+    // Cùng một form phục vụ 5 loại lịch; 4 loại lịch công tác đi đường khác.
+    if (createForm.calendar_type !== "teaching_plan") {
+      return handleCreateSchedule(event);
+    }
     setCreateError("");
     setNotice("");
 
@@ -2107,6 +2256,9 @@ function CalendarDetail() {
     setEditingSessionId(raw.id);
     setCreateForm((prev) => ({
       ...prev,
+      // BẮT BUỘC ép lại: state form không được reset khi đóng modal, nên nếu
+      // trước đó người dùng chọn loại khác thì giá trị cũ còn nguyên ở đây.
+      calendar_type: "teaching_plan",
       classroom: String(raw.classroom || ""),
       teacher: raw.teacher ? String(raw.teacher) : "",
       start_at: startLocal,
@@ -2532,46 +2684,25 @@ function CalendarDetail() {
     try {
       const XLSX = await import("xlsx");
       const workbook = XLSX.utils.book_new();
-      if (importMode === "schedule") {
-        const worksheet = XLSX.utils.aoa_to_sheet([
-          [`BÁO CÁO T1/${selectedMonth}/${selectedYear}`],
-          ["Hạng mục", "T2", "T3", "T4", "T5", "T6", "T7", "CN"],
-          ["1. Học sinh - Lớp học"],
-          [
-            "a. Lớp học",
-            "Kiểm tra sĩ số lớp A1",
-            "Theo dõi lịch học lớp A2",
-            "",
-            "Gửi thông báo phụ huynh",
-            "",
-            "",
-            "",
-          ],
-          ["2. Truyền thông - Bán hàng"],
-          ["a. Tuyển sinh", "", "Gọi tư vấn học viên mới", "", "", "Tổng hợp lead", "", ""],
-          ["3. Tài chính - Kế toán"],
-          ["a. Thu chi", "", "", "Đối soát học phí", "", "", "", ""],
-          ["4. Hành chính - Nhân sự"],
-          ["a. Nhân sự", "", "", "", "Cập nhật hồ sơ giáo viên", "", "", ""],
-        ]);
-        worksheet["!cols"] = [
-          { wch: 28 },
-          { wch: 24 },
-          { wch: 24 },
-          { wch: 24 },
-          { wch: 24 },
-          { wch: 24 },
-          { wch: 24 },
-          { wch: 24 },
-        ];
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Bao cao lich");
-        XLSX.writeFile(workbook, "Mau-nhap-lich-cong-tac.xlsx", {
-          compression: true,
-        });
-        return;
-      }
-      const templateDate = selectedDay >= todayString ? selectedDay : todayString;
-      const [templateYear, templateMonth, templateDay] = templateDate.split("-");
+
+      // Chỉ xuất sheet của loại lịch người dùng ĐƯỢC PHÉP nhập — mời giáo viên
+      // điền vào sheet Tài chính rồi báo lỗi khi nhập là mất công vô ích.
+      const loaiDuocPhep = calendarTypeOptions
+        .filter((c) => c.source === "schedule")
+        .map((c) => c.id);
+      const coBaoGiang = calendarTypeOptions.some((c) => c.id === "teaching_plan");
+
+      // Ngày ví dụ phải NẰM TRONG tháng đang xem, nếu không người dùng nhập xong
+      // sẽ không thấy việc hiện lên (lịch lọc theo năm/tháng đang chọn).
+      const ngayTrongThang = (offset = 0) => {
+        const cuoiThang = new Date(selectedYear, selectedMonth, 0).getDate();
+        const homNay = todayString.slice(0, 7) === `${selectedYear}-${pad2(selectedMonth)}`
+          ? Number(todayString.slice(8, 10))
+          : 1;
+        const ngay = Math.min(cuoiThang, homNay + offset);
+        return `${pad2(ngay)}/${pad2(selectedMonth)}/${selectedYear}`;
+      };
+
       // Dùng tên trung tâm / mã lớp CÓ THẬT trong hệ thống làm ví dụ, để file mẫu
       // nhập được ngay (tên phải khớp hệ thống mới match được khi nhập).
       const tplCenter =
@@ -2579,12 +2710,72 @@ function CalendarDetail() {
         centers[0]?.name ||
         "Tên trung tâm trong hệ thống";
       const tplClass = classrooms[0]?.class_code || classrooms[0]?.name || "Mã lớp trong hệ thống";
-      appendJsonSheet(XLSX, workbook, "Lich day", [
+      const tplNguoi = teachers[0]?.user || null;
+      // Để TRỐNG nếu không có email thật: cột này khớp với tài khoản trong hệ
+      // thống, ghi chuỗi mô tả vào là file mẫu tải về nhập lại sẽ báo lỗi ngay.
+      const tplEmail = assignableUsers[0]?.email || tplNguoi?.email || "";
+      // Tên giáo viên THẬT để dòng ví dụ nhập được ngay; nếu chưa tải được danh
+      // sách thì để chuỗi mô tả cho người dùng biết cần điền gì.
+      const tplGiaoVien =
+        tplNguoi?.full_name ||
+        [tplNguoi?.first_name, tplNguoi?.last_name].filter(Boolean).join(" ") ||
+        "Mã hoặc tên giáo viên";
+
+      // --- Sheet hướng dẫn: sinh TỪ CHÍNH bảng cột dùng để dựng các sheet dữ
+      // liệu, nên không bao giờ lệch nhau. ---
+      const huongDan = [
+        ["HƯỚNG DẪN NHẬP LỊCH — đọc trước khi điền"],
+        [],
+        ["Sheet", "Cột", "Bắt buộc", "Ý nghĩa", "Giá trị hợp lệ", "Ví dụ"],
+      ];
+      loaiDuocPhep.forEach((type) => {
+        const card = WORK_CARDS.find((c) => c.id === type);
+        SCHEDULE_IMPORT_COLUMNS.forEach((col) => {
+          huongDan.push([
+            SHEET_NAMES[type],
+            col.header,
+            col.required ? "Có" : "Không",
+            col.meaning,
+            col.values,
+            col.header === "Loại lịch" ? card?.fullLabel || "" : col.example,
+          ]);
+        });
+      });
+      if (coBaoGiang)
+      TEACHING_TEMPLATE_COLUMNS.forEach((col) => {
+        huongDan.push([
+          SHEET_NAMES.teaching_plan,
+          col.header,
+          col.required ? "Có" : "Không",
+          col.meaning,
+          col.values,
+          col.example,
+        ]);
+      });
+      huongDan.push([]);
+      [
+        "Mỗi loại lịch là MỘT sheet riêng — điền vào đúng sheet của loại việc.",
+        "Không đổi tên sheet và không xoá dòng tiêu đề (dòng đầu của mỗi sheet).",
+        "Mỗi dòng là một việc. Không gộp nhiều việc vào cùng một ô.",
+        "Xoá dòng ví dụ trước khi nhập dữ liệu thật.",
+        "Nhập lại cùng một file sẽ CẬP NHẬT việc trùng (cùng Ngày và Nội dung), không tạo bản sao.",
+        "Để trống ô Trạng thái khi nhập lại thì trạng thái đang có trên hệ thống được giữ nguyên.",
+        "Sheet nào không dùng thì cứ để trống, hệ thống bỏ qua.",
+      ].forEach((dong) => huongDan.push(["Lưu ý", dong]));
+
+      const wsHuongDan = XLSX.utils.aoa_to_sheet(huongDan);
+      wsHuongDan["!cols"] = [{ wch: 24 }, { wch: 20 }, { wch: 10 }, { wch: 52 }, { wch: 56 }, { wch: 28 }];
+      XLSX.utils.book_append_sheet(workbook, wsHuongDan, "Huong dan");
+
+      // --- Sheet lịch báo giảng: GIỮ NGUYÊN bộ cột hiện hành để không phá bộ
+      // đọc sẵn có ở backend. ---
+      if (coBaoGiang)
+      appendJsonSheet(XLSX, workbook, SHEET_NAMES.teaching_plan, [
         {
           "Trung tâm": tplCenter,
           "Lớp": tplClass,
-          ...(!isTeacherRole && { "Giáo viên": "Mã hoặc tên giáo viên" }),
-          "Ngày dạy": `${templateDay}/${templateMonth}/${templateYear}`,
+          "Giáo viên": isTeacherRole ? "" : tplGiaoVien,
+          "Ngày dạy": ngayTrongThang(0),
           "Giờ bắt đầu": "18:00",
           "Giờ kết thúc": "19:30",
           "Hình thức": "online",
@@ -2592,7 +2783,36 @@ function CalendarDetail() {
           "Ghi chú": "",
         },
       ]);
-      XLSX.writeFile(workbook, "Mau-nhap-lich-day.xlsx", { compression: true });
+
+      // --- 4 sheet lịch công tác, cùng một bộ cột ---
+      const VI_DU = {
+        student: ["Lớp học", `Kiểm tra sĩ số lớp ${tplClass}`, "Đối chiếu điểm danh với danh sách đăng ký", "08:00 - 09:30", "Đang thực hiện"],
+        marketing: ["Tuyển sinh", "Gọi tư vấn 20 lead mới từ fanpage", "Ưu tiên lead của chiến dịch khai giảng", "Cả ngày", "Chưa bắt đầu"],
+        finance: ["Thu chi", "Đối soát học phí trong tháng", "Khớp số thu với danh sách lớp", "14:00 - 16:00", "Chưa bắt đầu"],
+        hr: ["Nhân sự", "Cập nhật hồ sơ giáo viên", "Bổ sung hợp đồng và bằng cấp còn thiếu", "Cả ngày", "Chưa bắt đầu"],
+      };
+      loaiDuocPhep.forEach((type, i) => {
+        const card = WORK_CARDS.find((c) => c.id === type);
+        const [hangMuc, noiDung, moTa, thoiGian, trangThai] = VI_DU[type];
+        appendJsonSheet(XLSX, workbook, SHEET_NAMES[type], [
+          {
+            "Ngày": ngayTrongThang(i),
+            "Hạng mục": hangMuc,
+            "Nội dung công việc": noiDung,
+            "Mô tả chi tiết": moTa,
+            "Thời gian": thoiGian,
+            "Trạng thái": trangThai,
+            "Người phụ trách": tplEmail,
+            "Loại lịch": card?.fullLabel || "",
+          },
+        ]);
+        const ws = workbook.Sheets[SHEET_NAMES[type]];
+        ws["!cols"] = [{ wch: 12 }, { wch: 18 }, { wch: 36 }, { wch: 44 }, { wch: 16 }, { wch: 16 }, { wch: 28 }, { wch: 22 }];
+      });
+
+      XLSX.writeFile(workbook, `Mau-nhap-lich-${selectedYear}-${pad2(selectedMonth)}.xlsx`, {
+        compression: true,
+      });
     } catch (error) {
       setImportError("Không thể tạo file mẫu. Vui lòng thử lại.");
     }
@@ -2885,15 +3105,49 @@ function CalendarDetail() {
                 {/* Hành động chính đứng cạnh tiêu đề. Trước đây cả 6 nút cùng một
                     hàng nên trên laptop 1280px chúng tràn xuống 2 hàng và "+ Thêm
                     ca dạy" — việc hay làm nhất — lại bị đẩy xuống dưới cùng. */}
-                {canCreateTeachingPlan && (
+                {(canCreateTeachingPlan || calendarTypeOptions.length > 0) && (
                   <button className="btn primary" onClick={() => {
                     setCreateError("");
                     const base = `${selectedYear}-${pad2(selectedMonth)}-01`;
                     const draftDate = base >= todayString ? base : todayString;
+                    // Lịch công tác được phép ghi ngày quá khứ, và nếu kẹp về
+                    // hôm nay thì việc tạo trong tháng cũ sẽ rơi ra ngoài lịch
+                    // đang xem. Ca dạy vẫn giữ luật cũ (không lùi ngày).
+                    const ngayCongTac =
+                      todayString.slice(0, 7) === `${selectedYear}-${pad2(selectedMonth)}`
+                        ? todayString
+                        : base;
                     const [dy, dm, dday] = draftDate.split("-").map(Number);
                     setIsCreateOpen(true);
-                    setCreateForm((prev) => ({ ...prev, teacher: canSelectTeacherForCreate ? (prev.teacher || selectedTeacherId || "") : "", start_at: `${draftDate}T18:00`, end_at: `${draftDate}T19:30`, teaching_plan_month: dm, teaching_plan_year: dy, teaching_plan_week: getWeekIndexFromDate(dy, dm, dday) }));
-                  }}>+ Thêm ca dạy</button>
+                    setEditingSessionId(null);
+                    setCreateForm((prev) => ({
+                      ...prev,
+                      calendar_type: calendarTypeOptions.some((c) => c.id === "teaching_plan")
+                        ? "teaching_plan"
+                        : calendarTypeOptions[0]?.id || "teaching_plan",
+                      // Xoá sạch nội dung của lần mở trước — form dùng chung cho
+                      // cả 5 loại lịch và KHÔNG tự reset khi đóng modal.
+                      classroom: "",
+                      meeting_link: "",
+                      lesson_topic: "",
+                      lesson_objective: "",
+                      delivery_mode: "online",
+                      status: "scheduled",
+                      sc_title: "",
+                      sc_subcategory: "",
+                      sc_description: "",
+                      sc_time_label: "",
+                      sc_status: "todo",
+                      sc_assignee: "",
+                      sc_date: ngayCongTac,
+                      teacher: canSelectTeacherForCreate ? (prev.teacher || selectedTeacherId || "") : "",
+                      start_at: `${draftDate}T18:00`,
+                      end_at: `${draftDate}T19:30`,
+                      teaching_plan_month: dm,
+                      teaching_plan_year: dy,
+                      teaching_plan_week: getWeekIndexFromDate(dy, dm, dday),
+                    }));
+                  }}>+ Thêm lịch</button>
                 )}
               </div>
               {/* Các thao tác phụ thành thanh riêng, dùng hết bề ngang nên vừa một
@@ -2901,7 +3155,7 @@ function CalendarDetail() {
               <div className="cal-toolbar">
                 <button className="btn ghost sm" onClick={handleExportCalendarReport} disabled={isLoading}>Xuất Excel</button>
                 {canCreateTeachingPlan && (<button className="btn ghost sm" onClick={() => openImportModal("teaching")}>Nhập lịch dạy</button>)}
-                {canManageSessions && (<button className="btn ghost sm" onClick={() => openImportModal("schedule")}>Nhập lịch công tác</button>)}
+                {calendarTypeOptions.some((c) => c.source === "schedule") && (<button className="btn ghost sm" onClick={() => openImportModal("schedule")}>Nhập lịch công tác</button>)}
                 {canManageSessions && (<button className="btn ghost sm" onClick={handleOpenReviewPlan}>Duyệt lịch báo giảng tháng</button>)}
                 <button className="btn ghost sm" onClick={() => openStaffCreateModal("leave")}>Tạo đơn nhân sự</button>
                 {canSubmitTeachingPlan && (<button className="btn ghost sm" onClick={handleSubmitMonthPlan} disabled={Boolean(planActionLoading) || !sessions.length || !isSubmitWindowOpen}>{planActionLoading === "submit" ? "Đang gửi..." : "Gửi duyệt lịch tháng"}</button>)}
@@ -3849,7 +4103,15 @@ function CalendarDetail() {
         <div className={styles.modalBackdrop} role="dialog" aria-modal="true">
           <div className={styles.modal}>
             <header className={styles.modalHeader}>
-              <h2>{editingSessionId ? "Sửa ca dạy" : "Tạo ca dạy thủ công"}</h2>
+              <h2>
+                {editingSessionId
+                  ? "Sửa ca dạy"
+                  : createForm.calendar_type === "teaching_plan"
+                    ? "Tạo ca dạy thủ công"
+                    : `Thêm lịch ${
+                        WORK_CARDS.find((c) => c.id === createForm.calendar_type)?.fullLabel || ""
+                      }`}
+              </h2>
               <button
                 type="button"
                 className={styles.iconButton}
@@ -3869,6 +4131,28 @@ function CalendarDetail() {
               </button>
             </header>
             <form className={styles.modalBody} onSubmit={handleCreateSession}>
+              <div className={styles.formGrid}>
+                <label className={`${styles.formGroup} ${styles.formGroupFull}`}>
+                  <span>Loại lịch</span>
+                  <select
+                    value={createForm.calendar_type}
+                    disabled={Boolean(editingSessionId)}
+                    onChange={(event) => {
+                      const loai = event.target.value;
+                      setCreateError("");
+                      setCreateForm((prev) => ({ ...prev, calendar_type: loai }));
+                    }}
+                  >
+                    {calendarTypeOptions.map((card) => (
+                      <option key={card.id} value={card.id}>
+                        {card.fullLabel}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              {createForm.calendar_type === "teaching_plan" ? (
+              <>
               <p className={styles.note}>
                 Chọn ngày hiện tại hoặc tương lai. Hệ thống tự xác định tuần, tháng và năm
                 theo ngày bắt đầu.
@@ -4069,6 +4353,96 @@ function CalendarDetail() {
                   />
                 </label>
               </div>
+              </>
+              ) : (
+              <div className={styles.formGrid}>
+                <label className={styles.formGroup}>
+                  <span>Ngày thực hiện</span>
+                  <input
+                    type="date"
+                    value={createForm.sc_date}
+                    onChange={(event) =>
+                      setCreateForm((prev) => ({ ...prev, sc_date: event.target.value }))
+                    }
+                  />
+                </label>
+                <label className={styles.formGroup}>
+                  <span>Hạng mục</span>
+                  <input
+                    type="text"
+                    placeholder="Ví dụ: Lớp học, Tuyển sinh, Thu chi"
+                    value={createForm.sc_subcategory}
+                    onChange={(event) =>
+                      setCreateForm((prev) => ({ ...prev, sc_subcategory: event.target.value }))
+                    }
+                  />
+                </label>
+                <label className={`${styles.formGroup} ${styles.formGroupFull}`}>
+                  <span>Nội dung công việc</span>
+                  <input
+                    type="text"
+                    placeholder="Ví dụ: Kiểm tra sĩ số lớp 501"
+                    value={createForm.sc_title}
+                    onChange={(event) =>
+                      setCreateForm((prev) => ({ ...prev, sc_title: event.target.value }))
+                    }
+                  />
+                </label>
+                <label className={styles.formGroup}>
+                  <span>Thời gian</span>
+                  <input
+                    type="text"
+                    placeholder="Ví dụ: 08:00 - 09:30 hoặc Cả ngày"
+                    value={createForm.sc_time_label}
+                    onChange={(event) =>
+                      setCreateForm((prev) => ({ ...prev, sc_time_label: event.target.value }))
+                    }
+                  />
+                </label>
+                <label className={styles.formGroup}>
+                  <span>Trạng thái</span>
+                  <select
+                    value={createForm.sc_status}
+                    onChange={(event) =>
+                      setCreateForm((prev) => ({ ...prev, sc_status: event.target.value }))
+                    }
+                  >
+                    {Object.entries(scheduleStatusMeta).map(([ma, meta]) => (
+                      <option key={ma} value={ma}>
+                        {meta.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className={styles.formGroup}>
+                  <span>Người phụ trách</span>
+                  <select
+                    value={createForm.sc_assignee}
+                    onChange={(event) =>
+                      setCreateForm((prev) => ({ ...prev, sc_assignee: event.target.value }))
+                    }
+                  >
+                    <option value="">Chưa giao cho ai</option>
+                    {assignableUsers.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
+                        {item.email ? ` — ${item.email}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className={`${styles.formGroup} ${styles.formGroupFull}`}>
+                  <span>Mô tả chi tiết</span>
+                  <textarea
+                    rows={3}
+                    value={createForm.sc_description}
+                    onChange={(event) =>
+                      setCreateForm((prev) => ({ ...prev, sc_description: event.target.value }))
+                    }
+                  />
+                </label>
+              </div>
+              )}
               {createError && <div className={styles.errorNotice}>{createError}</div>}
               <div className={styles.modalFooter}>
                 <button
@@ -4087,7 +4461,9 @@ function CalendarDetail() {
                     ? "Đang lưu..."
                     : editingSessionId
                       ? "Lưu thay đổi"
-                      : "Tạo ca dạy"}
+                      : createForm.calendar_type === "teaching_plan"
+                        ? "Tạo ca dạy"
+                        : "Tạo lịch"}
                 </button>
               </div>
             </form>
@@ -4392,8 +4768,8 @@ function CalendarDetail() {
               </div>}
               <p className={styles.note}>
                 {importMode === "schedule"
-                  ? "File Excel (.xlsx) có thể dùng mẫu BÁO CÁO T1/tháng/năm với các cột T2-CN hoặc mẫu KẾ HOẠCH LÀM VIỆC có cột tuần."
-                  : `File Excel (.xlsx) cần các cột: Trung tâm, Lớp, ${isTeacherRole ? "" : "Giáo viên, "}Ngày dạy, Giờ bắt đầu, Giờ kết thúc, Hình thức, Chủ đề bài học, Ghi chú. Chỉ nhập lịch từ ngày hiện tại trở đi.`}{" "}
+                  ? `File mẫu có mỗi loại lịch một sheet: ${SCHEDULE_SHEET_TYPES.map((t) => SHEET_NAMES[t]).join(", ")}. Điền vào sheet của đúng loại việc; sheet nào không dùng thì để trống. Mẫu cũ dạng BÁO CÁO T2-CN và KẾ HOẠCH LÀM VIỆC vẫn nhập được.`
+                  : `Hệ thống đọc sheet "${SHEET_NAMES.teaching_plan}" với các cột: Trung tâm, Lớp, ${isTeacherRole ? "" : "Giáo viên, "}Ngày dạy, Giờ bắt đầu, Giờ kết thúc, Hình thức, Chủ đề bài học, Ghi chú. Nhập bằng file CHO PHÉP cả ngày đã qua, nên giữ nguyên các buổi đã dạy trong tháng.`}{" "}
                 <button
                   type="button"
                   className={styles.linkButton}
@@ -4420,6 +4796,18 @@ function CalendarDetail() {
                     {importMode === "schedule" ? "đầu mục lịch" : "buổi dạy"}
                     {importResult.error_count ? `, ${importResult.error_count} dòng lỗi:` : "."}
                   </p>
+                  {/* File mẫu mới có nhiều sheet nên cần biết sheet nào vào được
+                      bao nhiêu — chỉ một con số tổng thì không đủ để dò lỗi. */}
+                  {Array.isArray(importResult.sheets) && importResult.sheets.length > 0 && (
+                    <ul>
+                      {importResult.sheets.map((item) => (
+                        <li key={item.sheet}>
+                          <strong>{item.sheet}</strong>: {item.success_count || 0} việc
+                          {item.error_count ? `, ${item.error_count} lỗi` : ""}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                   {importErrorItems.length > 0 && (
                     <ul>
                       {importErrorItems.map((item, index) => (
