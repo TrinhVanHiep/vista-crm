@@ -1,0 +1,335 @@
+/* ==========================================================================
+   THI ĐUA THÁNG — UI mới (bản dựng lại đúng ảnh thiết kế 1536x1024)
+   Dùng cùng:
+     components/emulation/KpiSheet.jsx   -> màn "Báo cáo thi đua tháng"
+     components/emulation/YearPlanSheet.jsx -> màn "Kế hoạch năm học"
+   Không ghi đè emulation.css cũ — hai file sống song song, đổi màn nào thì
+   import file đó ở component tương ứng.
+   ========================================================================== */
+
+/* ---------- nền chung + font ---------- */
+.kpi2, .yp2 {
+  font-family: "Be Vietnam Pro", -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.kpi2 *, .kpi2 *::before, .kpi2 *::after,
+.yp2 *, .yp2 *::before, .yp2 *::after { box-sizing: border-box; }
+
+/* ==========================================================================
+   A. BÁO CÁO THI ĐUA THÁNG  (.kpi2)
+   ========================================================================== */
+.kpi2 { position: relative; background: #FEFEFE; color: #2A2F45; }
+/* Khổ thiết kế gốc là 1536x1024. Giữ nguyên bề ngang để bố cục đúng như bản vẽ,
+   nhưng KHÔNG khoá chiều cao và KHÔNG cắt tràn: khung chấm điểm có thể nhiều
+   tiêu chí hơn bản mẫu, `height:1024px; overflow:hidden` sẽ cắt mất phần dôi ra
+   mà không để lại dấu vết nào. Bề ngang do .kpi2-scroll cuộn. */
+.kpi2--fixed { width: 1536px; min-width: 1536px; min-height: 1024px; }
+
+/* Khung ứng dụng hẹp hơn khổ thiết kế, không có lớp này thì 380px bên phải
+   (bảng điểm trừ, thang xếp loại) bị cắt và không có cách nào với tới. */
+.kpi2-scroll { overflow-x: auto; overflow-y: visible; }
+
+/* --- tiêu đề trang --- */
+.kpi2-head { display: flex; align-items: flex-start; gap: 24px; padding: 7px 23px 0 10px; }
+.kpi2-head__t { flex: 1; min-width: 0; }
+.kpi2-head__t h1 { margin: 0; font-size: 25px; font-weight: 800; letter-spacing: .2px; line-height: 1.28; color: #B4231F; }
+.kpi2-crumb { margin-top: 4px; display: flex; align-items: center; gap: 9px; font-size: 11.5px; color: #8A8FA3; }
+.kpi2-crumb i { color: #C9CCD8; font-style: normal; }
+.kpi2-acts { display: flex; align-items: center; gap: 16px; height: 42px; }
+
+.kpi2-btn { height: 42px; padding: 0 20px; border-radius: 10px; display: flex; align-items: center; gap: 11px;
+  font-family: inherit; font-size: 13.5px; font-weight: 600; white-space: nowrap; cursor: pointer; }
+.kpi2-btn--ghost { border: 1.5px solid #F0E4D7; background: #fff; color: #2A2F45; }
+.kpi2-btn--ghost:hover { border-color: #F26522; color: #F26522; }
+.kpi2-btn--primary { border: 0; padding: 0 22px; background: #F86A0B; color: #fff; font-weight: 700;
+  box-shadow: 0 3px 10px rgba(248,106,11,.28); }
+.kpi2-btn--primary:hover { background: #E85C05; }
+.kpi2-bell { position: relative; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; }
+.kpi2-bell b { position: absolute; right: -5px; top: -4px; min-width: 15px; height: 15px; padding: 0 3px; border-radius: 8px;
+  background: #E8342B; color: #fff; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.kpi2-user { display: flex; align-items: center; gap: 11px; }
+.kpi2-user img { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 2px solid #FBE6D6; }
+.kpi2-user span { font-size: 13.5px; font-weight: 600; color: #2A2F45; white-space: nowrap; }
+
+/* --- dải chỉ số --- */
+.kpi2-strip { display: grid; gap: 10px; padding: 0 23px 0 10px;
+  grid-template-columns: 182px 187px 195px 182px 165px 104px 97px 114px; height: 71px; }
+.kpi2-stat { border: 1px solid #F4EBE0; border-radius: 12px; background: #fff; display: flex; align-items: center; gap: 15px; padding-left: 21px; }
+.kpi2-stat--tight { gap: 9px; padding-left: 12px; }
+.kpi2-stat__lb { font-size: 12.5px; font-weight: 600; line-height: 1.3; white-space: nowrap; }
+.kpi2-stat--tight .kpi2-stat__lb { font-size: 11px; }
+.kpi2-stat__val { margin-top: 2px; font-size: 22px; font-weight: 800; line-height: 1.15; white-space: nowrap; color: #2A2F45; }
+.kpi2-stat--tight .kpi2-stat__val { font-size: 20px; }
+.kpi2-stat__val small { font-size: 14px; font-weight: 500; color: #9AA0B2; }
+.kpi2-stat__val.green { color: #178A4C; }
+.kpi2-stat__val.red { color: #E8342B; }
+.kpi2-stat__val.orange { color: #F86A0B; }
+
+/* --- thẻ mục --- */
+.kpi2-card { border: 1px solid #F4EBE0; border-radius: 14px; background: #fff; overflow: hidden; }
+.kpi2-card__h { margin: 0; height: 37px; display: flex; align-items: center; padding-left: 18px;
+  font-size: 14px; font-weight: 700; letter-spacing: .2px; color: #E8342B; }
+.kpi2-card__h--sm { font-size: 12px; }
+.kpi2-card__h--md { font-size: 13.5px; height: 39px; padding-left: 16px; }
+
+/* --- bố cục 2 cột + hàng dưới --- */
+.kpi2-main { display: grid; grid-template-columns: 848px 437px; gap: 10px; padding: 12px 23px 0 10px; }
+.kpi2-bottom { display: grid; grid-template-columns: 700px 287px 285px; gap: 12px; padding: 10px 23px 0 10px; }
+
+/* --- bảng chấm điểm --- */
+.kpi2-tbl__cols { display: grid; grid-template-columns: 46px 90px 34px 141px 281px 82px 86px 86px; }
+.kpi2-tbl__hd { height: 27px; align-items: center; background: #FEF8F4;
+  border-top: 1px solid #F6EAE0; border-bottom: 1px solid #F6EAE0;
+  font-size: 10px; font-weight: 600; color: #3B4165; text-align: center; }
+.kpi2-tbl__hd > span + span { border-left: 1px solid #F6EAE0; }
+
+.kpi2-grp { display: grid; grid-template-columns: 46px 90px 622px; }
+.kpi2-grp + .kpi2-grp { border-top: 1px solid #F6EAE0; }
+.kpi2-grp__no { display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 800; color: #F86A0B; }
+.kpi2-grp__id { border-left: 1px solid #F6EAE0; border-right: 1px solid #F6EAE0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; }
+.kpi2-grp__id span { font-size: 10.5px; font-weight: 600; color: #F86A0B; white-space: nowrap; }
+
+.kpi2-row { display: grid; grid-template-columns: 34px 141px 281px 82px 86px 86px; align-items: center;
+  border-bottom: 1px solid #FBF3EB; font-size: 9px; color: #3B4165; }
+.kpi2-row:last-of-type { border-bottom: 0; }
+.kpi2-row > span:nth-child(n+3) { border-left: 1px solid #FBF3EB; height: 100%; display: flex; align-items: center; justify-content: center; }
+.kpi2-row__i { text-align: center; font-weight: 600; }
+.kpi2-row__t { padding-left: 11px; white-space: nowrap; }
+.kpi2-row__t--wrap { padding-left: 11px; font-size: 7.5px; line-height: 1.25; white-space: normal; }
+.kpi2-row__d { justify-content: flex-start !important; padding-left: 11px; font-size: 8px; color: #5A6080;
+  white-space: nowrap; overflow: hidden; }
+.kpi2-row__got { font-weight: 600; }
+.kpi2-row__st { gap: 6px; }
+.kpi2-row__st b { font-weight: 600; color: #178A4C; }
+.kpi2-sum { height: 24px; display: flex; align-items: center; justify-content: flex-end; padding-right: 97px;
+  border-top: 1px solid #F6EAE0; font-size: 10.5px; font-weight: 700; color: #E8342B; white-space: nowrap; }
+
+/* --- điểm cộng / điểm trừ --- */
+.kpi2-adj { margin: 0 9px; border-radius: 11px; overflow: hidden; }
+.kpi2-adj + .kpi2-adj { margin-top: 14px; }
+.kpi2-adj--plus { border: 1px solid #E3F0E8; background: #FCFEFD; }
+.kpi2-adj--minus { border: 1px solid #FBDDD8; background: #FFFDFC; }
+.kpi2-adj__h { height: 35px; display: flex; align-items: center; gap: 11px; padding-left: 11px;
+  font-size: 11.5px; font-weight: 700; }
+.kpi2-adj--plus .kpi2-adj__h { color: #12703F; }
+.kpi2-adj--minus .kpi2-adj__h { color: #C42A22; }
+.kpi2-adj__cols { display: grid; grid-template-columns: 38px 100px 229px 51px; }
+.kpi2-adj__hd { height: 26px; align-items: center; font-size: 9.5px; font-weight: 600; color: #3B4165; text-align: center; }
+.kpi2-adj--plus .kpi2-adj__hd { background: #F4FAF6; border-top: 1px solid #E3F0E8; border-bottom: 1px solid #E3F0E8; }
+.kpi2-adj--minus .kpi2-adj__hd { background: #FFF6F4; border-top: 1px solid #FBDDD8; border-bottom: 1px solid #FBDDD8; }
+.kpi2-adj__hd > span + span { border-left: 1px solid currentColor; border-left-color: inherit; }
+.kpi2-adj--plus .kpi2-adj__hd > span + span { border-left-color: #E3F0E8; }
+.kpi2-adj--minus .kpi2-adj__hd > span + span { border-left-color: #FBDDD8; }
+.kpi2-adj__r { font-size: 9.5px; color: #3B4165; }
+.kpi2-adj--plus .kpi2-adj__r { border-bottom: 1px solid #EDF5F0; }
+.kpi2-adj--minus .kpi2-adj__r { border-bottom: 1px solid #FCEEEB; }
+.kpi2-adj__r:last-of-type { border-bottom: 0; }
+.kpi2-adj__r > span { display: flex; align-items: center; }
+.kpi2-adj__r > span:nth-child(n+2) { border-left: 1px solid #EDF5F0; }
+.kpi2-adj--minus .kpi2-adj__r > span:nth-child(n+2) { border-left-color: #FCEEEB; }
+.kpi2-adj__no { justify-content: center; font-weight: 700; }
+.kpi2-adj__t { padding-left: 10px; font-weight: 700; line-height: 1.5; }
+.kpi2-adj__how { padding: 0 9px; color: #5A6080; line-height: 1.6; }
+.kpi2-adj__cap { justify-content: center; font-size: 13px; font-weight: 700; }
+.kpi2-adj--plus .kpi2-adj__cap { color: #12703F; }
+.kpi2-adj--minus .kpi2-adj__cap { color: #C42A22; }
+.kpi2-adj__f { height: 36px; display: flex; align-items: center; justify-content: flex-end; gap: 22px; padding-right: 19px;
+  font-size: 11.5px; font-weight: 700; }
+.kpi2-adj__f b { font-size: 13px; font-weight: 800; }
+.kpi2-adj--plus .kpi2-adj__f { border-top: 1px solid #E3F0E8; color: #12703F; }
+.kpi2-adj--minus .kpi2-adj__f { border-top: 1px solid #FBDDD8; background: #FFF8F6; color: #C42A22; }
+
+/* --- phê duyệt --- */
+.kpi2-appr { padding: 0 12px; display: grid; grid-template-columns: 204px 213px 233px; gap: 13px; }
+.kpi2-appr__c { border: 1px solid #F4EBE0; border-radius: 11px; height: 143px; padding: 11px 12px 0; }
+.kpi2-appr__t { display: flex; align-items: center; gap: 10px; font-size: 10px; font-weight: 600; }
+.kpi2-appr__d { margin-top: 9px; font-size: 9.5px; color: #5A6080; line-height: 1.65; }
+.kpi2-appr__f { margin-top: 14px; display: flex; align-items: baseline; gap: 9px; font-size: 10px; font-weight: 700; color: #2A2F45; }
+.kpi2-appr__f i { width: 26px; border-bottom: 1.4px solid #9AA0B2; font-style: normal; }
+.kpi2-appr__b { margin-top: 14px; display: flex; gap: 9px; }
+.kpi2-ok, .kpi2-fix { height: 31px; border-radius: 8px; font-family: inherit; font-weight: 600;
+  display: flex; align-items: center; justify-content: center; gap: 7px; white-space: nowrap; cursor: pointer; }
+.kpi2-ok { flex: 1; border: 0; background: #17703C; color: #fff; font-size: 10.5px; }
+.kpi2-ok:hover { background: #125E31; }
+.kpi2-fix { flex: 1.05; border: 1.3px solid #F1928A; background: #fff; color: #E8342B; font-size: 9px; gap: 6px; }
+.kpi2-fix:hover { background: #FFF6F4; }
+
+/* --- ghi chú + xuất file --- */
+.kpi2-note { margin: 0 13px; height: 88px; border: 1px solid #F0E4D7; border-radius: 10px; background: #FEFDFC;
+  padding: 11px 12px; font-family: inherit; font-size: 10px; color: #2A2F45; resize: none; width: calc(100% - 26px); }
+.kpi2-note::placeholder { color: #A9AEC0; }
+.kpi2-exp { margin: 9px 13px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
+.kpi2-exp button { height: 41px; border: 1px solid #F0E4D7; border-radius: 10px; background: #fff;
+  font-family: inherit; font-size: 11.5px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; }
+.kpi2-exp button:first-child { color: #2A2F45; }
+.kpi2-exp button:first-child:hover { border-color: #E8342B; }
+.kpi2-exp button:last-child { color: #17703C; }
+.kpi2-exp button:last-child:hover { border-color: #17703C; }
+
+/* --- thang xếp loại --- */
+.kpi2-scale { margin: 0 13px; height: 143px; border: 1px solid #F4EBE0; border-radius: 11px;
+  padding-top: 9px; display: flex; flex-direction: column; justify-content: space-between; }
+.kpi2-scale__r { display: grid; grid-template-columns: 104px 58px auto; align-items: center; padding: 0 12px; }
+.kpi2-scale__r:last-child { padding-bottom: 10px; }
+.kpi2-scale__s { display: flex; gap: 5px; }
+.kpi2-scale__r span:not(.kpi2-scale__s) { font-size: 9px; color: #3B4165; white-space: nowrap; }
+.kpi2-scale__r span.wide { grid-column: 2 / span 2; }
+
+/* ==========================================================================
+   B. KẾ HOẠCH NĂM HỌC  (.yp2)
+   ========================================================================== */
+.yp2 { position: relative; background: #FEF8F1; color: #3A2A22; }
+.yp2--fixed { width: 1536px; min-width: 1536px; height: 1024px; overflow: hidden; }
+
+.yp2-rail { position: absolute; left: 0; top: 0; width: 152px; height: 100%;
+  background: #FFFDFB; border-right: 1px solid #F4E6D6; }
+.yp2-logo { position: absolute; left: 6px; top: 6px; width: 140px; height: 154px; border-radius: 16px; background: #fff;
+  display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 10px rgba(160,110,60,.07); }
+.yp2-logo img { width: 132px; height: 124px; object-fit: contain; }
+.yp2-goal-tile { position: absolute; left: 12px; top: 176px; width: 126px; height: 146px; border-radius: 14px;
+  background: linear-gradient(160deg,#A8241A,#8E1C13); display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 11px; box-shadow: 0 5px 16px rgba(140,30,20,.24); }
+.yp2-goal-tile span { text-align: center; font-size: 12.5px; font-weight: 700; letter-spacing: .6px; color: #fff; line-height: 1.65; }
+
+.yp2-head h1 { position: absolute; left: 180px; top: 26px; margin: 0; font-size: 33px; font-weight: 800;
+  letter-spacing: .2px; line-height: 1.2; color: #A8241A; }
+.yp2-head__sub { position: absolute; left: 181px; top: 70px; font-size: 16px; font-weight: 700; letter-spacing: 1.2px; color: #4E5A76; }
+.yp2-chip { height: 47px; border: 1px solid #F2E3D2; border-radius: 11px; background: #FFFDFB;
+  display: flex; align-items: center; gap: 11px; padding: 0 17px; font-size: 13.5px; font-weight: 500; white-space: nowrap; }
+.yp2-bell { position: relative; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; }
+.yp2-bell b { position: absolute; right: -6px; top: -5px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px;
+  background: #E8342B; color: #fff; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.yp2-me { width: 192px; height: 47px; border: 1px solid #F2E3D2; border-radius: 11px; background: #FFFDFB;
+  display: flex; align-items: center; gap: 11px; padding: 0 12px; }
+.yp2-me__av { width: 32px; height: 32px; border-radius: 50%; background: #F6E7DA; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.yp2-me__n { font-size: 12.5px; font-weight: 700; line-height: 1.35; }
+.yp2-me__r { font-size: 10.5px; color: #9A8877; line-height: 1.4; }
+
+/* --- thẻ mục tiêu --- */
+.yp2-goals { position: absolute; left: 163px; top: 108px; width: 1358px; height: 166px; display: grid; gap: 11px;
+  grid-template-columns: 183px 195px 187px 177px 166px 131px 118px 127px; }
+.yp2-goal { border: 1px solid #F4E6D6; border-radius: 13px; background: #FFFDFB; display: flex; gap: 10px; padding: 24px 0 0 14px; }
+.yp2-goal--stack { flex-direction: column; }
+.yp2-goal__lb { font-size: 11px; font-weight: 700; letter-spacing: .2px; color: #4E5A76; line-height: 1.4; white-space: nowrap; }
+.yp2-goal__v { margin-top: 8px; font-size: 31px; font-weight: 800; line-height: 1; }
+.yp2-goal__u { margin-top: 11px; font-size: 12px; font-weight: 500; color: #4E5A76; white-space: nowrap; }
+.yp2-goal__n { margin-top: 12px; font-size: 10.5px; color: #9A8877; line-height: 1.6; white-space: nowrap; }
+.yp2-goal__n--sp { margin-top: 16px; font-size: 11px; }
+
+/* --- tiêu đề bảng + chú giải --- */
+.yp2-sec { position: absolute; left: 163px; top: 300px; display: flex; align-items: center; gap: 15px; }
+.yp2-sec h2 { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: .3px; }
+.yp2-legend { position: absolute; left: 680px; top: 307px; display: flex; align-items: center; gap: 22px; font-size: 12px; color: #4E5A76; }
+.yp2-legend span { display: flex; align-items: center; gap: 8px; }
+.yp2-legend i { width: 9px; height: 9px; border-radius: 50%; }
+.yp2-view { position: absolute; left: 1258px; top: 303px; height: 35px; border: 1px solid #F2E3D2; border-radius: 9px;
+  background: #FFFDFB; display: flex; align-items: center; gap: 14px; padding: 0 13px 0 15px; font-size: 12.5px; color: #4E5A76; }
+.yp2-view b { color: #3A2A22; }
+.yp2-nav { position: absolute; left: 1435px; top: 303px; display: flex; gap: 9px; }
+.yp2-nav span { width: 35px; height: 35px; border: 1px solid #F2E3D2; border-radius: 9px; background: #FFFDFB;
+  display: flex; align-items: center; justify-content: center; cursor: pointer; }
+
+/* --- bảng tháng --- */
+.yp2-grid { position: absolute; left: 14px; top: 360px; width: 1509px; }
+.yp2-grid__cols { display: grid; grid-template-columns: 159px 156px 153px 153px 149px 148px 147px 145px 141px 141px; }
+.yp2-grid__hd { height: 45px; border-radius: 11px 11px 0 0; overflow: hidden; }
+.yp2-grid__hd > div { display: flex; align-items: center; justify-content: center; color: #fff; }
+.yp2-grid__corner { background: #A8241A; font-size: 13px; font-weight: 700; letter-spacing: 1px; }
+.yp2-grid__m { background: #FA5A08; font-size: 15px; font-weight: 700; border-left: 2px solid #FEFDFB; }
+.yp2-grid__body { background: #FEFCF8; border-left: 1px solid #F4E6D6; border-right: 1px solid #F4E6D6; }
+.yp2-grid__body--last { border: 1px solid #F4E6D6; border-radius: 0 0 11px 11px; }
+.yp2-grid__body > div + div { border-right: 1px solid #F6EBDD; }
+.yp2-grid__body > div:last-child { border-right: 0; }
+.yp2-track { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px;
+  border-right: 1px solid #F4E6D6 !important; }
+.yp2-track__ico { width: 66px; height: 66px; border-radius: 50%; background: #fff; border: 1px solid #F4E6D6;
+  display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(160,110,60,.08); }
+.yp2-track span { text-align: center; font-size: 13px; font-weight: 700; color: #A8241A; line-height: 1.75; }
+.yp2-prog { height: 87px; border-bottom: 1px solid #F6EBDD; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 11px; }
+.yp2-prog__v { display: flex; align-items: center; gap: 12px; }
+.yp2-prog__v b { font-size: 17px; font-weight: 700; }
+.yp2-prog__bar { width: 106px; height: 7px; border-radius: 4px; background: #F0E4D7; }
+.yp2-prog__bar i { display: block; height: 100%; border-radius: 4px; }
+.yp2-acts { padding: 14px 0 0 15px; display: flex; flex-direction: column; gap: 11px; font-size: 11px; }
+.yp2-acts--only { padding-top: 23px; }
+.yp2-acts span { display: flex; gap: 9px; }
+.yp2-acts i { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; margin-top: 6px; }
+
+/* --- tiến độ tổng thể --- */
+.yp2-overall { position: absolute; left: 14px; top: 890px; width: 1509px; height: 102px;
+  border: 1px solid #F4E6D6; border-radius: 13px; background: #FFFDFB; }
+.yp2-overall__t { position: absolute; left: 107px; top: 22px; font-size: 13.5px; font-weight: 700; letter-spacing: .5px; white-space: nowrap; }
+.yp2-overall__s { position: absolute; left: 106px; top: 42px; font-size: 12.5px; font-weight: 500; letter-spacing: .4px; color: #7A6A5C; white-space: nowrap; }
+.yp2-overall__track { position: absolute; left: 269px; top: 40px; width: 1157px; height: 15px; border-radius: 8px; background: #F8EADE; }
+.yp2-overall__fill { position: absolute; left: 269px; top: 40px; height: 15px; border-radius: 8px; background: #F65C0B; }
+.yp2-overall__pin { position: absolute; top: 31px; transform: translateX(-50%); height: 33px; padding: 0 18px;
+  border: 1.5px solid #FAD9BE; border-radius: 17px; background: #fff; display: flex; align-items: center;
+  font-size: 15px; font-weight: 700; color: #F65C0B; box-shadow: 0 2px 7px rgba(200,120,50,.12); }
+.yp2-ms { position: absolute; top: 42px; transform: translateX(-50%); width: 11px; height: 11px; border-radius: 50%; background: #8E4A32; }
+.yp2-ms__lb { position: absolute; top: 59px; transform: translateX(-50%); text-align: center; white-space: nowrap; }
+.yp2-ms__lb b { font-size: 13px; font-weight: 700; }
+.yp2-ms__lb span { display: block; margin-top: 5px; font-size: 11px; color: #7A6A5C; }
+
+/* ---------- IN A4 NGANG ---------- */
+@media print {
+  /* KHÔNG khai @page ở đây: quy tắc này áp cho CẢ tài liệu, không giới hạn
+     theo lớp, nên nó sẽ đè @page A4 dọc của parentReport.css và làm phiếu báo
+     cáo phụ huynh in ra khổ ngang. Màn này cần khổ ngang thì đặt @page cục bộ
+     ngay lúc in, đừng để trong stylesheet dùng chung. */
+  body * { visibility: hidden !important; }
+  .kpi2, .kpi2 *, .yp2, .yp2 * { visibility: visible !important; }
+  .kpi2, .yp2 { position: absolute !important; left: 0; top: 0; }
+  .kpi2--fixed, .yp2--fixed { transform: scale(0.7695); transform-origin: top left; }
+  .kpi2 *, .yp2 * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  .kpi2-noprint, .yp2-noprint { display: none !important; }
+}
+
+/* Trạng thái ký của từng ô phê duyệt — bản mẫu không có phần này, nhưng thiếu
+   nó thì người xem không biết cấp nào đã ký, cấp nào còn chờ. */
+.kpi2-appr__st { margin-left: auto; font-size: 10.5px; font-weight: 700;
+  padding: 2px 8px; border-radius: 999px; background: #EEF0F4; color: #6B7280; }
+.kpi2-appr__st[data-tt="approved"] { background: #E6F5EC; color: #178A4C; }
+.kpi2-appr__st[data-tt="revision_required"] { background: #FDECEA; color: #C4241D; }
+.kpi2-appr__note { margin-top: 6px; font-size: 11.5px; line-height: 1.5; color: #6B7280; }
+
+/* Khung trang dùng .v4page có luật `.v4page button { background: none }` với độ
+   ưu tiên 0-1-1, cao hơn .kpi2-btn--primary (0-1-0) — nút chính thành chữ trắng
+   trên nền trong suốt, tức vô hình. Nâng độ ưu tiên bằng cách lồng .kpi2. */
+.kpi2 .kpi2-btn--primary { background: #F86A0B; }
+.kpi2 .kpi2-btn--primary:hover { background: #E85C05; }
+.kpi2 .kpi2-btn--ghost { background: #fff; }
+.kpi2 .kpi2-ok { background: #17703C; }
+.kpi2 .kpi2-ok:hover { background: #125E31; }
+.kpi2 .kpi2-fix { background: #fff; }
+
+/* Điểm GV tự chấm hiện nhỏ DƯỚI điểm chốt để đối chiếu khi quản lý chấm lại.
+   Ô cha là flex hàng ngang nên phải đổi trục, không thì hai số dính liền nhau
+   thành "1 điểmGV: 2". */
+.kpi2 .kpi2-row__got { flex-direction: column; align-items: center; justify-content: center;
+  gap: 1px; line-height: 1.25; }
+.kpi2-row__gv { font-size: 9.5px; font-weight: 600; color: #8A8FA3; white-space: nowrap; }
+/* Nhãn đối chiếu hai cột điểm dùng lại kiểu chip của ô ký. */
+.kpi2-appr__st[data-tone="blue"] { background: #E8F0FE; color: #2F6BD8; }
+.kpi2-appr__st[data-tone="purple"] { background: #F0EAFB; color: #6B41C4; }
+.kpi2-appr__st[data-tone="green"] { background: #E6F5EC; color: #178A4C; }
+.kpi2-appr__st[data-tone="orange"] { background: #FDF0E3; color: #B4600B; }
+.kpi2-appr__st[data-tone="gray"] { background: #EEF0F4; color: #6B7280; }
+.kpi2-status { margin-left: 10px; vertical-align: middle; font-size: 11px; }
+.kpi2-status[data-tt="submitted"] { background: #FDF0E3; color: #B4600B; }
+.kpi2-status[data-tt="revision_required"] { background: #FDECEA; color: #C4241D; }
+.kpi2-status[data-tt="approved"] { background: #E6F5EC; color: #178A4C; }
+/* Dòng chốt điểm cuối mục 5. */
+.kpi2-final { margin-top: 10px; padding: 9px 12px; border-radius: 9px; background: #FFF6EC;
+  border: 1px solid #F5DCC2; font-size: 12.5px; color: #43301F; }
+.kpi2-final b { font-size: 14px; color: #B4231F; }
+.kpi2-final small { display: block; margin-top: 2px; font-size: 10.5px; color: #8A6A4A; }
+.kpi2-scale__r.is-current { background: #FFF6EC; border-radius: 7px; font-weight: 700; }
+
+/* Ô nhập của người duyệt trong mục 3. */
+.kpi2-appr__in { display: grid; gap: 7px; margin: 7px 0 8px; }
+.kpi2-appr__in label { display: grid; gap: 3px; font-size: 10.5px; font-weight: 600; color: #6B7280; }
+.kpi2-appr__in input, .kpi2-appr__in select { height: 29px; padding: 0 8px; font-family: inherit;
+  font-size: 12px; color: #2A2F45; border: 1px solid #E3E6EE; border-radius: 7px; background: #fff; }
+.kpi2 .kpi2-ok:disabled, .kpi2 .kpi2-fix:disabled { opacity: .55; cursor: not-allowed; }

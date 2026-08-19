@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
+import KpiSheet from "./KpiSheet";
 import apiClient from "../../services/apiClient";
 import { Badge, Button, Card, DataTable, EmptyState, Field, Kpi } from "../../ui";
 import { ICON_NHOM, IcCong, IcCup, IcSao, IcTru } from "./KpiIcons";
@@ -37,18 +38,21 @@ const THANG_XEP_LOAI = [
 const O_DUYET = [
   {
     stage: "training",
+    mau: "#178A4C",
     ten: "Quản lý đào tạo",
     moTa: "Đối chiếu điểm tự chấm với hồ sơ chuyên môn: giáo án, dự giờ, chất lượng lớp.",
     kieu: "diem",
   },
   {
     stage: "center",
+    mau: "#2F6BD8",
     ten: "Quản lý cơ sở",
     moTa: "Xác nhận phần vận hành và truyền thông tại cơ sở: kỷ luật, sĩ số, hoạt động.",
     kieu: "diem",
   },
   {
     stage: "director",
+    mau: "#F86A0B",
     ten: "Ban giám đốc",
     moTa: "Chốt xếp loại thi đua cuối cùng của tháng sau khi hai cấp trên đã ký.",
     kieu: "xep_loai",
@@ -550,6 +554,67 @@ export default function KpiScoreBoard({
         title="Chưa có khung chấm điểm thi đua"
         hint="Cần nạp nhóm chủ đề và tiêu chí trong phần quản trị trước khi chấm."
       />
+    );
+  }
+
+  // Chế độ XEM dùng giao diện mới (KpiSheet). Chế độ CHẤM ĐIỂM giữ nguyên bảng
+  // cũ vì KpiSheet chỉ hiển thị, không có ô nhập điểm nào — thay cả hai sẽ mất
+  // hẳn chức năng chính của màn.
+  if (!dangCham) {
+    return (
+      <>
+        {loi ? (
+          <div className="alert red" role="alert" style={{ marginBottom: 14 }}>
+            <span>⚠️</span>
+            <div>{loi}</div>
+          </div>
+        ) : null}
+        {thongTin ? (
+          <div className="alert orange" role="status" style={{ marginBottom: 14 }}>
+            <span>ℹ️</span>
+            <div style={{ flex: 1 }}>{thongTin}</div>
+          </div>
+        ) : null}
+        <div className="kpi2-scroll">
+        <KpiSheet
+          nhungTrongKhung
+          month={month}
+          year={year}
+          phieu={phieu}
+          dsNhom={dsNhom}
+          theoNhom={theoNhom}
+          tong={tong}
+          diemTheoTieuChi={diemTheoTieuChi}
+          quyTacCong={quyTacCong}
+          quyTacTru={quyTacTru}
+          oDuyet={O_DUYET}
+          nhanQuyetDinh={NHAN_QUYET_DINH}
+          nhanTrangThai={NHAN_TRANG_THAI}
+          trangThaiDong={trangThaiDong}
+          nhapDuyet={nhapDuyet}
+          onDoiDuyet={canReview ? doiDuyet : undefined}
+          dangKy={dangKy}
+          thangXepLoai={THANG_XEP_LOAI}
+          tranCong={TRAN_CONG}
+          tranTru={TRAN_TRU}
+          diemTran={DIEM_TRAN}
+          tongTieuChi={TONG_TIEU_CHI}
+          // KHÔNG truyền `thongBao`: gói mẫu để sẵn số 6, mà hệ thống chưa có
+          // nguồn đếm thông báo nào — hiện lên là con số bịa.
+          nguoiDung={{ ten: phieu?.owner_name }}
+          // Ghi chú để CHỈ ĐỌC ở chế độ xem — đúng như bảng cũ, nơi ô này chỉ
+          // mở khi đã bấm "Chấm điểm" (suaDuocDieuChinh).
+          ghiChuChung={ghiChuChung}
+          onChamDiem={chamDuocTuCham || chamDuocQuanLy ? () => setDangCham(true) : undefined}
+          onNopBaoCao={chamDuocTuCham ? nopPhieu : undefined}
+          onDuyet={canReview ? (stage) => kyDuyet(stage, "approved") : undefined}
+          onYeuCauSua={canReview ? (stage) => kyDuyet(stage, "revision_required") : undefined}
+          onXuatBaoCao={() => setThongTin("Xuất báo cáo sẽ được bổ sung ở bước sau.")}
+          onXuatPDF={() => setThongTin("Xuất PDF sẽ được bổ sung ở bước sau.")}
+          onXuatExcel={() => setThongTin("Xuất Excel sẽ được bổ sung ở bước sau.")}
+        />
+        </div>
+      </>
     );
   }
 
