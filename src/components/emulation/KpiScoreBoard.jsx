@@ -557,10 +557,9 @@ export default function KpiScoreBoard({
     );
   }
 
-  // Chế độ XEM dùng giao diện mới (KpiSheet). Chế độ CHẤM ĐIỂM giữ nguyên bảng
-  // cũ vì KpiSheet chỉ hiển thị, không có ô nhập điểm nào — thay cả hai sẽ mất
-  // hẳn chức năng chính của màn.
-  if (!dangCham) {
+  // Một giao diện duy nhất cho cả xem lẫn chấm điểm — trước đây bấm "Chấm điểm"
+  // sẽ nhảy sang một bảng khác hẳn, rất mất mạch.
+  {
     return (
       <>
         {loi ? (
@@ -593,6 +592,19 @@ export default function KpiScoreBoard({
           nhapDuyet={nhapDuyet}
           onDoiDuyet={canReview ? doiDuyet : undefined}
           dangKy={dangKy}
+          dangCham={dangCham}
+          dangLuu={dangLuu}
+          suaDuocTuCham={suaDuocTuCham}
+          suaDuocQuanLy={suaDuocQuanLy}
+          suaDuocDieuChinh={suaDuocDieuChinh}
+          nhapTuCham={nhapTuCham}
+          nhapQuanLy={nhapQuanLy}
+          nhapGhiNhan={nhapGhiNhan}
+          onDoiTuCham={(id, v) => setNhapTuCham((cu) => ({ ...cu, [id]: v }))}
+          onDoiQuanLy={(id, v) => setNhapQuanLy((cu) => ({ ...cu, [id]: v }))}
+          onDoiGhiNhan={(id, v) => setNhapGhiNhan((cu) => ({ ...cu, [id]: v }))}
+          onLuuDiem={async () => { const ok = await luuDiem(); if (ok) setDangCham(false); }}
+          onHuyCham={() => setDangCham(false)}
           thangXepLoai={THANG_XEP_LOAI}
           tranCong={TRAN_CONG}
           tranTru={TRAN_TRU}
@@ -601,9 +613,8 @@ export default function KpiScoreBoard({
           // KHÔNG truyền `thongBao`: gói mẫu để sẵn số 6, mà hệ thống chưa có
           // nguồn đếm thông báo nào — hiện lên là con số bịa.
           nguoiDung={{ ten: phieu?.owner_name }}
-          // Ghi chú để CHỈ ĐỌC ở chế độ xem — đúng như bảng cũ, nơi ô này chỉ
-          // mở khi đã bấm "Chấm điểm" (suaDuocDieuChinh).
           ghiChuChung={ghiChuChung}
+          onGhiChuChung={suaDuocDieuChinh ? setGhiChuChung : undefined}
           onChamDiem={chamDuocTuCham || chamDuocQuanLy ? () => setDangCham(true) : undefined}
           onNopBaoCao={chamDuocTuCham ? nopPhieu : undefined}
           onDuyet={canReview ? (stage) => kyDuyet(stage, "approved") : undefined}

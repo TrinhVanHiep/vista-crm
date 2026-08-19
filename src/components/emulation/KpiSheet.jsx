@@ -51,16 +51,17 @@ function StatGon({ ico, nhan, giaTri, mau }) {
 }
 
 /** Bảng điểm cộng hoặc điểm trừ — cùng cấu trúc, khác tone màu. */
-function BangDieuChinh({ loai, nhan, quyTac, tran }) {
+function BangDieuChinh({ loai, nhan, quyTac, tran, dangCham, nhapGhiNhan = {}, onDoiGhiNhan }) {
   const dau = loai === "plus" ? "+" : "-";
   return (
-    <div className={`kpi2-adj kpi2-adj--${loai}`}>
+    <div className={`kpi2-adj kpi2-adj--${loai}${dangCham ? " kpi2-adj--cham" : ""}`}>
       <div className="kpi2-adj__h">
         {loai === "plus" ? <IcCongTron w={21} /> : <IcTruTron w={21} />}
         {nhan}
       </div>
       <div className="kpi2-adj__cols kpi2-adj__hd">
         <span>STT</span><span>Tiêu chí</span><span>Cách tính</span><span>Trần</span>
+        {dangCham ? <span>Ghi nhận</span> : null}
       </div>
       {quyTac.map((r, i) => (
         <div className="kpi2-adj__cols kpi2-adj__r" key={r.id ?? i}>
@@ -68,6 +69,22 @@ function BangDieuChinh({ loai, nhan, quyTac, tran }) {
           <span className="kpi2-adj__t">{r.title || r.name || "—"}</span>
           <span className="kpi2-adj__how">{r.description || r.formula || "—"}</span>
           <span className="kpi2-adj__cap">{soGon(r.cap ?? r.max_points ?? 5)}</span>
+          {dangCham ? (
+          <span className="kpi2-adj__got">
+            {onDoiGhiNhan ? (
+              <input
+                type="number"
+                min="0"
+                max={Number(r.cap ?? r.max_points ?? 5)}
+                step="any"
+                value={nhapGhiNhan[r.id] ?? ""}
+                onChange={(e) => onDoiGhiNhan(r.id, e.target.value)}
+              />
+            ) : (
+              <span>{nhapGhiNhan[r.id] ? `${dau}${soGon(nhapGhiNhan[r.id])}` : "—"}</span>
+            )}
+          </span>
+          ) : null}
         </div>
       ))}
       <div className="kpi2-adj__f">
@@ -119,6 +136,20 @@ export default function KpiSheet({
   nhapDuyet = {},
   onDoiDuyet,
   dangKy = "",
+  // Chấm điểm NGAY TRONG màn này thay vì nhảy sang một giao diện khác.
+  dangCham = false,
+  suaDuocTuCham = false,
+  suaDuocQuanLy = false,
+  suaDuocDieuChinh = false,
+  nhapTuCham = {},
+  nhapQuanLy = {},
+  nhapGhiNhan = {},
+  onDoiTuCham,
+  onDoiQuanLy,
+  onDoiGhiNhan,
+  onLuuDiem,
+  onHuyCham,
+  dangLuu = false,
   onDuyet,
   onYeuCauSua,
   onXuatPDF,
@@ -132,13 +163,7 @@ export default function KpiSheet({
       {/* ── tiêu đề trang ── */}
       <div className="kpi2-head">
         <div className="kpi2-head__t">
-          {nhungTrongKhung ? (
-            phieu?.status ? (
-              <span className="kpi2-appr__st kpi2-status" data-tt={phieu.status}>
-                {nhanTrangThai[phieu.status] || phieu.status}
-              </span>
-            ) : null
-          ) : (
+          {nhungTrongKhung ? null : (
             <h1>
               BÁO CÁO THI ĐUA THÁNG {thang}/{year}
               {phieu?.status ? (
@@ -155,7 +180,22 @@ export default function KpiSheet({
           )}
         </div>
         <div className="kpi2-acts kpi2-noprint">
-          {onChamDiem ? (
+          {dangCham ? (
+            <>
+              <button type="button" className="kpi2-btn kpi2-btn--ghost" onClick={onHuyCham}>
+                Huỷ
+              </button>
+              <button
+                type="button"
+                className="kpi2-btn kpi2-btn--primary"
+                disabled={dangLuu}
+                onClick={onLuuDiem}
+              >
+                {dangLuu ? "Đang lưu..." : "Lưu điểm"}
+              </button>
+            </>
+          ) : null}
+          {!dangCham && onChamDiem ? (
             <button type="button" className="kpi2-btn kpi2-btn--ghost" onClick={onChamDiem}>
               <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M4 20h4l10-10a2.8 2.8 0 0 0-4-4L4 16v4z" />
@@ -244,7 +284,29 @@ export default function KpiSheet({
                         <span className="kpi2-row__d">{c.description || "—"}</span>
                         <span>{soGon(c.max_score)} điểm</span>
                         <span className="kpi2-row__got">
-                          {hienSo(dat)}{dat != null ? " điểm" : ""}
+                          {suaDuocQuanLy ? (
+                            <input
+                              className="kpi2-inp"
+                              type="number"
+                              min="0"
+                              max={Number(c.max_score)}
+                              step="any"
+                              value={nhapQuanLy[c.id] ?? ""}
+                              onChange={(e) => onDoiQuanLy?.(c.id, e.target.value)}
+                            />
+                          ) : suaDuocTuCham ? (
+                            <input
+                              className="kpi2-inp"
+                              type="number"
+                              min="0"
+                              max={Number(c.max_score)}
+                              step="any"
+                              value={nhapTuCham[c.id] ?? ""}
+                              onChange={(e) => onDoiTuCham?.(c.id, e.target.value)}
+                            />
+                          ) : (
+                            <>{hienSo(dat)}{dat != null ? " điểm" : ""}</>
+                          )}
                           {/* Khi quản lý chấm lại, điểm giáo viên tự chấm bị
                               nuốt mất — giáo viên không biết mình bị hạ bao
                               nhiêu, mà đối chiếu hai cột mới là mục đích chính
@@ -276,8 +338,14 @@ export default function KpiSheet({
 
         <section className="kpi2-card" data-screen-label="02">
           <h2 className="kpi2-card__h kpi2-card__h--md">2.&nbsp;&nbsp;ĐIỂM CỘNG / ĐIỂM TRỪ</h2>
-          <BangDieuChinh loai="plus" nhan={`A.  Điểm cộng (tối đa +${tranCong} điểm)`} quyTac={quyTacCong} tran={tranCong} />
-          <BangDieuChinh loai="minus" nhan={`B.  Điểm trừ (tối đa –${tranTru} điểm)`} quyTac={quyTacTru} tran={tranTru} />
+          <BangDieuChinh loai="plus" nhan={`A.  Điểm cộng (tối đa +${tranCong} điểm)`} quyTac={quyTacCong}
+            dangCham={suaDuocDieuChinh}
+            nhapGhiNhan={nhapGhiNhan}
+            onDoiGhiNhan={onDoiGhiNhan} tran={tranCong} />
+          <BangDieuChinh loai="minus" nhan={`B.  Điểm trừ (tối đa –${tranTru} điểm)`} quyTac={quyTacTru}
+            dangCham={suaDuocDieuChinh}
+            nhapGhiNhan={nhapGhiNhan}
+            onDoiGhiNhan={onDoiGhiNhan} tran={tranTru} />
         </section>
       </div>
 

@@ -18,7 +18,9 @@
 /* ==========================================================================
    A. BÁO CÁO THI ĐUA THÁNG  (.kpi2)
    ========================================================================== */
-.kpi2 { position: relative; background: #FEFEFE; color: #2A2F45; }
+/* Dùng chung nền với phần còn lại của trang. Trước đây tô #FEFEFE nên tạo ra
+   một mảng trắng ngà nằm đè lên nền kem của khung, nhìn như vá vào. */
+.kpi2 { position: relative; background: transparent; color: #2A2F45; }
 /* Khổ thiết kế gốc là 1536x1024. Giữ nguyên bề ngang để bố cục đúng như bản vẽ,
    nhưng KHÔNG khoá chiều cao và KHÔNG cắt tràn: khung chấm điểm có thể nhiều
    tiêu chí hơn bản mẫu, `height:1024px; overflow:hidden` sẽ cắt mất phần dôi ra
@@ -47,12 +49,16 @@
 .kpi2-scroll { overflow-x: auto; overflow-y: visible; }
 
 /* --- tiêu đề trang --- */
-.kpi2-head { display: flex; align-items: flex-start; gap: 24px; padding: 7px 23px 0 10px; }
+.kpi2-head { display: flex; align-items: center; gap: 24px; padding: 4px 16px 10px; }
 .kpi2-head__t { flex: 1; min-width: 0; }
 .kpi2-head__t h1 { margin: 0; font-size: 25px; font-weight: 800; letter-spacing: .2px; line-height: 1.28; color: #B4231F; }
 .kpi2-crumb { margin-top: 4px; display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: #8A8FA3; }
 .kpi2-crumb i { color: #C9CCD8; font-style: normal; }
-.kpi2-acts { display: flex; align-items: center; gap: 16px; height: 42px; }
+/* Nút "Nộp báo cáo" là hành động không lùi được, nên tách hẳn khỏi nhóm nút
+   phụ bên trái thay vì đứng sát. */
+.kpi2-acts { display: flex; align-items: center; gap: 14px; min-height: 42px;
+  flex-wrap: wrap; justify-content: flex-end; }
+.kpi2-acts .kpi2-btn--primary { margin-left: 10px; }
 
 .kpi2-btn { height: 42px; padding: 0 20px; border-radius: 10px; display: flex; align-items: center; gap: 11px;
   font-family: inherit; font-size: 13.5px; font-weight: 600; white-space: nowrap; cursor: pointer; }
@@ -149,6 +155,10 @@
 .kpi2-adj--minus .kpi2-adj__h { color: #C42A22; }
 .kpi2-adj__cols { display: grid;
   grid-template-columns: 36px minmax(80px, 1fr) minmax(120px, 2.1fr) 52px; }
+/* Chỉ khi đang chấm mới có thêm cột "Ghi nhận"; để cột đó thường trực sẽ bóp
+   mất cột "Cách tính" vốn là phần chữ dài nhất bảng. */
+.kpi2-adj--cham .kpi2-adj__cols {
+  grid-template-columns: 34px minmax(74px, 1fr) minmax(104px, 1.9fr) 44px 62px; }
 .kpi2-adj__hd { height: 26px; align-items: center; font-size: 11px; font-weight: 600; color: #3B4165; text-align: center; }
 .kpi2-adj--plus .kpi2-adj__hd { background: #F4FAF6; border-top: 1px solid #E3F0E8; border-bottom: 1px solid #E3F0E8; }
 .kpi2-adj--minus .kpi2-adj__hd { background: #FFF6F4; border-top: 1px solid #FBDDD8; border-bottom: 1px solid #FBDDD8; }
@@ -368,3 +378,13 @@
 .kpi2-appr__in input, .kpi2-appr__in select { height: 29px; padding: 0 8px; font-family: inherit;
   font-size: 12.5px; color: #2A2F45; border: 1px solid #E3E6EE; border-radius: 7px; background: #fff; }
 .kpi2 .kpi2-ok:disabled, .kpi2 .kpi2-fix:disabled { opacity: .55; cursor: not-allowed; }
+
+/* Ô nhập điểm ngay trong bảng — chấm điểm không rời khỏi màn này nữa. */
+.kpi2-inp { width: 100%; max-width: 62px; height: 28px; text-align: center; font-family: inherit;
+  font-size: 12.5px; font-weight: 600; color: #2A2F45; border: 1px solid #E3E6EE;
+  border-radius: 7px; background: #fff; }
+.kpi2-inp:focus { outline: 2px solid #FBD9BC; outline-offset: 0; border-color: #F86A0B; }
+.kpi2-adj__got { display: flex; align-items: center; justify-content: center; padding: 4px; }
+.kpi2-adj__got input { width: 100%; max-width: 54px; height: 26px; text-align: center;
+  font-family: inherit; font-size: 12px; font-weight: 600; border: 1px solid #E3E6EE;
+  border-radius: 6px; background: #fff; }
