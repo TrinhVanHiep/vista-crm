@@ -400,7 +400,7 @@ export default function KpiSheet({
                       Ý kiến
                       <input
                         type="text"
-                        placeholder="Bắt buộc khi yêu cầu chỉnh sửa"
+                        placeholder="Bắt buộc khi yêu cầu sửa"
                         value={nhapDuyet[o.stage]?.ghiChu ?? ""}
                         onChange={(e) => onDoiDuyet(o.stage, "ghiChu", e.target.value)}
                       />
