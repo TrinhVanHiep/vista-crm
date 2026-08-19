@@ -7,6 +7,8 @@ import {
   createTeachingSession,
   importSchedules,
   createSchedule,
+  updateSchedule,
+  deleteSchedule,
   listAssignableUsers,
   importTeachingSessions,
   listCompetitionFrames,
@@ -334,10 +336,38 @@ const truncateText = (value, maxLength = 96) => {
   return `${text.slice(0, maxLength).trim()}...`;
 };
 
-const getErrorMessage = (error, fallback) =>
-  error?.response?.data?.detail ||
-  error?.response?.data?.message ||
-  fallback;
+const NHAN_TRUONG_LOI = {
+  title: "Nội dung công việc",
+  description: "Mô tả chi tiết",
+  category: "Loại lịch",
+  event_date: "Ngày thực hiện",
+  time_label: "Thời gian",
+  status: "Trạng thái",
+  assigned_to_id: "Người phụ trách",
+  week_key: "Tuần",
+};
+
+// DRF trả lỗi kiểm tra dữ liệu theo TÊN TRƯỜNG ({"assigned_to_id": ["..."]}),
+// không có khoá detail — chỉ đọc detail/message thì người dùng luôn thấy một
+// thông báo chung chung và không biết ô nào sai.
+const getErrorMessage = (error, fallback) => {
+  const data = error?.response?.data;
+  if (data?.detail) return data.detail;
+  if (data?.message) return data.message;
+  if (data && typeof data === "object" && !Array.isArray(data)) {
+    const dong = Object.entries(data)
+      .map(([khoa, gt]) => {
+        const noiDung = [].concat(gt).filter((x) => typeof x === "string").join(" ");
+        if (!noiDung) return "";
+        return khoa === "non_field_errors"
+          ? noiDung
+          : `${NHAN_TRUONG_LOI[khoa] || khoa}: ${noiDung}`;
+      })
+      .filter(Boolean);
+    if (dong.length) return dong.join("\n");
+  }
+  return fallback;
+};
 
 const toDateInputValue = (date) =>
   `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
@@ -838,6 +868,11 @@ function CalendarDetail() {
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingSessionId, setEditingSessionId] = useState(null);
+  const [editingScheduleId, setEditingScheduleId] = useState(null);
+  // Bản ghi gốc lúc mở Sửa — dùng để CHỈ gửi những trường thực sự đổi.
+  const [editingScheduleRaw, setEditingScheduleRaw] = useState(null);
+  const [deletingScheduleId, setDeletingScheduleId] = useState(null);
+  const [scheduleActionError, setScheduleActionError] = useState("");
   const [deletingSessionId, setDeletingSessionId] = useState(null);
   const [createLoading, setCreateLoading] = useState(false);
   // Người có thể nhận lịch công tác. KHÔNG dùng lại danh sách `teachers`: nó chỉ
@@ -887,8 +922,8 @@ function CalendarDetail() {
     const closers = [
       [reviewReasonTarget, () => setReviewReasonTarget(null)],
       [reportSessionId, () => setReportSessionId(null)],
-      [detailSession, () => setDetailSession(null)],
-      [isCreateOpen, () => { setIsCreateOpen(false); setEditingSessionId(null); }],
+      [detailSession, () => { setDetailSession(null); setScheduleActionError(""); }],
+      [isCreateOpen, () => { setIsCreateOpen(false); setEditingSessionId(null); setEditingScheduleId(null); setEditingScheduleRaw(null); }],
       [isImportOpen, () => setIsImportOpen(false)],
       [isStaffCreateOpen, () => setIsStaffCreateOpen(false)],
       [staffReviewGroup, () => setStaffReviewGroup(null)],
@@ -2115,8 +2150,38 @@ function CalendarDetail() {
         time_label: thoiGian,
         status: createForm.sc_status,
       };
-      if (createForm.sc_assignee) payload.assigned_to_id = Number(createForm.sc_assignee);
-      await createSchedule(payload);
+      // Gửi cả khi bỏ trống để người dùng gỡ được người phụ trách đã giao.
+      payload.assigned_to_id = createForm.sc_assignee ? Number(createForm.sc_assignee) : null;
+      if (editingScheduleId) {
+        // CHỈ gửi trường thực sự đổi. Gửi cả gói sẽ hỏng với giáo viên: backend
+        // cho họ đổi trạng thái lịch người khác tạo, nhưng nếu gói có thêm
+        // trường nào khác là trả 403 — tức bấm Sửa để đổi mỗi trạng thái cũng
+        // không bao giờ lưu được.
+        const goc = editingScheduleRaw || {};
+        const cu = {
+          title: goc.title ?? "",
+          description: goc.description ?? "",
+          category: goc.category,
+          event_date: goc.event_date ?? "",
+          time_label: goc.time_label ?? "",
+          status: goc.status,
+          assigned_to_id: goc.assigned_to?.id ?? null,
+        };
+        const thayDoi = {};
+        Object.entries(payload).forEach(([khoa, giaTri]) => {
+          if (String(giaTri ?? "") !== String(cu[khoa] ?? "")) thayDoi[khoa] = giaTri;
+        });
+        if (!Object.keys(thayDoi).length) {
+          setIsCreateOpen(false);
+          setEditingScheduleId(null);
+          setEditingScheduleRaw(null);
+          setNotice("Không có thay đổi nào để lưu.");
+          return;
+        }
+        await updateSchedule(editingScheduleId, thayDoi);
+      } else {
+        await createSchedule(payload);
+      }
       setIsCreateOpen(false);
       setCreateForm((prev) => ({
         ...prev,
@@ -2128,10 +2193,20 @@ function CalendarDetail() {
         sc_assignee: "",
       }));
       const nhan = WORK_CARDS.find((c) => c.id === loai)?.fullLabel || "lịch công tác";
-      setNotice(`Đã thêm "${tieuDe}" vào ${nhan}.`);
+      setNotice(
+        editingScheduleId
+          ? `Đã lưu thay đổi cho "${tieuDe}".`
+          : `Đã thêm "${tieuDe}" vào ${nhan}.`,
+      );
+      setEditingScheduleId(null); setEditingScheduleRaw(null);
       setReloadKey((value) => value + 1);
     } catch (error) {
-      setCreateError(getErrorMessage(error, "Không thể tạo lịch công tác."));
+      setCreateError(
+        getErrorMessage(
+          error,
+          editingScheduleId ? "Không thể lưu thay đổi." : "Không thể tạo lịch công tác.",
+        ),
+      );
     } finally {
       setCreateLoading(false);
     }
@@ -2254,6 +2329,7 @@ function CalendarDetail() {
     const startLocal = raw.start_at ? toDateTimeLocalValue(raw.start_at) : "";
     const endLocal = raw.end_at ? toDateTimeLocalValue(raw.end_at) : "";
     setEditingSessionId(raw.id);
+    setEditingScheduleId(null); setEditingScheduleRaw(null);
     setCreateForm((prev) => ({
       ...prev,
       // BẮT BUỘC ép lại: state form không được reset khi đóng modal, nên nếu
@@ -2270,6 +2346,66 @@ function CalendarDetail() {
       status: raw.status || "scheduled",
     }));
     setIsCreateOpen(true);
+  };
+
+  // Tách "Hạng mục: Nội dung" ngược lại thành hai ô.
+  //
+  // Model không có trường hạng mục riêng — nó chỉ được ghép vào đầu tiêu đề khi
+  // lưu. Tách bừa theo dấu ":" sẽ hỏng với những tiêu đề chứa dấu hai chấm sẵn
+  // ("Họp 9:00 sáng"), nên chỉ chấp nhận phép tách nào GHÉP LẠI RA ĐÚNG tiêu đề
+  // gốc; không thì để nguyên cả câu vào ô nội dung.
+  const tachHangMuc = (title) => {
+    const nguyen = String(title || "");
+    const vt = nguyen.indexOf(": ");
+    if (vt <= 0) return { hangMuc: "", noiDung: nguyen };
+    const hangMuc = nguyen.slice(0, vt);
+    const noiDung = nguyen.slice(vt + 2);
+    if (!noiDung || `${hangMuc}: ${noiDung}` !== nguyen) {
+      return { hangMuc: "", noiDung: nguyen };
+    }
+    return { hangMuc, noiDung };
+  };
+
+  const openEditSchedule = (raw) => {
+    if (!raw) return;
+    setScheduleActionError("");
+    setDetailSession(null);
+    setCreateError("");
+    setEditingSessionId(null);
+    setEditingScheduleId(raw.id);
+    setEditingScheduleRaw(raw);
+    const { hangMuc, noiDung } = tachHangMuc(raw.title);
+    setCreateForm((prev) => ({
+      ...prev,
+      calendar_type: raw.category,
+      sc_date: raw.event_date || todayString,
+      sc_subcategory: hangMuc,
+      sc_title: noiDung,
+      sc_description: raw.description || "",
+      sc_time_label: raw.time_label || "",
+      sc_status: raw.status || "todo",
+      sc_assignee: raw.assigned_to?.id ? String(raw.assigned_to.id) : "",
+    }));
+    setIsCreateOpen(true);
+  };
+
+  const handleDeleteSchedule = async (raw) => {
+    if (!raw?.id) return;
+    if (!window.confirm(`Xoá lịch "${raw.title}" ngày ${formatShortDate(raw.event_date)}?`)) {
+      return;
+    }
+    setDeletingScheduleId(raw.id);
+    setScheduleActionError("");
+    try {
+      await deleteSchedule(raw.id);
+      setDetailSession(null);
+      setNotice(`Đã xoá "${raw.title}".`);
+      setReloadKey((value) => value + 1);
+    } catch (error) {
+      setScheduleActionError(getErrorMessage(error, "Không thể xoá lịch công tác."));
+    } finally {
+      setDeletingScheduleId(null);
+    }
   };
 
   // Xoá 1 ca dạy trực tiếp từ modal chi tiết (có xác nhận).
@@ -3120,6 +3256,7 @@ function CalendarDetail() {
                     const [dy, dm, dday] = draftDate.split("-").map(Number);
                     setIsCreateOpen(true);
                     setEditingSessionId(null);
+                    setEditingScheduleId(null); setEditingScheduleRaw(null);
                     setCreateForm((prev) => ({
                       ...prev,
                       calendar_type: calendarTypeOptions.some((c) => c.id === "teaching_plan")
@@ -3749,6 +3886,45 @@ function CalendarDetail() {
                 </dl>
               )}
             </div>
+            {/* Lịch công tác: trước đây modal chi tiết không có footer nào cho
+                loại này nên xem xong không sửa/xoá được gì. */}
+            {detailSession.kind === "schedule" && (
+              <footer className={styles.modalFooter} style={{ flexWrap: "wrap" }}>
+                {scheduleActionError && (
+                  <div
+                    className={styles.errorNotice}
+                    style={{ width: "100%", marginBottom: 4, whiteSpace: "pre-line" }}
+                  >
+                    {scheduleActionError}
+                  </div>
+                )}
+                {/* Sửa: hiện với ai được nhập loại lịch đó. Backend còn siết thêm
+                    một tầng — giáo viên chỉ sửa toàn phần lịch DO MÌNH tạo, lịch
+                    người khác tạo thì chỉ đổi được trạng thái. */}
+                {calendarTypeOptions.some((c) => c.id === detailSession.raw.category) && (
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={() => openEditSchedule(detailSession.raw)}
+                  >
+                    Sửa
+                  </button>
+                )}
+                {/* Xoá: chỉ admin và super admin. Quản lý cơ sở, quản lý đào tạo
+                    và nhân viên đều không thấy nút này, khớp với backend. */}
+                {canManageSessions && (
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    style={{ color: "#c0392b", borderColor: "#e7b6ad", marginLeft: "auto" }}
+                    disabled={deletingScheduleId === detailSession.raw.id}
+                    onClick={() => handleDeleteSchedule(detailSession.raw)}
+                  >
+                    {deletingScheduleId === detailSession.raw.id ? "Đang xoá..." : "Xoá"}
+                  </button>
+                )}
+              </footer>
+            )}
             {detailSession.kind === "session" && canCreateTeachingPlan && (
               // Không đặt lại gap ở đây: .modalFooter đã là 12px và 4 hộp thoại còn
               // lại đều dùng mức đó, riêng chỗ này từng bị đè xuống 8 nên nhìn chật
@@ -4108,7 +4284,7 @@ function CalendarDetail() {
                   ? "Sửa ca dạy"
                   : createForm.calendar_type === "teaching_plan"
                     ? "Tạo ca dạy thủ công"
-                    : `Thêm lịch ${
+                    : `${editingScheduleId ? "Sửa lịch" : "Thêm lịch"} ${
                         WORK_CARDS.find((c) => c.id === createForm.calendar_type)?.fullLabel || ""
                       }`}
               </h2>
@@ -4116,7 +4292,7 @@ function CalendarDetail() {
                 type="button"
                 className={styles.iconButton}
                 aria-label="Đóng"
-                onClick={() => { setIsCreateOpen(false); setEditingSessionId(null); }}
+                onClick={() => { setIsCreateOpen(false); setEditingSessionId(null); setEditingScheduleId(null); setEditingScheduleRaw(null); }}
               >
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                   <path
@@ -4136,7 +4312,7 @@ function CalendarDetail() {
                   <span>Loại lịch</span>
                   <select
                     value={createForm.calendar_type}
-                    disabled={Boolean(editingSessionId)}
+                    disabled={Boolean(editingSessionId || editingScheduleId)}
                     onChange={(event) => {
                       const loai = event.target.value;
                       setCreateError("");
@@ -4448,7 +4624,7 @@ function CalendarDetail() {
                 <button
                   type="button"
                   className={styles.secondaryButton}
-                  onClick={() => { setIsCreateOpen(false); setEditingSessionId(null); }}
+                  onClick={() => { setIsCreateOpen(false); setEditingSessionId(null); setEditingScheduleId(null); setEditingScheduleRaw(null); }}
                 >
                   Đóng
                 </button>
@@ -4461,9 +4637,11 @@ function CalendarDetail() {
                     ? "Đang lưu..."
                     : editingSessionId
                       ? "Lưu thay đổi"
-                      : createForm.calendar_type === "teaching_plan"
-                        ? "Tạo ca dạy"
-                        : "Tạo lịch"}
+                      : editingScheduleId
+                        ? "Lưu thay đổi"
+                        : createForm.calendar_type === "teaching_plan"
+                          ? "Tạo ca dạy"
+                          : "Tạo lịch"}
                 </button>
               </div>
             </form>

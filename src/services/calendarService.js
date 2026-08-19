@@ -185,6 +185,15 @@ export async function listAssignableUsers() {
   return data;
 }
 
+export async function updateSchedule(scheduleId, payload) {
+  const { data } = await apiClient.patch(`/schedules/schedules/${scheduleId}/`, payload);
+  return data;
+}
+
+export async function deleteSchedule(scheduleId) {
+  await apiClient.delete(`/schedules/schedules/${scheduleId}/`);
+}
+
 export async function createSchedule(payload) {
   const { data } = await apiClient.post("/schedules/schedules/", payload);
   return data;
