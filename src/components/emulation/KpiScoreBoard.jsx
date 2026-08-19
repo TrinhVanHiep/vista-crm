@@ -575,7 +575,6 @@ export default function KpiScoreBoard({
             <div style={{ flex: 1 }}>{thongTin}</div>
           </div>
         ) : null}
-        <div className="kpi2-scroll">
         <KpiSheet
           nhungTrongKhung
           month={month}
@@ -613,7 +612,6 @@ export default function KpiScoreBoard({
           onXuatPDF={() => setThongTin("Xuất PDF sẽ được bổ sung ở bước sau.")}
           onXuatExcel={() => setThongTin("Xuất Excel sẽ được bổ sung ở bước sau.")}
         />
-        </div>
       </>
     );
   }

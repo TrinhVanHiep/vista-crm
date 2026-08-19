@@ -23,7 +23,24 @@
    nhưng KHÔNG khoá chiều cao và KHÔNG cắt tràn: khung chấm điểm có thể nhiều
    tiêu chí hơn bản mẫu, `height:1024px; overflow:hidden` sẽ cắt mất phần dôi ra
    mà không để lại dấu vết nào. Bề ngang do .kpi2-scroll cuộn. */
-.kpi2--fixed { width: 1536px; min-width: 1536px; min-height: 1024px; }
+/* Trước đây khoá cứng 1536px theo khổ bản vẽ, rộng hơn khung ứng dụng nên phải
+   cuộn ngang và chữ trông bé tí. Nay lấp đầy khung: bố cục giữ đúng tỉ lệ bản
+   vẽ nhưng giãn theo bề ngang thật. */
+.kpi2--fixed { width: 100%; }
+
+/* Bề rộng các cột của bảng chấm điểm khai MỘT CHỖ: hàng tiêu đề, khối nhóm và
+   từng dòng là ba lưới riêng biệt, phải dùng chung định nghĩa thì mới thẳng cột.
+   Các cột co giãn dùng fr nên chúng luôn khớp nhau dù khung rộng bao nhiêu. */
+.kpi2 {
+  --c-stt: 34px;
+  --c-nhom: 92px;
+  --c-i: 26px;
+  --c-tc: minmax(96px, 1.15fr);
+  --c-mota: minmax(150px, 2.4fr);
+  --c-max: 60px;
+  --c-dat: 68px;
+  --c-tt: 92px;
+}
 
 /* Khung ứng dụng hẹp hơn khổ thiết kế, không có lớp này thì 380px bên phải
    (bảng điểm trừ, thang xếp loại) bị cắt và không có cách nào với tới. */
@@ -33,7 +50,7 @@
 .kpi2-head { display: flex; align-items: flex-start; gap: 24px; padding: 7px 23px 0 10px; }
 .kpi2-head__t { flex: 1; min-width: 0; }
 .kpi2-head__t h1 { margin: 0; font-size: 25px; font-weight: 800; letter-spacing: .2px; line-height: 1.28; color: #B4231F; }
-.kpi2-crumb { margin-top: 4px; display: flex; align-items: center; gap: 9px; font-size: 11.5px; color: #8A8FA3; }
+.kpi2-crumb { margin-top: 4px; display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: #8A8FA3; }
 .kpi2-crumb i { color: #C9CCD8; font-style: normal; }
 .kpi2-acts { display: flex; align-items: center; gap: 16px; height: 42px; }
 
@@ -46,19 +63,25 @@
 .kpi2-btn--primary:hover { background: #E85C05; }
 .kpi2-bell { position: relative; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; }
 .kpi2-bell b { position: absolute; right: -5px; top: -4px; min-width: 15px; height: 15px; padding: 0 3px; border-radius: 8px;
-  background: #E8342B; color: #fff; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  background: #E8342B; color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
 .kpi2-user { display: flex; align-items: center; gap: 11px; }
 .kpi2-user img { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 2px solid #FBE6D6; }
 .kpi2-user span { font-size: 13.5px; font-weight: 600; color: #2A2F45; white-space: nowrap; }
 
 /* --- dải chỉ số --- */
-.kpi2-strip { display: grid; gap: 10px; padding: 0 23px 0 10px;
-  grid-template-columns: 182px 187px 195px 182px 165px 104px 97px 114px; height: 71px; }
-.kpi2-stat { border: 1px solid #F4EBE0; border-radius: 12px; background: #fff; display: flex; align-items: center; gap: 15px; padding-left: 21px; }
+.kpi2-strip { display: grid; gap: 10px; padding: 0 16px;
+  /* Bản vẽ khai 8 cột px cố định (tổng 1226px) nên tràn khỏi khung ứng dụng.
+     Chuyển sang tỉ lệ để tám ô luôn vừa đúng bề ngang thật. */
+  grid-template-columns: minmax(0,182fr) minmax(0,187fr) minmax(0,195fr) minmax(0,182fr)
+    minmax(0,165fr) minmax(0,104fr) minmax(0,97fr) minmax(0,114fr);
+  min-height: 71px; }
+.kpi2-stat { border: 1px solid #F4EBE0; border-radius: 12px; background: #fff; display: flex;
+  align-items: center; gap: 11px; padding: 8px 10px 8px 14px; min-width: 0; }
 .kpi2-stat--tight { gap: 9px; padding-left: 12px; }
-.kpi2-stat__lb { font-size: 12.5px; font-weight: 600; line-height: 1.3; white-space: nowrap; }
-.kpi2-stat--tight .kpi2-stat__lb { font-size: 11px; }
-.kpi2-stat__val { margin-top: 2px; font-size: 22px; font-weight: 800; line-height: 1.15; white-space: nowrap; color: #2A2F45; }
+/* Bỏ nowrap: ô hẹp lại thì nhãn dài phải xuống dòng thay vì đội ra ngoài. */
+.kpi2-stat__lb { font-size: 12.5px; font-weight: 600; line-height: 1.3; }
+.kpi2-stat--tight .kpi2-stat__lb { font-size: 12px; }
+.kpi2-stat__val { margin-top: 2px; font-size: 21px; font-weight: 800; line-height: 1.15; white-space: nowrap; color: #2A2F45; }
 .kpi2-stat--tight .kpi2-stat__val { font-size: 20px; }
 .kpi2-stat__val small { font-size: 14px; font-weight: 500; color: #9AA0B2; }
 .kpi2-stat__val.green { color: #178A4C; }
@@ -69,41 +92,51 @@
 .kpi2-card { border: 1px solid #F4EBE0; border-radius: 14px; background: #fff; overflow: hidden; }
 .kpi2-card__h { margin: 0; height: 37px; display: flex; align-items: center; padding-left: 18px;
   font-size: 14px; font-weight: 700; letter-spacing: .2px; color: #E8342B; }
-.kpi2-card__h--sm { font-size: 12px; }
+.kpi2-card__h--sm { font-size: 12.5px; }
 .kpi2-card__h--md { font-size: 13.5px; height: 39px; padding-left: 16px; }
 
 /* --- bố cục 2 cột + hàng dưới --- */
-.kpi2-main { display: grid; grid-template-columns: 848px 437px; gap: 10px; padding: 12px 23px 0 10px; }
-.kpi2-bottom { display: grid; grid-template-columns: 700px 287px 285px; gap: 12px; padding: 10px 23px 0 10px; }
+.kpi2-main { display: grid; grid-template-columns: minmax(0, 900fr) minmax(0, 400fr);
+  gap: 14px; padding: 14px 16px 0; }
+.kpi2-bottom { display: grid; grid-template-columns: minmax(0, 700fr) minmax(0, 287fr) minmax(0, 285fr);
+  gap: 14px; padding: 14px 16px 16px; }
 
 /* --- bảng chấm điểm --- */
-.kpi2-tbl__cols { display: grid; grid-template-columns: 46px 90px 34px 141px 281px 82px 86px 86px; }
+.kpi2-tbl__cols { display: grid;
+  grid-template-columns: var(--c-stt) var(--c-nhom) var(--c-i) var(--c-tc) var(--c-mota) var(--c-max) var(--c-dat) var(--c-tt); }
 .kpi2-tbl__hd { height: 27px; align-items: center; background: #FEF8F4;
   border-top: 1px solid #F6EAE0; border-bottom: 1px solid #F6EAE0;
-  font-size: 10px; font-weight: 600; color: #3B4165; text-align: center; }
+  font-size: 11.5px; font-weight: 600; color: #3B4165; text-align: center; }
 .kpi2-tbl__hd > span + span { border-left: 1px solid #F6EAE0; }
 
-.kpi2-grp { display: grid; grid-template-columns: 46px 90px 622px; }
+.kpi2-grp { display: grid; grid-template-columns: var(--c-stt) var(--c-nhom) minmax(0, 1fr); }
 .kpi2-grp + .kpi2-grp { border-top: 1px solid #F6EAE0; }
 .kpi2-grp__no { display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 800; color: #F86A0B; }
 .kpi2-grp__id { border-left: 1px solid #F6EAE0; border-right: 1px solid #F6EAE0;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; }
-.kpi2-grp__id span { font-size: 10.5px; font-weight: 600; color: #F86A0B; white-space: nowrap; }
+.kpi2-grp__id span { font-size: 11.5px; font-weight: 600; color: #F86A0B; white-space: nowrap; }
 
-.kpi2-row { display: grid; grid-template-columns: 34px 141px 281px 82px 86px 86px; align-items: center;
-  border-bottom: 1px solid #FBF3EB; font-size: 9px; color: #3B4165; }
+.kpi2-row { display: grid;
+  grid-template-columns: var(--c-i) var(--c-tc) var(--c-mota) var(--c-max) var(--c-dat) var(--c-tt);
+  align-items: center;
+  border-bottom: 1px solid #FBF3EB; font-size: 11px; color: #3B4165; }
 .kpi2-row:last-of-type { border-bottom: 0; }
-.kpi2-row > span:nth-child(n+3) { border-left: 1px solid #FBF3EB; height: 100%; display: flex; align-items: center; justify-content: center; }
+.kpi2-row > span:nth-child(n+3) { border-left: 1px solid #FBF3EB; height: 100%; display: flex;
+  align-items: center; justify-content: center; text-align: center; }
+/* Ô có chữ xuống dòng cần đệm trên dưới, nếu không hai dòng dính sát viền. */
+.kpi2-row__t { padding: 7px 8px 7px 11px; }
 .kpi2-row__i { text-align: center; font-weight: 600; }
-.kpi2-row__t { padding-left: 11px; white-space: nowrap; }
-.kpi2-row__t--wrap { padding-left: 11px; font-size: 7.5px; line-height: 1.25; white-space: normal; }
-.kpi2-row__d { justify-content: flex-start !important; padding-left: 11px; font-size: 8px; color: #5A6080;
-  white-space: nowrap; overflow: hidden; }
+/* Cho xuống dòng: cắt cụt tên tiêu chí thì người dùng không đọc được việc
+   mình bị chấm điểm gì. */
+.kpi2-row__t { white-space: normal; line-height: 1.35; }
+.kpi2-row__t--wrap { line-height: 1.35; white-space: normal; }
+.kpi2-row__d { justify-content: flex-start !important; padding: 7px 11px; font-size: 11.5px;
+  color: #5A6080; white-space: normal; line-height: 1.45; }
 .kpi2-row__got { font-weight: 600; }
 .kpi2-row__st { gap: 6px; }
 .kpi2-row__st b { font-weight: 600; color: #178A4C; }
-.kpi2-sum { height: 24px; display: flex; align-items: center; justify-content: flex-end; padding-right: 97px;
-  border-top: 1px solid #F6EAE0; font-size: 10.5px; font-weight: 700; color: #E8342B; white-space: nowrap; }
+.kpi2-sum { height: 24px; display: flex; align-items: center; justify-content: flex-end; padding-right: calc(var(--c-max) + var(--c-dat) + var(--c-tt) - 60px);
+  border-top: 1px solid #F6EAE0; font-size: 11.5px; font-weight: 700; color: #E8342B; white-space: nowrap; }
 
 /* --- điểm cộng / điểm trừ --- */
 .kpi2-adj { margin: 0 9px; border-radius: 11px; overflow: hidden; }
@@ -111,17 +144,18 @@
 .kpi2-adj--plus { border: 1px solid #E3F0E8; background: #FCFEFD; }
 .kpi2-adj--minus { border: 1px solid #FBDDD8; background: #FFFDFC; }
 .kpi2-adj__h { height: 35px; display: flex; align-items: center; gap: 11px; padding-left: 11px;
-  font-size: 11.5px; font-weight: 700; }
+  font-size: 12.5px; font-weight: 700; }
 .kpi2-adj--plus .kpi2-adj__h { color: #12703F; }
 .kpi2-adj--minus .kpi2-adj__h { color: #C42A22; }
-.kpi2-adj__cols { display: grid; grid-template-columns: 38px 100px 229px 51px; }
-.kpi2-adj__hd { height: 26px; align-items: center; font-size: 9.5px; font-weight: 600; color: #3B4165; text-align: center; }
+.kpi2-adj__cols { display: grid;
+  grid-template-columns: 36px minmax(80px, 1fr) minmax(120px, 2.1fr) 52px; }
+.kpi2-adj__hd { height: 26px; align-items: center; font-size: 11px; font-weight: 600; color: #3B4165; text-align: center; }
 .kpi2-adj--plus .kpi2-adj__hd { background: #F4FAF6; border-top: 1px solid #E3F0E8; border-bottom: 1px solid #E3F0E8; }
 .kpi2-adj--minus .kpi2-adj__hd { background: #FFF6F4; border-top: 1px solid #FBDDD8; border-bottom: 1px solid #FBDDD8; }
 .kpi2-adj__hd > span + span { border-left: 1px solid currentColor; border-left-color: inherit; }
 .kpi2-adj--plus .kpi2-adj__hd > span + span { border-left-color: #E3F0E8; }
 .kpi2-adj--minus .kpi2-adj__hd > span + span { border-left-color: #FBDDD8; }
-.kpi2-adj__r { font-size: 9.5px; color: #3B4165; }
+.kpi2-adj__r { font-size: 11px; color: #3B4165; }
 .kpi2-adj--plus .kpi2-adj__r { border-bottom: 1px solid #EDF5F0; }
 .kpi2-adj--minus .kpi2-adj__r { border-bottom: 1px solid #FCEEEB; }
 .kpi2-adj__r:last-of-type { border-bottom: 0; }
@@ -135,45 +169,46 @@
 .kpi2-adj--plus .kpi2-adj__cap { color: #12703F; }
 .kpi2-adj--minus .kpi2-adj__cap { color: #C42A22; }
 .kpi2-adj__f { height: 36px; display: flex; align-items: center; justify-content: flex-end; gap: 22px; padding-right: 19px;
-  font-size: 11.5px; font-weight: 700; }
+  font-size: 12.5px; font-weight: 700; }
 .kpi2-adj__f b { font-size: 13px; font-weight: 800; }
 .kpi2-adj--plus .kpi2-adj__f { border-top: 1px solid #E3F0E8; color: #12703F; }
 .kpi2-adj--minus .kpi2-adj__f { border-top: 1px solid #FBDDD8; background: #FFF8F6; color: #C42A22; }
 
 /* --- phê duyệt --- */
-.kpi2-appr { padding: 0 12px; display: grid; grid-template-columns: 204px 213px 233px; gap: 13px; }
-.kpi2-appr__c { border: 1px solid #F4EBE0; border-radius: 11px; height: 143px; padding: 11px 12px 0; }
-.kpi2-appr__t { display: flex; align-items: center; gap: 10px; font-size: 10px; font-weight: 600; }
-.kpi2-appr__d { margin-top: 9px; font-size: 9.5px; color: #5A6080; line-height: 1.65; }
-.kpi2-appr__f { margin-top: 14px; display: flex; align-items: baseline; gap: 9px; font-size: 10px; font-weight: 700; color: #2A2F45; }
+.kpi2-appr { padding: 0 12px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 13px; }
+.kpi2-appr__c { border: 1px solid #F4EBE0; border-radius: 11px; min-height: 143px; padding: 11px 12px 12px; }
+.kpi2-appr__t { display: flex; align-items: center; gap: 10px; font-size: 11.5px; font-weight: 600; }
+.kpi2-appr__d { margin-top: 9px; font-size: 11px; color: #5A6080; line-height: 1.65; }
+.kpi2-appr__f { margin-top: 14px; display: flex; align-items: baseline; gap: 9px; font-size: 11.5px; font-weight: 700; color: #2A2F45; }
 .kpi2-appr__f i { width: 26px; border-bottom: 1.4px solid #9AA0B2; font-style: normal; }
 .kpi2-appr__b { margin-top: 14px; display: flex; gap: 9px; }
 .kpi2-ok, .kpi2-fix { height: 31px; border-radius: 8px; font-family: inherit; font-weight: 600;
   display: flex; align-items: center; justify-content: center; gap: 7px; white-space: nowrap; cursor: pointer; }
-.kpi2-ok { flex: 1; border: 0; background: #17703C; color: #fff; font-size: 10.5px; }
+.kpi2-ok { flex: 1; border: 0; background: #17703C; color: #fff; font-size: 11.5px; }
 .kpi2-ok:hover { background: #125E31; }
-.kpi2-fix { flex: 1.05; border: 1.3px solid #F1928A; background: #fff; color: #E8342B; font-size: 9px; gap: 6px; }
+.kpi2-fix { flex: 1.05; border: 1.3px solid #F1928A; background: #fff; color: #E8342B; font-size: 11px; gap: 6px; }
 .kpi2-fix:hover { background: #FFF6F4; }
 
 /* --- ghi chú + xuất file --- */
-.kpi2-note { margin: 0 13px; height: 88px; border: 1px solid #F0E4D7; border-radius: 10px; background: #FEFDFC;
-  padding: 11px 12px; font-family: inherit; font-size: 10px; color: #2A2F45; resize: none; width: calc(100% - 26px); }
+.kpi2-note { margin: 0 13px; min-height: 88px; border: 1px solid #F0E4D7; border-radius: 10px; background: #FEFDFC;
+  padding: 11px 12px; font-family: inherit; font-size: 11.5px; color: #2A2F45; resize: none; width: calc(100% - 26px); }
 .kpi2-note::placeholder { color: #A9AEC0; }
 .kpi2-exp { margin: 9px 13px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
 .kpi2-exp button { height: 41px; border: 1px solid #F0E4D7; border-radius: 10px; background: #fff;
-  font-family: inherit; font-size: 11.5px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; }
+  font-family: inherit; font-size: 12.5px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; }
 .kpi2-exp button:first-child { color: #2A2F45; }
 .kpi2-exp button:first-child:hover { border-color: #E8342B; }
 .kpi2-exp button:last-child { color: #17703C; }
 .kpi2-exp button:last-child:hover { border-color: #17703C; }
 
 /* --- thang xếp loại --- */
-.kpi2-scale { margin: 0 13px; height: 143px; border: 1px solid #F4EBE0; border-radius: 11px;
+.kpi2-scale { margin: 0 13px; min-height: 143px; border: 1px solid #F4EBE0; border-radius: 11px;
   padding-top: 9px; display: flex; flex-direction: column; justify-content: space-between; }
-.kpi2-scale__r { display: grid; grid-template-columns: 104px 58px auto; align-items: center; padding: 0 12px; }
+.kpi2-scale__r { display: grid; grid-template-columns: 104px minmax(70px, auto) minmax(0, 1fr);
+  align-items: center; padding: 0 12px; }
 .kpi2-scale__r:last-child { padding-bottom: 10px; }
 .kpi2-scale__s { display: flex; gap: 5px; }
-.kpi2-scale__r span:not(.kpi2-scale__s) { font-size: 9px; color: #3B4165; white-space: nowrap; }
+.kpi2-scale__r span:not(.kpi2-scale__s) { font-size: 11px; color: #3B4165; white-space: nowrap; }
 .kpi2-scale__r span.wide { grid-column: 2 / span 2; }
 
 /* ==========================================================================
@@ -199,28 +234,28 @@
   display: flex; align-items: center; gap: 11px; padding: 0 17px; font-size: 13.5px; font-weight: 500; white-space: nowrap; }
 .yp2-bell { position: relative; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; }
 .yp2-bell b { position: absolute; right: -6px; top: -5px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px;
-  background: #E8342B; color: #fff; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  background: #E8342B; color: #fff; font-size: 11.5px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
 .yp2-me { width: 192px; height: 47px; border: 1px solid #F2E3D2; border-radius: 11px; background: #FFFDFB;
   display: flex; align-items: center; gap: 11px; padding: 0 12px; }
 .yp2-me__av { width: 32px; height: 32px; border-radius: 50%; background: #F6E7DA; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .yp2-me__n { font-size: 12.5px; font-weight: 700; line-height: 1.35; }
-.yp2-me__r { font-size: 10.5px; color: #9A8877; line-height: 1.4; }
+.yp2-me__r { font-size: 11.5px; color: #9A8877; line-height: 1.4; }
 
 /* --- thẻ mục tiêu --- */
 .yp2-goals { position: absolute; left: 163px; top: 108px; width: 1358px; height: 166px; display: grid; gap: 11px;
   grid-template-columns: 183px 195px 187px 177px 166px 131px 118px 127px; }
 .yp2-goal { border: 1px solid #F4E6D6; border-radius: 13px; background: #FFFDFB; display: flex; gap: 10px; padding: 24px 0 0 14px; }
 .yp2-goal--stack { flex-direction: column; }
-.yp2-goal__lb { font-size: 11px; font-weight: 700; letter-spacing: .2px; color: #4E5A76; line-height: 1.4; white-space: nowrap; }
+.yp2-goal__lb { font-size: 12px; font-weight: 700; letter-spacing: .2px; color: #4E5A76; line-height: 1.4; white-space: nowrap; }
 .yp2-goal__v { margin-top: 8px; font-size: 31px; font-weight: 800; line-height: 1; }
-.yp2-goal__u { margin-top: 11px; font-size: 12px; font-weight: 500; color: #4E5A76; white-space: nowrap; }
-.yp2-goal__n { margin-top: 12px; font-size: 10.5px; color: #9A8877; line-height: 1.6; white-space: nowrap; }
-.yp2-goal__n--sp { margin-top: 16px; font-size: 11px; }
+.yp2-goal__u { margin-top: 11px; font-size: 12.5px; font-weight: 500; color: #4E5A76; white-space: nowrap; }
+.yp2-goal__n { margin-top: 12px; font-size: 11.5px; color: #9A8877; line-height: 1.6; white-space: nowrap; }
+.yp2-goal__n--sp { margin-top: 16px; font-size: 12px; }
 
 /* --- tiêu đề bảng + chú giải --- */
 .yp2-sec { position: absolute; left: 163px; top: 300px; display: flex; align-items: center; gap: 15px; }
 .yp2-sec h2 { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: .3px; }
-.yp2-legend { position: absolute; left: 680px; top: 307px; display: flex; align-items: center; gap: 22px; font-size: 12px; color: #4E5A76; }
+.yp2-legend { position: absolute; left: 680px; top: 307px; display: flex; align-items: center; gap: 22px; font-size: 12.5px; color: #4E5A76; }
 .yp2-legend span { display: flex; align-items: center; gap: 8px; }
 .yp2-legend i { width: 9px; height: 9px; border-radius: 50%; }
 .yp2-view { position: absolute; left: 1258px; top: 303px; height: 35px; border: 1px solid #F2E3D2; border-radius: 9px;
@@ -252,7 +287,7 @@
 .yp2-prog__v b { font-size: 17px; font-weight: 700; }
 .yp2-prog__bar { width: 106px; height: 7px; border-radius: 4px; background: #F0E4D7; }
 .yp2-prog__bar i { display: block; height: 100%; border-radius: 4px; }
-.yp2-acts { padding: 14px 0 0 15px; display: flex; flex-direction: column; gap: 11px; font-size: 11px; }
+.yp2-acts { padding: 14px 0 0 15px; display: flex; flex-direction: column; gap: 11px; font-size: 12px; }
 .yp2-acts--only { padding-top: 23px; }
 .yp2-acts span { display: flex; gap: 9px; }
 .yp2-acts i { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; margin-top: 6px; }
@@ -270,7 +305,7 @@
 .yp2-ms { position: absolute; top: 42px; transform: translateX(-50%); width: 11px; height: 11px; border-radius: 50%; background: #8E4A32; }
 .yp2-ms__lb { position: absolute; top: 59px; transform: translateX(-50%); text-align: center; white-space: nowrap; }
 .yp2-ms__lb b { font-size: 13px; font-weight: 700; }
-.yp2-ms__lb span { display: block; margin-top: 5px; font-size: 11px; color: #7A6A5C; }
+.yp2-ms__lb span { display: block; margin-top: 5px; font-size: 12px; color: #7A6A5C; }
 
 /* ---------- IN A4 NGANG ---------- */
 @media print {
@@ -288,11 +323,11 @@
 
 /* Trạng thái ký của từng ô phê duyệt — bản mẫu không có phần này, nhưng thiếu
    nó thì người xem không biết cấp nào đã ký, cấp nào còn chờ. */
-.kpi2-appr__st { margin-left: auto; font-size: 10.5px; font-weight: 700;
+.kpi2-appr__st { margin-left: auto; font-size: 11.5px; font-weight: 700;
   padding: 2px 8px; border-radius: 999px; background: #EEF0F4; color: #6B7280; }
 .kpi2-appr__st[data-tt="approved"] { background: #E6F5EC; color: #178A4C; }
 .kpi2-appr__st[data-tt="revision_required"] { background: #FDECEA; color: #C4241D; }
-.kpi2-appr__note { margin-top: 6px; font-size: 11.5px; line-height: 1.5; color: #6B7280; }
+.kpi2-appr__note { margin-top: 6px; font-size: 12.5px; line-height: 1.5; color: #6B7280; }
 
 /* Khung trang dùng .v4page có luật `.v4page button { background: none }` với độ
    ưu tiên 0-1-1, cao hơn .kpi2-btn--primary (0-1-0) — nút chính thành chữ trắng
@@ -309,14 +344,14 @@
    thành "1 điểmGV: 2". */
 .kpi2 .kpi2-row__got { flex-direction: column; align-items: center; justify-content: center;
   gap: 1px; line-height: 1.25; }
-.kpi2-row__gv { font-size: 9.5px; font-weight: 600; color: #8A8FA3; white-space: nowrap; }
+.kpi2-row__gv { font-size: 11px; font-weight: 600; color: #8A8FA3; white-space: nowrap; }
 /* Nhãn đối chiếu hai cột điểm dùng lại kiểu chip của ô ký. */
 .kpi2-appr__st[data-tone="blue"] { background: #E8F0FE; color: #2F6BD8; }
 .kpi2-appr__st[data-tone="purple"] { background: #F0EAFB; color: #6B41C4; }
 .kpi2-appr__st[data-tone="green"] { background: #E6F5EC; color: #178A4C; }
 .kpi2-appr__st[data-tone="orange"] { background: #FDF0E3; color: #B4600B; }
 .kpi2-appr__st[data-tone="gray"] { background: #EEF0F4; color: #6B7280; }
-.kpi2-status { margin-left: 10px; vertical-align: middle; font-size: 11px; }
+.kpi2-status { margin-left: 10px; vertical-align: middle; font-size: 12px; }
 .kpi2-status[data-tt="submitted"] { background: #FDF0E3; color: #B4600B; }
 .kpi2-status[data-tt="revision_required"] { background: #FDECEA; color: #C4241D; }
 .kpi2-status[data-tt="approved"] { background: #E6F5EC; color: #178A4C; }
@@ -324,12 +359,12 @@
 .kpi2-final { margin-top: 10px; padding: 9px 12px; border-radius: 9px; background: #FFF6EC;
   border: 1px solid #F5DCC2; font-size: 12.5px; color: #43301F; }
 .kpi2-final b { font-size: 14px; color: #B4231F; }
-.kpi2-final small { display: block; margin-top: 2px; font-size: 10.5px; color: #8A6A4A; }
+.kpi2-final small { display: block; margin-top: 2px; font-size: 11.5px; color: #8A6A4A; }
 .kpi2-scale__r.is-current { background: #FFF6EC; border-radius: 7px; font-weight: 700; }
 
 /* Ô nhập của người duyệt trong mục 3. */
 .kpi2-appr__in { display: grid; gap: 7px; margin: 7px 0 8px; }
-.kpi2-appr__in label { display: grid; gap: 3px; font-size: 10.5px; font-weight: 600; color: #6B7280; }
+.kpi2-appr__in label { display: grid; gap: 3px; font-size: 11.5px; font-weight: 600; color: #6B7280; }
 .kpi2-appr__in input, .kpi2-appr__in select { height: 29px; padding: 0 8px; font-family: inherit;
-  font-size: 12px; color: #2A2F45; border: 1px solid #E3E6EE; border-radius: 7px; background: #fff; }
+  font-size: 12.5px; color: #2A2F45; border: 1px solid #E3E6EE; border-radius: 7px; background: #fff; }
 .kpi2 .kpi2-ok:disabled, .kpi2 .kpi2-fix:disabled { opacity: .55; cursor: not-allowed; }

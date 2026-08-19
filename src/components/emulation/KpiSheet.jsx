@@ -132,14 +132,22 @@ export default function KpiSheet({
       {/* ── tiêu đề trang ── */}
       <div className="kpi2-head">
         <div className="kpi2-head__t">
-          <h1>
-            BÁO CÁO THI ĐUA THÁNG {thang}/{year}
-            {phieu?.status ? (
+          {nhungTrongKhung ? (
+            phieu?.status ? (
               <span className="kpi2-appr__st kpi2-status" data-tt={phieu.status}>
                 {nhanTrangThai[phieu.status] || phieu.status}
               </span>
-            ) : null}
-          </h1>
+            ) : null
+          ) : (
+            <h1>
+              BÁO CÁO THI ĐUA THÁNG {thang}/{year}
+              {phieu?.status ? (
+                <span className="kpi2-appr__st kpi2-status" data-tt={phieu.status}>
+                  {nhanTrangThai[phieu.status] || phieu.status}
+                </span>
+              ) : null}
+            </h1>
+          )}
           {nhungTrongKhung ? null : (
           <div className="kpi2-crumb">
             <span>Trang chủ</span><i>›</i><span>KPI &amp; Đánh giá</span><i>›</i><span>Báo cáo thi đua</span>
