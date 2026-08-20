@@ -314,6 +314,21 @@ export async function listCompetitionFrames(params = {}) {
   return normalizeCollection(data);
 }
 
+export async function reportCardTemplate(params = {}) {
+  const { data } = await apiClient.get("/monthly-scorecards/report-card-template/", {
+    params,
+    responseType: "blob",
+  });
+  return data;
+}
+
+export async function importReportCards(formData) {
+  const { data } = await apiClient.post("/monthly-scorecards/import-report-cards/", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return data;
+}
+
 export async function listMonthlyScorecards(params = {}) {
   const { data } = await apiClient.get("/monthly-scorecards/", { params });
   return normalizeCollection(data);

@@ -1,12 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { listClassroomsAll, listMonthlyScorecards } from "../services/calendarService";
+import {
+  importReportCards,
+  listClassroomsAll,
+  listMonthlyScorecards,
+  reportCardTemplate,
+} from "../services/calendarService";
 import {
   Badge,
   Button,
   Card,
   DataTable,
   EmptyState,
+  Modal,
   Kpi,
   KpiGrid,
   Page,
@@ -97,6 +103,14 @@ export default function StudentLearningReport() {
   const [thang, setThang] = useState(homNay.getMonth() + 1);
   const [nam, setNam] = useState(homNay.getFullYear());
   const [lopId, setLopId] = useState("");
+  // Nhập bảng điểm ngay tại màn này thay vì đẩy sang màn cũ khác hẳn thiết kế.
+  const [moNhap, setMoNhap] = useState(false);
+  const [fileNhap, setFileNhap] = useState(null);
+  const [dangNhap, setDangNhap] = useState(false);
+  const [loiNhap, setLoiNhap] = useState("");
+  const [ketQuaNhap, setKetQuaNhap] = useState(null);
+  // Khoá nạp lại sau khi nhập file. Khai ở đây, TRÊN useEffect tải dữ liệu.
+  const [taiLai, setTaiLai] = useState(0);
   const [xepLoai, setXepLoai] = useState("");
   const [chiXemGiam, setChiXemGiam] = useState(false);
 
@@ -149,7 +163,7 @@ export default function StudentLearningReport() {
       })
       .finally(() => { if (!huy) setDangTai(false); });
     return () => { huy = true; };
-  }, [thang, nam, lopId]);
+  }, [thang, nam, lopId, taiLai]);
 
   // Kết quả tháng trước, tra theo mã học sinh.
   const diemTruocTheoHS = useMemo(() => {
@@ -447,6 +461,50 @@ export default function StudentLearningReport() {
     </div>
   );
 
+  const taiFileMau = async () => {
+    setLoiNhap("");
+    try {
+      // Truyền lớp đang lọc để file mẫu điền sẵn họ tên học viên của lớp đó.
+      const blob = await reportCardTemplate(lopId ? { classroom: lopId } : {});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Mau-bao-cao-hoc-tap-${nam}-${String(thang).padStart(2, "0")}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      setLoiNhap("Không tải được file mẫu. Vui lòng thử lại.");
+    }
+  };
+
+  const guiFileNhap = async (event) => {
+    event.preventDefault();
+    if (!fileNhap) {
+      setLoiNhap("Vui lòng chọn file Excel (.xlsx) để nhập.");
+      return;
+    }
+    setDangNhap(true);
+    setLoiNhap("");
+    setKetQuaNhap(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", fileNhap);
+      fd.append("month", thang);
+      fd.append("year", nam);
+      const kq = await importReportCards(fd);
+      setKetQuaNhap(kq);
+      setTaiLai((v) => v + 1);
+    } catch (error) {
+      setLoiNhap(
+        error?.response?.data?.detail || "Không nhập được file. Kiểm tra lại định dạng.",
+      );
+    } finally {
+      setDangNhap(false);
+    }
+  };
+
   return (
     <Page className="v4page">
       <PageHeader
@@ -455,11 +513,10 @@ export default function StudentLearningReport() {
         description={`Kết quả học tập của học sinh theo tháng — Tháng ${thang}/${nam}`}
         actions={
           <>
-          {/* Mục "Bảng điểm học viên" đã bỏ khỏi menu cho gọn, nhưng đó vẫn là
-              lối vào DUY NHẤT để giáo viên nhập điểm. Đặt nút ở đây — nơi người
-              ta đang xem kết quả và nhận ra cần sửa/nhập thêm. */}
-          <Button variant="ghost" onClick={() => navigate("/monthly-scorecards")}>
-            Nhập bảng điểm học viên
+          {/* Nhập ngay tại đây. Trước kia nút này đẩy sang /monthly-scorecards —
+              một màn dựng từ trước, thiết kế khác hẳn phần còn lại của hệ thống. */}
+          <Button variant="ghost" onClick={() => { setMoNhap(true); setLoiNhap(""); setKetQuaNhap(null); }}>
+            Nhập bảng điểm
           </Button>
           <Button
             variant="primary"
@@ -569,6 +626,78 @@ export default function StudentLearningReport() {
           </p>
         ) : null}
       </Card>
+      <Modal
+        open={moNhap}
+        onClose={() => setMoNhap(false)}
+        title="Nhập bảng điểm học viên"
+        subtitle={(() => {
+          const l = lops.find((x) => String(x.id) === String(lopId));
+          return `Tháng ${thang}/${nam}${l ? ` — lớp ${l.class_code || l.name}` : " — toàn trung tâm"}`;
+        })()}
+        size="md"
+      >
+        <form onSubmit={guiFileNhap}>
+          <p className="small muted" style={{ marginBottom: 12, lineHeight: 1.6 }}>
+            Tải file mẫu về, điền điểm rồi nhập lại. File mẫu điền sẵn họ tên và lớp
+            của học viên nên không phải gõ tay.{" "}
+            <strong>Ô để trống nghĩa là không đổi</strong> — giáo viên chỉ cần điền
+            phần mình phụ trách, không ghi rỗng đè lên dữ liệu người khác đã nhập.
+          </p>
+
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
+            <Button type="button" variant="ghost" onClick={taiFileMau}>
+              Tải file mẫu
+            </Button>
+            <label className="btn ghost" style={{ cursor: "pointer", margin: 0 }}>
+              {fileNhap ? fileNhap.name : "Chọn file .xlsx"}
+              <input
+                type="file"
+                accept=".xlsx"
+                hidden
+                onChange={(e) => { setFileNhap(e.target.files?.[0] || null); setLoiNhap(""); }}
+              />
+            </label>
+          </div>
+
+          {loiNhap ? <div className="alert red" style={{ marginBottom: 12 }}><span>⚠️</span><div>{loiNhap}</div></div> : null}
+
+          {ketQuaNhap ? (
+            <div className="alert green" style={{ marginBottom: 12, display: "block" }}>
+              {/* Backend trả created_count / updated_count riêng, không có
+                  success_count — đọc sai khoá thì lúc nào cũng hiện "0 phiếu". */}
+              <div>
+                Đã tạo mới <strong>{ketQuaNhap.created_count ?? 0}</strong> phiếu, cập nhật{" "}
+                <strong>{ketQuaNhap.updated_count ?? 0}</strong> phiếu
+                {ketQuaNhap.error_count ? `, ${ketQuaNhap.error_count} dòng lỗi:` : "."}
+              </div>
+              {Array.isArray(ketQuaNhap.errors) && ketQuaNhap.errors.length ? (
+                <ul style={{ margin: "6px 0 0 18px", fontSize: 12.5 }}>
+                  {ketQuaNhap.errors.slice(0, 12).map((e, i) => (
+                    <li key={i}>{typeof e === "string" ? e : JSON.stringify(e)}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          ) : null}
+
+          <div className="alert orange" style={{ marginBottom: 14, display: "block" }}>
+            <div style={{ fontSize: 12.5, lineHeight: 1.6 }}>
+              <strong>Muốn nhập tay từng học viên?</strong> Đóng hộp này, bấm vào
+              một dòng trong bảng để mở phiếu của học viên đó, rồi bấm
+              “Nhập thông tin phiếu”.
+            </div>
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+            <Button type="button" variant="ghost" onClick={() => setMoNhap(false)}>
+              Đóng
+            </Button>
+            <Button type="submit" variant="primary" loading={dangNhap} loadingText="Đang nhập..." disabled={!fileNhap}>
+              Nhập file
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </Page>
   );
 }
