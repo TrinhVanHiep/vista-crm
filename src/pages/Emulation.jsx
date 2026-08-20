@@ -20,6 +20,9 @@ const THANG = Array.from({ length: 12 }, (_, i) => i + 1);
 const NAM = [2025, 2026, 2027];
 
 const VAI_QUAN_LY = new Set(["admin", "superadmin", "center_manager", "training_manager"]);
+// Tạo khung mặc định chỉ dành cho admin/super admin — khớp đúng luật backend,
+// nếu rộng hơn thì quản lý cơ sở sẽ thấy nút rồi bấm vào nhận 403.
+const VAI_TAO_KHUNG = new Set(["admin", "superadmin"]);
 const VAI_TU_CHAM = new Set(["teacher", "staff", "center_manager", "training_manager", "admin", "superadmin"]);
 
 export default function Emulation() {
@@ -32,6 +35,7 @@ export default function Emulation() {
   const [thongBao, setThongBao] = useState("");
 
   const laQuanLy = VAI_QUAN_LY.has(role);
+  const taoDuocKhung = VAI_TAO_KHUNG.has(role);
 
   return (
     <Page className="v4page">
@@ -80,7 +84,7 @@ export default function Emulation() {
       </div>
 
       {tab === "kehoach" ? (
-        <YearPlan suaDuoc={laQuanLy} />
+        <YearPlan suaDuoc={laQuanLy} taoDuocKhung={taoDuocKhung} />
       ) : (
         <KpiScoreBoard
           month={thang}
@@ -88,6 +92,7 @@ export default function Emulation() {
           canScoreSelf={VAI_TU_CHAM.has(role)}
           canScoreManager={laQuanLy}
           canReview={laQuanLy}
+          taoDuocKhung={taoDuocKhung}
           onNotice={setThongBao}
         />
       )}

@@ -38,11 +38,13 @@ function VongTienDo({ phanTram, mau }) {
   );
 }
 
-export default function YearPlan({ suaDuoc = false }) {
+export default function YearPlan({ suaDuoc = false, taoDuocKhung = false }) {
   const [kh, setKh] = useState(null);
   const [dangTai, setDangTai] = useState(true);
   const [loi, setLoi] = useState("");
   const [moForm, setMoForm] = useState(false);
+  const [dangTaoKhung, setDangTaoKhung] = useState(false);
+  const [taiLai, setTaiLai] = useState(0);
   const [dangLuu, setDangLuu] = useState(false);
   // { track, thang, nam, activity?, title, status }
 
@@ -58,7 +60,7 @@ export default function YearPlan({ suaDuoc = false }) {
       .catch(() => { if (!huy) setLoi("Không tải được kế hoạch năm học."); })
       .finally(() => { if (!huy) setDangTai(false); });
     return () => { huy = true; };
-  }, []);
+  }, [taiLai]);
 
   // Danh sách tháng lấy từ khoảng bắt đầu - kết thúc của kế hoạch, không hard-code
   // 08/2026-04/2027, để năm học sau đổi mốc là màn tự chạy theo.
@@ -110,13 +112,38 @@ export default function YearPlan({ suaDuoc = false }) {
     await goiLuu("recalc-progress", {});
   };
 
+  // Cùng lý do với khung chấm thi đua: không có nút này thì hệ thống mới dựng
+  // lên là màn trống và người dùng không có cách nào tự tạo.
+  const taoKeHoachMacDinh = async () => {
+    setDangTaoKhung(true);
+    try {
+      await apiClient.post("/school-year-plans/seed-default/");
+      setTaiLai((v) => v + 1);
+    } catch (error) {
+      window.alert("Không tạo được kế hoạch mẫu. Vui lòng thử lại.");
+    } finally {
+      setDangTaoKhung(false);
+    }
+  };
+
   if (dangTai) return <p className="small muted">Đang tải kế hoạch năm học...</p>;
   if (loi || !kh) {
     return (
       <EmptyState
         icon="🗓️"
         title={loi || "Chưa có kế hoạch năm học"}
-        hint="Chạy lệnh seed_school_year_plan để nạp khung kế hoạch, hoặc tạo mới trong phần quản trị."
+        hint={
+          taoDuocKhung
+            ? "Bấm nút bên dưới để tạo kế hoạch mẫu cho năm học, rồi sửa lại mục tiêu và đầu việc cho đúng trung tâm."
+            : "Hệ thống chưa có kế hoạch năm học. Nhờ admin tạo trước."
+        }
+        action={
+          taoDuocKhung ? (
+            <Button variant="primary" onClick={taoKeHoachMacDinh} disabled={dangTaoKhung}>
+              {dangTaoKhung ? "Đang tạo..." : "Tạo kế hoạch mẫu"}
+            </Button>
+          ) : null
+        }
       />
     );
   }

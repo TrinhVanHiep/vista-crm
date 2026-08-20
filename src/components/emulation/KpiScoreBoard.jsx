@@ -143,9 +143,14 @@ export default function KpiScoreBoard({
   canScoreSelf = false,
   canScoreManager = false,
   canReview = false,
+  taoDuocKhung = false,
   onNotice,
 }) {
   const [khung, setKhung] = useState([]);
+  const [dangTaoKhung, setDangTaoKhung] = useState(false);
+  // Khoá nạp lại sau khi tạo khung. PHẢI khai ở đây, trên useEffect tải dữ liệu:
+  // để dưới thì effect tham chiếu biến chưa khởi tạo và cả trang trắng xoá.
+  const [taiLai, setTaiLai] = useState(0);
   const [quyTac, setQuyTac] = useState([]);
   const [phieu, setPhieu] = useState(null);
 
@@ -227,7 +232,7 @@ export default function KpiScoreBoard({
     return () => {
       huy = true;
     };
-  }, [month, year]);
+  }, [month, year, taiLai]);
 
   // Tách hẳn xem và chấm. Mặc định là XEM: bảng hiện số trơn đúng như bản thiết
   // kế. Bật chấm mới hiện ô nhập — trước đây lúc nào cũng bày ô nhập nên bảng
@@ -279,6 +284,21 @@ export default function KpiScoreBoard({
   };
 
   // --- Lưu điểm: gom hết thay đổi rồi bắn tối đa 3 lượt API ------------------
+  // Trước đây khung chỉ nạp được bằng lệnh trên máy chủ, nên hệ thống mới dựng
+  // lên là màn này trống trơn và không có đường nào tự thoát ra.
+  const taoKhungMacDinh = async () => {
+    setDangTaoKhung(true);
+    setLoi("");
+    try {
+      await apiClient.post("/kpi-frame/seed-default/");
+      setTaiLai((v) => v + 1);
+    } catch (error) {
+      setLoi(getErrorMessage(error, "Không tạo được khung chấm mặc định."));
+    } finally {
+      setDangTaoKhung(false);
+    }
+  };
+
   const luuDiem = async () => {
     if (!phieu) return;
     setLoi("");
@@ -552,7 +572,18 @@ export default function KpiScoreBoard({
       <EmptyState
         icon="📋"
         title="Chưa có khung chấm điểm thi đua"
-        hint="Cần nạp nhóm chủ đề và tiêu chí trong phần quản trị trước khi chấm."
+        hint={
+          taoDuocKhung
+            ? "Bấm nút bên dưới để tạo khung mặc định: 4 nhóm chủ đề, 20 tiêu chí và 6 quy tắc cộng/trừ. Tạo xong sửa lại nội dung tuỳ ý."
+            : "Hệ thống chưa có khung chấm. Nhờ admin tạo khung trước khi chấm điểm."
+        }
+        action={
+          taoDuocKhung ? (
+            <Button variant="primary" onClick={taoKhungMacDinh} disabled={dangTaoKhung}>
+              {dangTaoKhung ? "Đang tạo..." : "Tạo khung mặc định"}
+            </Button>
+          ) : null
+        }
       />
     );
   }
