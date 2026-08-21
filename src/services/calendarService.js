@@ -322,6 +322,18 @@ const DUONG_DAN_NHAP = {
   giaoVien: "/teachers/teachers",
 };
 
+export async function teacherClassrooms(teacherId) {
+  const { data } = await apiClient.get(`/teachers/teachers/${teacherId}/classrooms/`);
+  return Array.isArray(data?.results) ? data.results : [];
+}
+
+export async function setTeacherClassrooms(teacherId, classroomIds) {
+  const { data } = await apiClient.put(`/teachers/teachers/${teacherId}/classrooms/`, {
+    classroom_ids: classroomIds,
+  });
+  return data;
+}
+
 export async function normalizePrograms({ apply = false } = {}) {
   const { data } = await apiClient.post("/classrooms/classrooms/normalize-programs/", {
     apply: apply ? "1" : "",

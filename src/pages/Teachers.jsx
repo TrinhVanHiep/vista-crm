@@ -1,4 +1,5 @@
 import BulkImportModal from "../components/bulk/BulkImportModal";
+import GanLopModal from "../components/teacher/GanLopModal";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import apiClient from "../services/apiClient";
@@ -82,6 +83,8 @@ function Teachers() {
   const [reloadKey, setReloadKey] = useState(0);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [moNhapExcel, setMoNhapExcel] = useState(false);
+  // Gán lớp phụ trách — phân quyền theo lớp chỉ có nghĩa khi gán được lớp.
+  const [gvGanLop, setGvGanLop] = useState(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [importFile, setImportFile] = useState(null);
   const [importMessage, setImportMessage] = useState("");
@@ -506,6 +509,26 @@ function Teachers() {
     ];
 
     if (canManageTeachers) {
+      base.push({
+        key: "lop",
+        header: "Lớp phụ trách",
+        align: "center",
+        width: 132,
+        render: (item) => (
+          <Button
+            variant="ghost"
+            size="sm"
+            // Bảng có sự kiện bấm-dòng để mở hồ sơ; không chặn nổi bọt thì bấm
+            // nút này lại nhảy sang trang giáo viên.
+            onClick={(e) => {
+              e.stopPropagation();
+              setGvGanLop(item);
+            }}
+          >
+            Gán lớp
+          </Button>
+        ),
+      });
       base.push({
         key: "actions",
         header: "Thao tác",
@@ -1027,6 +1050,12 @@ function Teachers() {
           ) : null}
         </form>
       </Modal>
+
+      <GanLopModal
+        giaoVien={gvGanLop}
+        onClose={() => setGvGanLop(null)}
+        onXong={() => setReloadKey((k) => k + 1)}
+      />
 
       <BulkImportModal
         loai="giaoVien"
