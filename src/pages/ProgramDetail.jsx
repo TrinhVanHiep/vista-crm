@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
   listClassesOverview,
+  normalizePrograms,
   listClassroomsAll,
   listStudentScores,
   listClassTasks,
@@ -158,6 +159,14 @@ export default function ProgramDetail() {
   const [scores, setScores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeProgram, setActiveProgram] = useState("");
+  // Gộp chương trình trùng nghĩa ngay tại màn. Trước đây chỉ chạy được bằng
+  // lệnh trên máy chủ nên người dùng không có cách nào tự làm.
+  const [xemTruocGop, setXemTruocGop] = useState(null);
+  const [dangGop, setDangGop] = useState(false);
+  const [loiGop, setLoiGop] = useState("");
+  // Khoá nạp lại DANH SÁCH LỚP. reloadKey sẵn có chỉ nạp lại nhiệm vụ tháng,
+  // gộp chương trình xong mà không có khoá này thì các tab vẫn y nguyên.
+  const [taiLaiLop, setTaiLaiLop] = useState(0);
 
   // Học phí thực theo lớp (REAL từ getTuitionSummary) — Map(normCode -> {total_fee, remaining, paid, students}).
   const [tuitionMap, setTuitionMap] = useState(() => new Map());
@@ -194,7 +203,7 @@ export default function ProgramDetail() {
       setLoading(false);
     })();
     return () => { active = false; };
-  }, [month, year]);
+  }, [month, year, taiLaiLop]);
 
   // Nhiệm vụ tháng / học kỳ theo lớp (REAL) — nạp 1 lần, refetch khi reloadKey đổi.
   useEffect(() => {
@@ -382,7 +391,104 @@ export default function ProgramDetail() {
           </div>
           <h1>Chi tiết theo chương trình</h1>
           <p>Chọn một chương trình để xem danh sách lớp, sĩ số, tiến độ lộ trình và tình hình học phí. Nhấp vào một lớp để xem chi tiết lớp học.</p>
+          {programs.length > 6 ? (
+            <button
+              type="button"
+              className="btn ghost sm"
+              style={{ marginTop: 10 }}
+              disabled={dangGop}
+              onClick={async () => {
+                setLoiGop("");
+                setDangGop(true);
+                try {
+                  setXemTruocGop(await normalizePrograms({ apply: false }));
+                } catch (e) {
+                  setLoiGop(e?.response?.data?.detail || "Không xem trước được.");
+                } finally {
+                  setDangGop(false);
+                }
+              }}
+            >
+              {dangGop ? "Đang kiểm tra..." : `Gộp chương trình trùng nghĩa (${programs.length} nhóm)`}
+            </button>
+          ) : null}
+          {loiGop ? (
+            <div className="alert red" style={{ marginTop: 10 }}><span>⚠️</span><div>{loiGop}</div></div>
+          ) : null}
         </div>
+
+        {xemTruocGop ? (
+          <div className="card" style={{ marginBottom: 16, padding: 16 }}>
+            <h3 style={{ marginTop: 0 }}>
+              {xemTruocGop.applied ? "Đã gộp xong" : "Xem trước — chưa ghi gì"}
+            </h3>
+            {xemTruocGop.changed_count ? (
+              <>
+                <p className="small muted" style={{ lineHeight: 1.6 }}>
+                  {xemTruocGop.changed_count} lớp sẽ đổi. Tên chương trình đang gộp lẫn
+                  cả gói số buổi và cấp độ nên cùng một chương trình bị tách thành nhiều
+                  nhóm — gộp lại sẽ tách ra ba ô riêng.
+                </p>
+                <div style={{ maxHeight: 260, overflow: "auto", marginBottom: 12 }}>
+                  <table className="tbl" style={{ width: "100%" }}>
+                    <thead>
+                      <tr><th>Lớp</th><th>Tên cũ</th><th>Chương trình</th><th>Cấp độ</th><th>Số buổi</th></tr>
+                    </thead>
+                    <tbody>
+                      {xemTruocGop.changed.map((r) => (
+                        <tr key={r.lop}>
+                          <td>{r.lop}</td><td>{r.cu || "—"}</td>
+                          <td><strong>{r.chuong_trinh}</strong></td>
+                          <td>{r.cap_do || "—"}</td><td>{r.so_buoi || "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            ) : (
+              <p className="small muted">Không có lớp nào cần gộp.</p>
+            )}
+            {xemTruocGop.unrecognized?.length ? (
+              <p className="small muted">
+                Không nhận ra, giữ nguyên để bạn đặt tay:{" "}
+                <strong>{xemTruocGop.unrecognized.join(", ")}</strong>
+              </p>
+            ) : null}
+            {xemTruocGop.no_program?.length ? (
+              <p className="small muted">
+                Chưa có chương trình:{" "}
+                <strong>{xemTruocGop.no_program.join(", ")}</strong> — điền bằng file
+                nhập lớp ở màn Quản lý lớp.
+              </p>
+            ) : null}
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+              <button type="button" className="btn ghost" onClick={() => setXemTruocGop(null)}>
+                Đóng
+              </button>
+              {!xemTruocGop.applied && xemTruocGop.changed_count ? (
+                <button
+                  type="button"
+                  className="btn primary"
+                  disabled={dangGop}
+                  onClick={async () => {
+                    setDangGop(true);
+                    try {
+                      setXemTruocGop(await normalizePrograms({ apply: true }));
+                      setTaiLaiLop((k) => k + 1);
+                    } catch (e) {
+                      setLoiGop(e?.response?.data?.detail || "Không gộp được.");
+                    } finally {
+                      setDangGop(false);
+                    }
+                  }}
+                >
+                  {dangGop ? "Đang gộp..." : "Gộp ngay"}
+                </button>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
 
         {loading ? (
           <div className="card">

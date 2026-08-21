@@ -322,6 +322,13 @@ const DUONG_DAN_NHAP = {
   giaoVien: "/teachers/teachers",
 };
 
+export async function normalizePrograms({ apply = false } = {}) {
+  const { data } = await apiClient.post("/classrooms/classrooms/normalize-programs/", {
+    apply: apply ? "1" : "",
+  });
+  return data;
+}
+
 export async function bulkImportTemplate(loai) {
   const { data } = await apiClient.get(`${DUONG_DAN_NHAP[loai]}/import-template/`, {
     responseType: "blob",
