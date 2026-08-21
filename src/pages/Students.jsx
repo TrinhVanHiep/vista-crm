@@ -1,3 +1,4 @@
+import BulkImportModal from "../components/bulk/BulkImportModal";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -188,6 +189,7 @@ function Students() {
 
   // Modals / actions
   const [modal, setModal] = useState(null); // 'create' | 'import'
+  const [moNhapExcel, setMoNhapExcel] = useState(false);
   const [notice, setNotice] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
   const [exporting, setExporting] = useState(false);
@@ -524,7 +526,7 @@ function Students() {
                   <>
                     <button type="button" className="btn ghost" onClick={() => navigate("/quan-ly-lop")}>⚙️ Quản lý lớp</button>
                     <button type="button" className="btn ghost" onClick={handleExport} disabled={exporting}>{exporting ? "Đang xuất..." : "⬇ Xuất Excel"}</button>
-                    <button type="button" className="btn ghost" onClick={() => { setImportResult(null); setModal("import"); }}>📥 Nhập HS</button>
+                    <button type="button" className="btn ghost" onClick={() => setMoNhapExcel(true)}>📥 Nhập Excel</button>
                     <button type="button" className="btn ghost" onClick={() => { setRosterResult(null); setModal("roster"); }}>🗂️ Nhập lớp + HS</button>
                     <button type="button" className="btn primary" onClick={() => { setFormError(""); setModal("create"); }}>+ Thêm học viên</button>
                   </>
@@ -887,6 +889,13 @@ function Students() {
           </div>
         </Modal>
       ) : null}
+
+      <BulkImportModal
+        loai="hocSinh"
+        open={moNhapExcel}
+        onClose={() => setMoNhapExcel(false)}
+        onXong={() => setReloadKey((v) => v + 1)}
+      />
     </div>
   );
 }

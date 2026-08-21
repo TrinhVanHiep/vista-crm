@@ -314,6 +314,28 @@ export async function listCompetitionFrames(params = {}) {
   return normalizeCollection(data);
 }
 
+// Nhập hàng loạt Lớp / Học sinh / Giáo viên. Ba loại dùng chung một dạng
+// endpoint nên gom vào một cặp hàm, tránh viết ba lần gần giống nhau.
+const DUONG_DAN_NHAP = {
+  lop: "/classrooms/classrooms",
+  hocSinh: "/students/students",
+  giaoVien: "/teachers/teachers",
+};
+
+export async function bulkImportTemplate(loai) {
+  const { data } = await apiClient.get(`${DUONG_DAN_NHAP[loai]}/import-template/`, {
+    responseType: "blob",
+  });
+  return data;
+}
+
+export async function bulkImport(loai, formData) {
+  const { data } = await apiClient.post(`${DUONG_DAN_NHAP[loai]}/import-bulk/`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return data;
+}
+
 export async function reportCardTemplate(params = {}) {
   const { data } = await apiClient.get("/monthly-scorecards/report-card-template/", {
     params,

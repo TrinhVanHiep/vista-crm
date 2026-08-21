@@ -1,3 +1,4 @@
+import BulkImportModal from "../components/bulk/BulkImportModal";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import apiClient from "../services/apiClient";
@@ -80,6 +81,7 @@ function Teachers() {
   const navigate = useNavigate();
   const [reloadKey, setReloadKey] = useState(0);
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [moNhapExcel, setMoNhapExcel] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [importFile, setImportFile] = useState(null);
   const [importMessage, setImportMessage] = useState("");
@@ -531,6 +533,9 @@ function Teachers() {
 
   const headerActions = canManageTeachers ? (
     <>
+      <Button variant="ghost" onClick={() => setMoNhapExcel(true)}>
+        📥 Nhập Excel
+      </Button>
       <Button
         onClick={() => {
           setImportMessage("");
@@ -1022,6 +1027,13 @@ function Teachers() {
           ) : null}
         </form>
       </Modal>
+
+      <BulkImportModal
+        loai="giaoVien"
+        open={moNhapExcel}
+        onClose={() => setMoNhapExcel(false)}
+        onXong={() => setReloadKey((k) => k + 1)}
+      />
     </Page>
   );
 }

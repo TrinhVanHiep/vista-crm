@@ -1,3 +1,4 @@
+import BulkImportModal from "../components/bulk/BulkImportModal";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -57,6 +58,7 @@ export default function ClassManager() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [moNhapExcel, setMoNhapExcel] = useState(false);
 
   // Gán chương trình hàng loạt
   const [selected, setSelected] = useState(() => new Set());
@@ -308,6 +310,9 @@ export default function ClassManager() {
               ))}
               <option value="__none__">— Chưa gán chương trình —</option>
             </select>
+            <button type="button" className="btn ghost" onClick={() => setMoNhapExcel(true)}>
+              📥 Nhập Excel
+            </button>
             <button type="button" className="btn primary" onClick={openCreate}>
               + Thêm lớp
             </button>
@@ -544,6 +549,13 @@ export default function ClassManager() {
           </form>
         </div>
       ) : null}
+
+      <BulkImportModal
+        loai="lop"
+        open={moNhapExcel}
+        onClose={() => setMoNhapExcel(false)}
+        onXong={() => setReloadKey((k) => k + 1)}
+      />
     </div>
   );
 }
