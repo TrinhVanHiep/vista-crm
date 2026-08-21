@@ -22,9 +22,11 @@ const CAU_HINH = {
     tenFile: "Mau-nhap-hoc-sinh.xlsx",
     moTa:
       "Mỗi dòng là một học sinh. Dùng được cả file danh sách sẵn có của trung tâm " +
-      "— loại chia mỗi lớp một sheet, hệ thống lấy tên sheet làm mã lớp.",
+      "— loại chia mỗi lớp một sheet (lấy tên sheet làm mã lớp), và cả file sổ điểm danh. " +
+      "Hệ thống tự nhận dạng, không phải chọn loại file.",
     donVi: "học sinh",
     coTaoLop: true,
+    coTaoGiaoVien: true,
   },
   giaoVien: {
     tieuDe: "Nhập giáo viên từ Excel",
@@ -41,6 +43,7 @@ export default function BulkImportModal({ loai, open, onClose, onXong }) {
   const [loi, setLoi] = useState("");
   const [ketQua, setKetQua] = useState(null);
   const [taoLopThieu, setTaoLopThieu] = useState(false);
+  const [taoGiaoVienThieu, setTaoGiaoVienThieu] = useState(false);
 
   const dong = () => {
     setFile(null);
@@ -79,6 +82,7 @@ export default function BulkImportModal({ loai, open, onClose, onXong }) {
       const fd = new FormData();
       fd.append("file", file);
       if (cfg.coTaoLop && taoLopThieu) fd.append("create_missing_classes", "1");
+      if (cfg.coTaoGiaoVien && taoGiaoVienThieu) fd.append("create_missing_teachers", "1");
       const kq = await bulkImport(loai, fd);
       setKetQua(kq);
       onXong?.(kq);
@@ -93,7 +97,7 @@ export default function BulkImportModal({ loai, open, onClose, onXong }) {
   };
 
   return (
-    <Modal open={open} onClose={dong} title={cfg.tieuDe} size="md">
+    <Modal open={open} onClose={dong} title={cfg.tieuDe} size="md" footer={null}>
       <form onSubmit={gui}>
         <p className="small muted" style={{ marginBottom: 12, lineHeight: 1.6 }}>
           {cfg.moTa} <strong>Ô để trống nghĩa là không đổi</strong>, nhập lại cùng
@@ -140,6 +144,27 @@ export default function BulkImportModal({ loai, open, onClose, onXong }) {
           </label>
         ) : null}
 
+        {cfg.coTaoGiaoVien ? (
+          <label
+            style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: 14,
+                     fontSize: 13, lineHeight: 1.5, cursor: "pointer" }}
+          >
+            <input
+              type="checkbox"
+              checked={taoGiaoVienThieu}
+              onChange={(ev) => setTaoGiaoVienThieu(ev.target.checked)}
+              style={{ marginTop: 3 }}
+            />
+            <span>
+              Tạo giáo viên mới nếu chưa có.{" "}
+              <span className="muted">
+                Áp dụng cho cột “Giáo viên phụ trách”. Không bật thì giáo viên chưa
+                có sẽ được liệt kê để bạn tự thêm.
+              </span>
+            </span>
+          </label>
+        ) : null}
+
         {loi ? (
           <div className="alert red" style={{ marginBottom: 12 }}>
             <span>⚠️</span>
@@ -155,6 +180,16 @@ export default function BulkImportModal({ loai, open, onClose, onXong }) {
               <strong>{ketQua.updated_count ?? 0}</strong> {cfg.donVi}
               {ketQua.error_count ? `, ${ketQua.error_count} dòng cần xem lại:` : "."}
             </div>
+            {Array.isArray(ketQua.teachers_created) && ketQua.teachers_created.length ? (
+              <div style={{ marginTop: 4, fontSize: 12.5 }}>
+                Đã tạo thêm giáo viên: <strong>{ketQua.teachers_created.join(", ")}</strong>
+              </div>
+            ) : null}
+            {ketQua.format ? (
+              <div style={{ marginTop: 4, fontSize: 12.5 }}>
+                Nhận dạng file: <strong>{ketQua.format}</strong>
+              </div>
+            ) : null}
             {Array.isArray(ketQua.classes_created) && ketQua.classes_created.length ? (
               <div style={{ marginTop: 4, fontSize: 12.5 }}>
                 Đã tạo thêm lớp: <strong>{ketQua.classes_created.join(", ")}</strong>
