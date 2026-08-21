@@ -45,9 +45,16 @@ const emptyTaskForm = {
   assignee: "",
 };
 
-// Số buổi tổng suy ra từ tên chương trình ("60 BUỔI STARTER" -> 60). Không match -> null (chưa rõ).
-const parseTotalBuoi = (programName) => {
-  const m = /(\d+)\s*BUỔI/i.exec(programName || "");
+// Số buổi của khoá. Ưu tiên ô total_sessions của lớp; chỉ khi lớp chưa có mới
+// bới ra từ tên chương trình như trước ("60 BUỔI STARTER" -> 60), để những lớp
+// chưa chuẩn hoá vẫn chạy đúng.
+const parseTotalBuoi = (nguon) => {
+  if (nguon && typeof nguon === "object") {
+    if (nguon.total_sessions) return Number(nguon.total_sessions);
+    const m = /(\d+)\s*BUỔI/i.exec(nguon.program_name || "");
+    return m ? Number(m[1]) : null;
+  }
+  const m = /(\d+)\s*BUỔI/i.exec(nguon || "");
   return m ? Number(m[1]) : null;
 };
 
@@ -314,7 +321,7 @@ export default function ProgramDetail() {
     let totalKnown = 0;
     let knownClasses = 0;
     activeClasses.forEach((c) => {
-      const tb = parseTotalBuoi(c.program_name) ?? totalBuoi;
+      const tb = parseTotalBuoi(c) ?? totalBuoi;
       if (tb) {
         sessionsKnown += Number(c.session_count) || 0;
         totalKnown += tb;
@@ -464,7 +471,7 @@ export default function ProgramDetail() {
                         const teachers = Array.isArray(cls.teacher_names) && cls.teacher_names.length
                           ? cls.teacher_names.join(", ")
                           : "—";
-                        const tb = parseTotalBuoi(cls.program_name) ?? totalBuoi;
+                        const tb = parseTotalBuoi(cls) ?? totalBuoi;
                         const sess = Number(cls.session_count) || 0;
                         const tui = tuitionMap.get(normCode(cls.class_code));
                         const dm = deliveryById[String(cls.id)];
@@ -536,7 +543,7 @@ export default function ProgramDetail() {
                     <span className="small muted">buổi đã học / tổng số buổi</span>
                   </div>
                   {activeClasses.length ? activeClasses.map((cls) => {
-                    const tb = parseTotalBuoi(cls.program_name) ?? totalBuoi;
+                    const tb = parseTotalBuoi(cls) ?? totalBuoi;
                     const sess = Number(cls.session_count) || 0;
                     const p = tb ? Math.min(100, pct(sess, tb)) : 0;
                     const color = p >= 80 ? "#2E9E5B" : p >= 50 ? "#F26522" : "#C0392B";
@@ -552,7 +559,7 @@ export default function ProgramDetail() {
                   }) : (
                     <div className="muted small" style={{ padding: 8 }}>Chưa có lớp học.</div>
                   )}
-                  {!totalBuoi && !activeClasses.some((c) => parseTotalBuoi(c.program_name)) ? (
+                  {!totalBuoi && !activeClasses.some((c) => parseTotalBuoi(c)) ? (
                     <div className="small muted" style={{ marginTop: 6 }}>
                       Tên chương trình không chứa số buổi (vd “TACB5”) nên chưa xác định được tổng số buổi.
                     </div>
