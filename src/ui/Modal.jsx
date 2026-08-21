@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import Button from "./Button";
 
 /**
  * Hộp thoại chuẩn — dùng chung cho mọi màn.
@@ -74,13 +73,11 @@ export default function Modal({
 
         <div className="ui-modal__body">{children}</div>
 
-        {footer === null ? null : (
-          <footer className="ui-modal__foot">
-            {footer || (
-              <Button onClick={onClose}>Đóng</Button>
-            )}
-          </footer>
-        )}
+        {/* Chỉ dựng chân trang khi màn TRUYỀN vào. Trước đây không truyền thì
+            Modal tự thêm một nút "Đóng" — mà mọi hộp thoại đều đã có nút đóng
+            riêng trong nội dung, nên màn hình hiện HAI nút Đóng (6 chỗ). Không
+            hộp thoại nào dựa vào nút mặc định đó, và đầu hộp thoại vẫn có dấu X. */}
+        {footer ? <footer className="ui-modal__foot">{footer}</footer> : null}
       </div>
     </div>
   );

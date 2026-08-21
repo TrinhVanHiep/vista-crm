@@ -97,7 +97,7 @@ export default function BulkImportModal({ loai, open, onClose, onXong }) {
   };
 
   return (
-    <Modal open={open} onClose={dong} title={cfg.tieuDe} size="md" footer={null}>
+    <Modal open={open} onClose={dong} title={cfg.tieuDe} size="md">
       <form onSubmit={gui}>
         <p className="small muted" style={{ marginBottom: 12, lineHeight: 1.6 }}>
           {cfg.moTa} <strong>Ô để trống nghĩa là không đổi</strong>, nhập lại cùng
