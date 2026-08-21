@@ -490,8 +490,10 @@ export async function listCentersAll() {
   return Array.isArray(data) ? data : [];
 }
 
-export async function listClassroomsAll() {
-  const { data } = await apiClient.get("/classrooms/classrooms/all/");
+export async function listClassroomsAll(params = {}) {
+  // Giữ NGUYÊN kiểu trả về (mảng) — 6 màn đang dùng hàm này, đổi sang dạng
+  // khác là vỡ hết. Chỉ thêm đường truyền tham số lọc.
+  const { data } = await apiClient.get("/classrooms/classrooms/all/", { params });
   return Array.isArray(data) ? data : [];
 }
 

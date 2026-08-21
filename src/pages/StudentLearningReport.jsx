@@ -124,7 +124,7 @@ export default function StudentLearningReport() {
 
   useEffect(() => {
     let huy = false;
-    listClassroomsAll()
+    listClassroomsAll({ mine: 1 })
       .then((ds) => { if (!huy) setLops(Array.isArray(ds) ? ds : []); })
       .catch(() => { if (!huy) setLops([]); });
     return () => { huy = true; };
