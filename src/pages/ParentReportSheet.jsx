@@ -96,42 +96,70 @@ function Radar({ skills }) {
   );
 }
 
-/** Lộ trình học tập cả năm học (05 -> 04).
- *  Thanh % đo bằng THÁNG (tháng 8 là mốc thứ 4/12 -> 33%), còn số buổi của
- *  tháng đang xét nằm ở góc phải đầu thẻ. Mỗi mốc là một tháng: đã qua tô xanh
- *  kèm dấu ✓, tháng này viền cam, chưa tới để xám; mốc cuối là cờ "Kết thúc". */
-function MonthRoadmap({ months, percent, tall }) {
+/** Lộ trình học tập cả năm học (05 -> 04) — dựng theo đúng bản UI chủ dự án gửi
+ *  (lo-trinh-hoc-tap.html): thanh %, một đường ray liền chạy suốt, phần đã đi
+ *  tô xanh đè lên, 12 mốc chia đều.
+ *
+ *  Đường ray là MỘT dải tuyệt đối chứ không phải viền của từng mốc: có vậy đoạn
+ *  xanh mới dừng đúng tâm mốc đang học thay vì đứt theo từng ô.
+ *  --lt-edge = nửa cột, để hai đầu ray khớp tâm mốc đầu và mốc cuối.
+ *  --lt-done = từ tâm mốc đầu tới tâm mốc đang học = (vị trí / tổng số tháng). */
+function MonthRoadmap({ months, percent }) {
   const pt = isNum(percent) ? clamp(Number(percent), 0, 100) : 0;
-  const cuoi = months.length - 1;
+  const n = months.length || 1;
+  const viTriDangHoc = months.findIndex((m) => m.state === "current");
+  const style = {
+    "--lt-edge": `${100 / (2 * n)}%`,
+    "--lt-done": `${viTriDangHoc > 0 ? (viTriDangHoc / n) * 100 : 0}%`,
+  };
   return (
-    <div className={`pr2-rm${tall ? " tall" : ""}`}>
-      <div className="pr2-rm__bar">
-        <i style={{ width: `${pt}%` }} />
-        {pt > 0 ? <b style={{ left: `${pt}%` }}>{Math.round(pt)}%</b> : null}
+    <div className="lt-body" style={style}>
+      <div className="lt-bar">
+        <div className="lt-bar-fill" style={{ width: `${pt}%` }}>
+          <span>{Math.round(pt)}%</span>
+        </div>
       </div>
-      <div className="pr2-rm__line">
-        {months.map((m, i) => {
-          const laCo = i === cuoi && m.state === "upcoming";
-          return (
-            <div className={`pr2-rm__node ${m.state}${laCo ? " flag" : ""}`} key={`${m.year}-${m.month}`}>
-              <span className="pr2-rm__mon">{`${String(m.month).padStart(2, "0")}/${String(m.year).slice(2)}`}</span>
-              {laCo ? (
-                <span className="pr2-rm__dot">
-                  <svg viewBox="0 0 14 16" aria-hidden="true">
-                    <path d="M2 1v14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" fill="none" />
-                    <path d="M2.9 1.9h8.6l-2.3 3 2.3 3H2.9z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" fill="none" />
-                  </svg>
-                </span>
-              ) : (
-                <span className="pr2-rm__dot">{m.state === "done" ? "✓" : <i />}</span>
-              )}
-              <span className="pr2-rm__num">
-                {laCo ? "Kết thúc" : m.present !== null && m.total ? `${m.present}/${m.total}` : "–"}
-              </span>
-              {m.state === "current" ? <span className="pr2-rm__now">Đang học</span> : null}
-            </div>
-          );
-        })}
+
+      <div className="lt-track">
+        <div className="lt-rail" />
+        <div className="lt-rail-done" />
+
+        <div className="lt-months">
+          {months.map((m, i) => {
+            const laCuoi = i === n - 1 && m.state === "upcoming";
+            const nhan = m.state === "current" ? "is-current"
+              : m.state === "done" || m.state === "past" ? "is-done" : "";
+            const soBuoi = m.present !== null && m.total ? `${m.present}/${m.total}` : null;
+            return (
+              <div className="lt-month" key={`${m.year}-${m.month}`}>
+                <div className={`lt-label ${nhan}`}>
+                  {`${String(m.month).padStart(2, "0")}/${String(m.year).slice(2)}`}
+                </div>
+                <div className="lt-node-wrap">
+                  {laCuoi ? (
+                    <span className="lt-node lt-node--end">⚑</span>
+                  ) : m.state === "done" ? (
+                    <span className="lt-node lt-node--done">✓</span>
+                  ) : m.state === "past" ? (
+                    /* Tháng đã trôi qua nhưng chưa ai nộp phiếu: vòng xanh rỗng.
+                       Không tick "hoàn thành" cho tháng chưa có số liệu. */
+                    <span className="lt-node lt-node--past"><i /></span>
+                  ) : m.state === "current" ? (
+                    <span className="lt-node lt-node--current"><i /></span>
+                  ) : (
+                    <span className="lt-node lt-node--next"><i /></span>
+                  )}
+                </div>
+                {laCuoi ? (
+                  <div className="lt-sub is-end">Kết thúc</div>
+                ) : soBuoi ? (
+                  <div className="lt-sub">{soBuoi}</div>
+                ) : null}
+                {m.state === "current" ? <div className="lt-now">Đang học</div> : null}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -256,24 +284,27 @@ export default function ParentReportSheet({ v }) {
       </div>
 
       {/* 1. LỘ TRÌNH */}
-      <div className="pr2-card pr2-c1" data-screen-label="01">
-        <div className="pr2-card__hd">
-          <span className="pr2-no">1</span>
-          <h2>
+      <div className={`pr2-card pr2-c1${coDiemThiThang ? " lt-full" : ""}`} data-screen-label="01">
+        <div className="pr2-card__hd lt-head">
+          <span className="pr2-no lt-badge">1</span>
+          <h2 className="lt-title">
             LỘ TRÌNH HỌC TẬP{coLoTrinhThang && v.roadmapYearLabel
               ? ` ${v.roadmapYearLabel.replace(" - ", "–")}`
               : ` THÁNG ${v.monthNum || v.periodShort}`}
           </h2>
           {v.sessTotal ? (
-            <span className="pr2-right">
-              Số buổi đã học: &nbsp;{v.sessDone !== null ? v.sessDone : "—"} / {v.sessTotal} buổi
-              {v.sessPercent !== null ? ` (${r1(v.sessPercent)}%)` : ""}
+            <span className="pr2-right lt-meta">
+              Số buổi đã học:{" "}
+              <b>
+                {v.sessDone !== null ? v.sessDone : "—"}/{v.sessTotal}
+                {v.sessPercent !== null ? ` (${r1(v.sessPercent)}%)` : ""}
+              </b>
             </span>
           ) : null}
         </div>
 
         {coLoTrinhThang ? (
-          <MonthRoadmap months={v.roadmapMonths} percent={v.roadmapPercent} tall={coDiemThiThang} />
+          <MonthRoadmap months={v.roadmapMonths} percent={v.roadmapPercent} />
         ) : (
           <div className="pr2-tl">
             {units.map((u, i) => {

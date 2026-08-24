@@ -87,53 +87,81 @@
 .pr2-tl__item.flag { padding-top:15px; }
 .pr2-tl__item.flag img { width:35px; height:24px; margin-right:13px; }
 
-/* --- lộ trình học tập cả năm: thanh % theo tháng + 12 mốc tròn ---
-   Bản thường nằm gọn trong đúng ô 86px mà dải Unit cũ chiếm; bản .tall dùng cho
-   khối cấp 2 (thẻ này không còn 3 ô Cambridge nên cao hết 176px). Khổ phiếu
-   1055x1491 toạ độ cứng nhờ vậy không phải dịch một pixel nào. */
-.pr2-rm { height:86px; padding:6px 20px 0; overflow:hidden; }
-.pr2-rm.tall { height:172px; padding:22px 26px 0; }
+/* ---------- mục 1: lộ trình học tập (bản UI chủ dự án gửi) ----------
+   Bám đúng lo-trinh-hoc-tap.html: bảng màu, cỡ chữ, kích thước mốc giữ nguyên.
+   Hai khác biệt bắt buộc, vì khổ phiếu là canvas toạ độ tuyệt đối 1055x1491:
+   - .lt-full (khối cấp 2, thẻ không còn 3 ô Cambridge) chạy đúng cỡ bản gốc.
+   - Bản gọn dùng cho lớp còn 3 ô đó: chỉ được 92px nên thu nhỏ theo tỉ lệ.  */
+.pr2-c1 {
+  --lt-orange:#F26B1D; --lt-orange-soft:#FDEBDD; --lt-green:#22C55E;
+  --lt-ink:#16233A; --lt-text:#4A5566; --lt-muted:#8B95A6; --lt-muted-2:#A3ADBB;
+  --lt-line:#E4E8EE;
+}
+.pr2-c1 .pr2-card__hd.lt-head { border-bottom:0; }
+.pr2-c1.lt-full .pr2-card__hd.lt-head { height:38px; padding:18px 22px 0; align-items:center; gap:10px; }
+.lt-badge { border-radius:50%; background:var(--lt-orange); }
+.pr2-c1 .lt-title { font-size:14px; font-weight:800; letter-spacing:.02em; text-transform:uppercase; color:var(--lt-ink); }
+.pr2-c1 .lt-meta { font-size:12px; color:#7A8699; }
+.pr2-c1 .lt-meta b { color:var(--lt-ink); font-weight:700; }
 
-.pr2-rm__bar { position:relative; height:11px; border-radius:7px; background:#F5EDE4; border:1px solid #F0E4D6; }
-.pr2-rm.tall .pr2-rm__bar { height:16px; border-radius:9px; }
-.pr2-rm__bar i { display:block; height:100%; border-radius:6px; background:linear-gradient(90deg,#F98B2B,#F7610A); }
-.pr2-rm__bar b { position:absolute; top:50%; transform:translate(-104%,-50%); font-size:8.5px; font-weight:800; color:#fff; letter-spacing:.2px; }
-.pr2-rm.tall .pr2-rm__bar b { font-size:9.5px; }
+.lt-body { padding:0 22px; }
+.lt-bar { position:relative; height:16px; border-radius:99px; background:var(--lt-orange-soft); margin-top:16px; }
+.lt-bar-fill { height:16px; border-radius:99px; background:var(--lt-orange);
+  display:flex; align-items:center; justify-content:flex-end; padding-right:10px; }
+.lt-bar-fill span { font-size:10px; font-weight:800; color:#fff; }
 
-.pr2-rm__line { display:flex; margin-top:7px; }
-.pr2-rm.tall .pr2-rm__line { margin-top:26px; }
-.pr2-rm.tall .pr2-rm__dot { margin-top:6px; }
-.pr2-rm.tall .pr2-rm__now { margin-top:3px; }
-.pr2-rm__node { position:relative; flex:1 1 0; min-width:0; display:flex; flex-direction:column; align-items:center; text-align:center; }
-/* Đường nối chạy qua tâm chấm: 17px (nhãn tháng) + 1/2 chấm. */
-.pr2-rm__node::before { content:""; position:absolute; top:21px; right:50%; width:100%; height:2.5px; background:#DBD1C6; z-index:0; }
-.pr2-rm.tall .pr2-rm__node::before { top:29px; }
-.pr2-rm__node:first-child::before { display:none; }
-.pr2-rm__node.done::before, .pr2-rm__node.past::before, .pr2-rm__node.current::before { background:#1F9E52; }
-.pr2-rm__node.upcoming::before { background:none; border-top:2.5px dashed #DBD1C6; height:0; }
+.lt-track { position:relative; padding-top:14px; }
+/* Ray nằm ở tâm mốc: 14 (padding) + 18 (nhãn) + 8 (khoảng cách) + 14 (nửa ô mốc) = 54. */
+.lt-rail, .lt-rail-done { position:absolute; top:53px; height:2px; left:var(--lt-edge); }
+.lt-rail { right:var(--lt-edge); background:var(--lt-line); }
+.lt-rail-done { width:var(--lt-done); background:var(--lt-green); }
 
-.pr2-rm__mon { font-size:9px; font-weight:700; color:#8A7C6E; line-height:1.1; }
-.pr2-rm.tall .pr2-rm__mon { font-size:10.5px; }
-.pr2-rm__dot { position:relative; z-index:1; margin-top:4px; width:17px; height:17px; border-radius:50%; background:#DDD5CC; display:flex; align-items:center; justify-content:center; color:#fff; font-size:10.5px; font-weight:800; line-height:1; }
-.pr2-rm.tall .pr2-rm__dot { width:21px; height:21px; font-size:11.5px; }
-.pr2-rm__dot i { width:7px; height:7px; border-radius:50%; background:#fff; display:block; }
-.pr2-rm__node.done .pr2-rm__dot { background:#1F9E52; }
-.pr2-rm__node.past .pr2-rm__dot { background:#fff; border:2.5px solid #1F9E52; }
-.pr2-rm__node.past .pr2-rm__dot i { width:6px; height:6px; background:#9BD3B1; }
-.pr2-rm__node.past .pr2-rm__mon { color:#6E645B; }
-.pr2-rm__node.past .pr2-rm__num { color:#A2958A; }
-.pr2-rm__node.current .pr2-rm__dot { background:#fff; border:3px solid #F7610A; box-shadow:0 0 0 3px #FDEADB; }
-.pr2-rm__node.current .pr2-rm__dot i { width:6px; height:6px; background:#F7610A; }
-.pr2-rm__node.flag .pr2-rm__dot { background:none; color:#8A7C6E; }
-.pr2-rm__node.flag .pr2-rm__dot svg { width:13px; height:15px; }
+.lt-months { position:relative; display:grid; grid-template-columns:repeat(12,1fr); }
+.lt-month { display:flex; flex-direction:column; align-items:center; min-width:0; }
+.lt-label { height:18px; line-height:18px; font-size:11px; font-weight:500; color:var(--lt-muted-2); }
+.lt-label.is-done { font-weight:600; color:var(--lt-muted); }
+.lt-label.is-current { font-weight:800; color:var(--lt-orange); }
+.lt-node-wrap { height:28px; display:flex; align-items:center; justify-content:center; margin-top:8px; }
+.lt-sub { margin-top:8px; font-size:11px; font-weight:600; color:var(--lt-text); }
+.lt-sub.is-end { font-size:10px; font-weight:500; color:var(--lt-muted-2); }
+.lt-now { margin-top:2px; font-size:10px; font-weight:700; color:var(--lt-orange); }
 
-.pr2-rm__num { margin-top:5px; font-size:8.5px; font-weight:700; color:#4A443E; line-height:1.2; white-space:nowrap; }
-.pr2-rm.tall .pr2-rm__num { margin-top:9px; font-size:10px; }
-.pr2-rm__node.upcoming .pr2-rm__mon, .pr2-rm__node.upcoming .pr2-rm__num { color:#B3A99E; }
-.pr2-rm__node.current .pr2-rm__mon, .pr2-rm__node.current .pr2-rm__num { color:#F7610A; }
-.pr2-rm__now { margin-top:2px; font-size:8px; font-weight:700; color:#F7610A; line-height:1.1; white-space:nowrap; }
-.pr2-rm.tall .pr2-rm__now { font-size:9.5px; }
-.pr2-rm__tam { font-style:normal; font-size:9px; color:#A2958A; }
+.lt-node { display:flex; align-items:center; justify-content:center; border-radius:50%; position:relative; z-index:1; }
+.lt-node--done { width:24px; height:24px; background:var(--lt-green); border:3px solid #fff; color:#fff; font-size:12px; font-weight:800; }
+/* Tháng đã qua mà chưa có phiếu: vòng xanh rỗng, không tick. */
+.lt-node--past { width:24px; height:24px; background:#fff; border:3px solid var(--lt-green); }
+.lt-node--past i { width:7px; height:7px; border-radius:50%; background:#A7E9BF; display:block; }
+.lt-node--current { width:26px; height:26px; background:#fff; border:3px solid var(--lt-orange); box-shadow:0 0 0 3px #fff; }
+.lt-node--current i { width:9px; height:9px; border-radius:50%; background:var(--lt-orange); display:block; }
+.lt-node--next { width:20px; height:20px; background:var(--lt-line); border:3px solid #fff; }
+.lt-node--next i { width:6px; height:6px; border-radius:50%; background:#fff; display:block; }
+.lt-node--end { width:24px; height:24px; background:#fff; border:2px solid var(--lt-line); color:#7A8699; font-size:11px; }
+
+/* Bản gọn: lớp vẫn còn 3 ô "Đang học / Kiểm tra giữa tháng / Đánh giá giữa khoá"
+   nên lộ trình chỉ có 92px (29px đầu thẻ -> đỉnh 3 ô ở 121px). Thu theo tỉ lệ,
+   giữ nguyên bảng màu và bố cục. */
+.pr2-c1:not(.lt-full) .lt-body { padding:0 16px; }
+.pr2-c1:not(.lt-full) .pr2-card__hd { height:29px; padding:0 16px; }
+.pr2-c1:not(.lt-full) .lt-title { font-size:11.5px; }
+.pr2-c1:not(.lt-full) .lt-meta { font-size:10px; }
+.pr2-c1:not(.lt-full) .lt-bar,
+.pr2-c1:not(.lt-full) .lt-bar-fill { height:11px; }
+.pr2-c1:not(.lt-full) .lt-bar { margin-top:7px; }
+.pr2-c1:not(.lt-full) .lt-bar-fill span { font-size:8px; }
+.pr2-c1:not(.lt-full) .lt-track { padding-top:3px; }
+.pr2-c1:not(.lt-full) .lt-rail,
+.pr2-c1:not(.lt-full) .lt-rail-done { top:31px; }
+.pr2-c1:not(.lt-full) .lt-label { height:14px; line-height:14px; font-size:9px; }
+.pr2-c1:not(.lt-full) .lt-node-wrap { height:20px; margin-top:5px; }
+.pr2-c1:not(.lt-full) .lt-sub { margin-top:4px; font-size:9px; }
+.pr2-c1:not(.lt-full) .lt-sub.is-end { font-size:8.5px; }
+.pr2-c1:not(.lt-full) .lt-now { margin-top:1px; font-size:8.5px; }
+.pr2-c1:not(.lt-full) .lt-node--done,
+.pr2-c1:not(.lt-full) .lt-node--past,
+.pr2-c1:not(.lt-full) .lt-node--end { width:18px; height:18px; font-size:9.5px; border-width:2px; }
+.pr2-c1:not(.lt-full) .lt-node--current { width:20px; height:20px; border-width:2.5px; box-shadow:0 0 0 2px #fff; }
+.pr2-c1:not(.lt-full) .lt-node--current i { width:7px; height:7px; }
+.pr2-c1:not(.lt-full) .lt-node--next { width:15px; height:15px; border-width:2px; }
 
 .pr2-3box { position:absolute; left:14px; top:121px; width:945px; height:76px; border:1px solid #F4EBE0; border-radius:10px; background:#FFFDFB; display:grid; grid-template-columns:318px 297px 328px; }
 .pr2-3box > div { border-right:1px solid #F4EBE0; }
