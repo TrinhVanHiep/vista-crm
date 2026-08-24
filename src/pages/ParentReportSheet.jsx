@@ -194,6 +194,9 @@ export default function ParentReportSheet({ v }) {
   const diemThiThang = Array.isArray(v.monthlyExams) ? v.monthlyExams : [];
   const coDiemThiThang = v.isSecondary && diemThiThang.length > 0;
   const baiDangHoc = units.find((u) => u.state === "current") || null;
+  const kyThiThangNay = diemThiThang.find((x) => x.isCurrent) || null;
+  const diemThiThangNay = kyThiThangNay ? kyThiThangNay.score : null;
+  const chenhThiThang = kyThiThangNay ? kyThiThangNay.delta : null;
   const barMax = (s) => (isNum(s.max) && Number(s.max) > 0 ? Number(s.max) : 10);
 
   const info = [
@@ -265,9 +268,21 @@ export default function ParentReportSheet({ v }) {
         </div>
         <div className="pr2-stat">
           <span className="pr2-stat__ico"><img src={A + "ic-score.png"} alt="" /></span>
-          <div className="pr2-stat__lb">Điểm trung bình tổng thể</div>
-          <div className="pr2-stat__val orange">{num(v.totalPercent)} <small>/ 10</small></div>
-          <div className="pr2-stat__sub up">{isNum(v.totalDelta) && v.totalDelta !== 0 ? <Delta value={v.totalDelta} unit=" điểm" /> : "—"}</div>
+          {/* Khối cấp 2 thi một bài mỗi tháng chứ không chấm 6 kỹ năng CEFR,
+              nên thẻ này đọc thẳng điểm thi tháng thay vì trung bình kỹ năng. */}
+          <div className="pr2-stat__lb">{v.isSecondary ? "Điểm thi tháng" : "Điểm trung bình tổng thể"}</div>
+          <div className="pr2-stat__val orange">
+            {num(v.isSecondary ? diemThiThangNay : v.totalPercent)} <small>/ 10</small>
+          </div>
+          <div className="pr2-stat__sub up">
+            {v.isSecondary
+              ? (isNum(chenhThiThang) && chenhThiThang !== 0
+                  ? <Delta value={chenhThiThang} unit=" điểm" />
+                  : v.gradeLabel || "—")
+              : (isNum(v.totalDelta) && v.totalDelta !== 0
+                  ? <Delta value={v.totalDelta} unit=" điểm" />
+                  : "—")}
+          </div>
         </div>
         <div className="pr2-stat">
           <span className="pr2-stat__ico"><img src={A + "ic-cefr.png"} alt="" /></span>
@@ -292,7 +307,20 @@ export default function ParentReportSheet({ v }) {
               ? ` ${v.roadmapYearLabel.replace(" - ", "–")}`
               : ` THÁNG ${v.monthNum || v.periodShort}`}
           </h2>
-          {v.sessTotal ? (
+          {/* Lộ trình đo bằng SỐ BUỔI HỌC trên tổng số buổi cả khoá — cộng dồn
+              từ tháng 5 tới tháng đang xem, không phải số buổi của riêng tháng. */}
+          {coLoTrinhThang && v.sessTotalYear ? (
+            <span className="pr2-right lt-meta">
+              Số buổi đã học:{" "}
+              <b>
+                {v.sessDoneYear !== null ? v.sessDoneYear : "—"}/{v.sessTotalYear}
+                {v.sessPercentYear !== null ? ` (${r1(v.sessPercentYear)}%)` : ""}
+              </b>
+              {/* Lớp chưa khai số buổi cả khoá thì tổng mới là số cộng tạm từ
+                  các tháng đã có phiếu — nói rõ chứ không để hiểu nhầm là mốc thật. */}
+              {v.sessTotalSource !== "class" ? <em className="lt-tam"> tổng tạm tính</em> : null}
+            </span>
+          ) : v.sessTotal ? (
             <span className="pr2-right lt-meta">
               Số buổi đã học:{" "}
               <b>
@@ -304,7 +332,7 @@ export default function ParentReportSheet({ v }) {
         </div>
 
         {coLoTrinhThang ? (
-          <MonthRoadmap months={v.roadmapMonths} percent={v.roadmapPercent} />
+          <MonthRoadmap months={v.roadmapMonths} percent={v.sessPercentYear} />
         ) : (
           <div className="pr2-tl">
             {units.map((u, i) => {

@@ -103,6 +103,7 @@
 .pr2-c1 .lt-title { font-size:14px; font-weight:800; letter-spacing:.02em; text-transform:uppercase; color:var(--lt-ink); }
 .pr2-c1 .lt-meta { font-size:12px; color:#7A8699; }
 .pr2-c1 .lt-meta b { color:var(--lt-ink); font-weight:700; }
+.pr2-c1 .lt-tam { font-style:normal; font-size:10px; color:var(--lt-muted-2); }
 
 .lt-body { padding:0 22px; }
 .lt-bar { position:relative; height:16px; border-radius:99px; background:var(--lt-orange-soft); margin-top:16px; }

@@ -480,8 +480,8 @@ export default function ParentReport() {
       sessDoneYear: isNum(ry.sessions_done) ? Number(ry.sessions_done) : null,
       sessTotalYear: isNum(ry.sessions_total) ? Number(ry.sessions_total) : null,
       sessPercentYear: isNum(ry.percent) ? Number(ry.percent) : null,
-      // "class" = số buổi do lớp khai; "months" = cộng tạm từ các tháng đã có
-      // phiếu. Phiếu phải nói rõ để phụ huynh không hiểu nhầm là con số chính thức.
+      // "class" = số buổi do lớp khai; "estimate" = ước lượng từ số buổi trung
+      // bình mỗi tháng. Phiếu phải nói rõ để không hiểu nhầm là con số chính thức.
       sessTotalSource: ry.sessions_total_source || "",
       // Tiến độ lộ trình đo bằng THÁNG (tháng 8 = mốc 4/12 -> 33%), khác với
       // tỉ lệ buổi học của riêng tháng đang xem.
