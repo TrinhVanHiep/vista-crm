@@ -483,6 +483,11 @@ export default function ParentReport() {
       // "class" = số buổi do lớp khai; "months" = cộng tạm từ các tháng đã có
       // phiếu. Phiếu phải nói rõ để phụ huynh không hiểu nhầm là con số chính thức.
       sessTotalSource: ry.sessions_total_source || "",
+      // Tiến độ lộ trình đo bằng THÁNG (tháng 8 = mốc 4/12 -> 33%), khác với
+      // tỉ lệ buổi học của riêng tháng đang xem.
+      roadmapPercent: isNum(ry.progress_percent) ? Number(ry.progress_percent) : null,
+      roadmapMonthsDone: isNum(ry.months_elapsed) ? Number(ry.months_elapsed) : null,
+      roadmapMonthsTotal: isNum(ry.months_total) ? Number(ry.months_total) : null,
 
       /* Mục 3 (khối cấp 2) — điểm thi từng tháng đã lưu */
       monthlyExams,
@@ -588,6 +593,13 @@ export default function ParentReport() {
     if (v.roadmapMonths.length) {
       L.push("");
       L.push(`── LỘ TRÌNH NĂM HỌC ${v.roadmapYearLabel} ──`);
+      if (v.roadmapMonthsDone) {
+        L.push(
+          `Tiến độ lộ trình: ${v.roadmapMonthsDone}/${v.roadmapMonthsTotal} tháng${
+            v.roadmapPercent !== null ? ` (${v.roadmapPercent}%)` : ""
+          }`,
+        );
+      }
       if (v.sessTotalYear) {
         L.push(
           `Đã học ${v.sessDoneYear ?? 0}/${v.sessTotalYear} buổi${

@@ -96,24 +96,39 @@ function Radar({ skills }) {
   );
 }
 
-/** Lộ trình học: thanh tiến độ buổi học chia theo 12 tháng của năm học (05 -> 04).
- *  Mỗi cột là một tháng, phần tô là tỉ lệ buổi có mặt / tổng buổi của tháng đó.
- *  Thay cho dải Unit cũ vì "lộ trình" ở đây được định nghĩa theo số buổi học. */
-function MonthRoadmap({ months }) {
+/** Lộ trình học tập cả năm học (05 -> 04).
+ *  Thanh % đo bằng THÁNG (tháng 8 là mốc thứ 4/12 -> 33%), còn số buổi của
+ *  tháng đang xét nằm ở góc phải đầu thẻ. Mỗi mốc là một tháng: đã qua tô xanh
+ *  kèm dấu ✓, tháng này viền cam, chưa tới để xám; mốc cuối là cờ "Kết thúc". */
+function MonthRoadmap({ months, percent, tall }) {
+  const pt = isNum(percent) ? clamp(Number(percent), 0, 100) : 0;
+  const cuoi = months.length - 1;
   return (
-    <div className="pr2-rm">
-      <div className="pr2-rm__grid">
-        {months.map((m) => {
-          const fill = isNum(m.percent) ? clamp(Number(m.percent), 0, 100) : 0;
+    <div className={`pr2-rm${tall ? " tall" : ""}`}>
+      <div className="pr2-rm__bar">
+        <i style={{ width: `${pt}%` }} />
+        {pt > 0 ? <b style={{ left: `${pt}%` }}>{Math.round(pt)}%</b> : null}
+      </div>
+      <div className="pr2-rm__line">
+        {months.map((m, i) => {
+          const laCo = i === cuoi && m.state === "upcoming";
           return (
-            <div className={`pr2-rm__col ${m.state}`} key={`${m.year}-${m.month}`}>
-              <span className="pr2-rm__track">
-                <i style={{ width: `${fill}%` }} />
-              </span>
-              <span className="pr2-rm__mon">{m.label}</span>
+            <div className={`pr2-rm__node ${m.state}${laCo ? " flag" : ""}`} key={`${m.year}-${m.month}`}>
+              <span className="pr2-rm__mon">{`${String(m.month).padStart(2, "0")}/${String(m.year).slice(2)}`}</span>
+              {laCo ? (
+                <span className="pr2-rm__dot">
+                  <svg viewBox="0 0 14 16" aria-hidden="true">
+                    <path d="M2 1v14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" fill="none" />
+                    <path d="M2.9 1.9h8.6l-2.3 3 2.3 3H2.9z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" fill="none" />
+                  </svg>
+                </span>
+              ) : (
+                <span className="pr2-rm__dot">{m.state === "done" ? "✓" : <i />}</span>
+              )}
               <span className="pr2-rm__num">
-                {m.present !== null && m.total ? `${m.present}/${m.total}` : "—"}
+                {laCo ? "Kết thúc" : m.present !== null && m.total ? `${m.present}/${m.total}` : "–"}
               </span>
+              {m.state === "current" ? <span className="pr2-rm__now">Đang học</span> : null}
             </div>
           );
         })}
@@ -246,18 +261,10 @@ export default function ParentReportSheet({ v }) {
           <span className="pr2-no">1</span>
           <h2>
             LỘ TRÌNH HỌC TẬP{coLoTrinhThang && v.roadmapYearLabel
-              ? ` NĂM HỌC ${v.roadmapYearLabel}`
+              ? ` ${v.roadmapYearLabel.replace(" - ", "–")}`
               : ` THÁNG ${v.monthNum || v.periodShort}`}
           </h2>
-          {coLoTrinhThang && v.sessTotalYear ? (
-            <span className="pr2-right">
-              Số buổi đã học: &nbsp;{v.sessDoneYear !== null ? v.sessDoneYear : "—"} / {v.sessTotalYear} buổi
-              {v.sessPercentYear !== null ? ` (${r1(v.sessPercentYear)}%)` : ""}
-              {/* Nói rõ khi tổng buổi mới là số cộng tạm: lớp chưa khai số buổi cả
-                  khoá thì đây chưa phải mốc chính thức, không để phụ huynh hiểu nhầm. */}
-              {v.sessTotalSource === "months" ? <em className="pr2-rm__tam"> · tổng tạm tính</em> : null}
-            </span>
-          ) : !coLoTrinhThang && v.sessTotal ? (
+          {v.sessTotal ? (
             <span className="pr2-right">
               Số buổi đã học: &nbsp;{v.sessDone !== null ? v.sessDone : "—"} / {v.sessTotal} buổi
               {v.sessPercent !== null ? ` (${r1(v.sessPercent)}%)` : ""}
@@ -266,7 +273,7 @@ export default function ParentReportSheet({ v }) {
         </div>
 
         {coLoTrinhThang ? (
-          <MonthRoadmap months={v.roadmapMonths} />
+          <MonthRoadmap months={v.roadmapMonths} percent={v.roadmapPercent} tall={coDiemThiThang} />
         ) : (
           <div className="pr2-tl">
             {units.map((u, i) => {
@@ -287,6 +294,10 @@ export default function ParentReportSheet({ v }) {
           </div>
         )}
 
+        {/* Ba ô "Đang học / Kiểm tra giữa tháng / Đánh giá giữa khoá" là khái niệm
+            của chương trình Cambridge; khối cấp 2 không có nên bỏ hẳn, nhường
+            chỗ cho lộ trình 12 tháng đúng như bản thiết kế. */}
+        {coDiemThiThang ? null : (
         <div className="pr2-3box">
           <div className="pr2-3box__c1">
             <div className="pr2-box__lb">Đang học</div>
@@ -308,6 +319,7 @@ export default function ParentReportSheet({ v }) {
             {v.checkpoint?.badge ? <span className="pr2-pill">{v.checkpoint.badge}</span> : null}
           </div>
         </div>
+        )}
       </div>
 
       {/* 2. TỔNG QUAN KỸ NĂNG */}
