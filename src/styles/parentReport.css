@@ -128,9 +128,6 @@
 
 .lt-node { display:flex; align-items:center; justify-content:center; border-radius:50%; position:relative; z-index:1; }
 .lt-node--done { width:24px; height:24px; background:var(--lt-green); border:3px solid #fff; color:#fff; font-size:12px; font-weight:800; }
-/* Tháng đã qua mà chưa có phiếu: vòng xanh rỗng, không tick. */
-.lt-node--past { width:24px; height:24px; background:#fff; border:3px solid var(--lt-green); }
-.lt-node--past i { width:7px; height:7px; border-radius:50%; background:#A7E9BF; display:block; }
 .lt-node--current { width:26px; height:26px; background:#fff; border:3px solid var(--lt-orange); box-shadow:0 0 0 3px #fff; }
 .lt-node--current i { width:9px; height:9px; border-radius:50%; background:var(--lt-orange); display:block; }
 .lt-node--next { width:20px; height:20px; background:var(--lt-line); border:3px solid #fff; }
@@ -157,7 +154,6 @@
 .pr2-c1:not(.lt-full) .lt-sub.is-end { font-size:8.5px; }
 .pr2-c1:not(.lt-full) .lt-now { margin-top:1px; font-size:8.5px; }
 .pr2-c1:not(.lt-full) .lt-node--done,
-.pr2-c1:not(.lt-full) .lt-node--past,
 .pr2-c1:not(.lt-full) .lt-node--end { width:18px; height:18px; font-size:9.5px; border-width:2px; }
 .pr2-c1:not(.lt-full) .lt-node--current { width:20px; height:20px; border-width:2.5px; box-shadow:0 0 0 2px #fff; }
 .pr2-c1:not(.lt-full) .lt-node--current i { width:7px; height:7px; }

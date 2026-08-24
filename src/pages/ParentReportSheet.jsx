@@ -138,12 +138,12 @@ function MonthRoadmap({ months, percent }) {
                 <div className="lt-node-wrap">
                   {laCuoi ? (
                     <span className="lt-node lt-node--end">⚑</span>
-                  ) : m.state === "done" ? (
+                  ) : m.state === "done" || m.state === "past" ? (
+                    /* "past" = tháng đã trôi qua mà chưa ai nộp phiếu. Vẫn tick
+                       như tháng đã học: dấu tích ở đây đánh dấu MỐC ĐÃ ĐI QUA
+                       trên lộ trình, còn việc có số liệu hay chưa thì dòng số
+                       buổi bên dưới nói — tháng chưa có phiếu thì để trống. */
                     <span className="lt-node lt-node--done">✓</span>
-                  ) : m.state === "past" ? (
-                    /* Tháng đã trôi qua nhưng chưa ai nộp phiếu: vòng xanh rỗng.
-                       Không tick "hoàn thành" cho tháng chưa có số liệu. */
-                    <span className="lt-node lt-node--past"><i /></span>
                   ) : m.state === "current" ? (
                     <span className="lt-node lt-node--current"><i /></span>
                   ) : (
