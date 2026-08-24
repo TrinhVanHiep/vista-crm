@@ -109,7 +109,7 @@
 .pr2-rm__node::before { content:""; position:absolute; top:21px; right:50%; width:100%; height:2.5px; background:#DBD1C6; z-index:0; }
 .pr2-rm.tall .pr2-rm__node::before { top:29px; }
 .pr2-rm__node:first-child::before { display:none; }
-.pr2-rm__node.done::before, .pr2-rm__node.current::before { background:#1F9E52; }
+.pr2-rm__node.done::before, .pr2-rm__node.past::before, .pr2-rm__node.current::before { background:#1F9E52; }
 .pr2-rm__node.upcoming::before { background:none; border-top:2.5px dashed #DBD1C6; height:0; }
 
 .pr2-rm__mon { font-size:9px; font-weight:700; color:#8A7C6E; line-height:1.1; }
@@ -118,6 +118,10 @@
 .pr2-rm.tall .pr2-rm__dot { width:21px; height:21px; font-size:11.5px; }
 .pr2-rm__dot i { width:7px; height:7px; border-radius:50%; background:#fff; display:block; }
 .pr2-rm__node.done .pr2-rm__dot { background:#1F9E52; }
+.pr2-rm__node.past .pr2-rm__dot { background:#fff; border:2.5px solid #1F9E52; }
+.pr2-rm__node.past .pr2-rm__dot i { width:6px; height:6px; background:#9BD3B1; }
+.pr2-rm__node.past .pr2-rm__mon { color:#6E645B; }
+.pr2-rm__node.past .pr2-rm__num { color:#A2958A; }
 .pr2-rm__node.current .pr2-rm__dot { background:#fff; border:3px solid #F7610A; box-shadow:0 0 0 3px #FDEADB; }
 .pr2-rm__node.current .pr2-rm__dot i { width:6px; height:6px; background:#F7610A; }
 .pr2-rm__node.flag .pr2-rm__dot { background:none; color:#8A7C6E; }
