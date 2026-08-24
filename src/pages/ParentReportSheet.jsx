@@ -96,9 +96,61 @@ function Radar({ skills }) {
   );
 }
 
+/** Lộ trình học: thanh tiến độ buổi học chia theo 12 tháng của năm học (05 -> 04).
+ *  Mỗi cột là một tháng, phần tô là tỉ lệ buổi có mặt / tổng buổi của tháng đó.
+ *  Thay cho dải Unit cũ vì "lộ trình" ở đây được định nghĩa theo số buổi học. */
+function MonthRoadmap({ months }) {
+  return (
+    <div className="pr2-rm">
+      <div className="pr2-rm__grid">
+        {months.map((m) => {
+          const fill = isNum(m.percent) ? clamp(Number(m.percent), 0, 100) : 0;
+          return (
+            <div className={`pr2-rm__col ${m.state}`} key={`${m.year}-${m.month}`}>
+              <span className="pr2-rm__track">
+                <i style={{ width: `${fill}%` }} />
+              </span>
+              <span className="pr2-rm__mon">{m.label}</span>
+              <span className="pr2-rm__num">
+                {m.present !== null && m.total ? `${m.present}/${m.total}` : "—"}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/** Điểm thi tháng của khối cấp 2 — cột theo từng tháng đã lưu trong hệ thống. */
+function ExamHistory({ rows }) {
+  const max = 10;
+  return (
+    <div className="pr2-exam">
+      {rows.map((x) => {
+        const h = isNum(x.score) ? clamp((Number(x.score) / max) * 100, 0, 100) : 0;
+        return (
+          <div className={`pr2-exam__col${x.isCurrent ? " current" : ""}`} key={`${x.year}-${x.month}`}>
+            <span className="pr2-exam__val">{num(x.score)}</span>
+            <span className="pr2-exam__bar"><i style={{ height: `${h}%` }} /></span>
+            <span className="pr2-exam__mon">{x.short}</span>
+            <span className="pr2-exam__d"><Delta value={x.delta} /></span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function ParentReportSheet({ v }) {
   const units = (v.units || []).slice(0, 8);
   const skills = v.skills || [];
+  // Chỉ dựng lộ trình theo tháng khi backend thực sự trả về 12 mốc; phiếu cũ
+  // chưa có trường này vẫn hiện dải Unit như trước, không vỡ.
+  const coLoTrinhThang = Array.isArray(v.roadmapMonths) && v.roadmapMonths.length > 0;
+  const diemThiThang = Array.isArray(v.monthlyExams) ? v.monthlyExams : [];
+  const coDiemThiThang = v.isSecondary && diemThiThang.length > 0;
+  const baiDangHoc = units.find((u) => u.state === "current") || null;
   const barMax = (s) => (isNum(s.max) && Number(s.max) > 0 ? Number(s.max) : 10);
 
   const info = [
@@ -153,8 +205,13 @@ export default function ParentReportSheet({ v }) {
       <div className="pr2-stats">
         <div className="pr2-stat">
           <span className="pr2-stat__ico"><img src={A + "ic-att.png"} alt="" /></span>
-          <div className="pr2-stat__lb">Tỷ lệ chuyên cần</div>
-          <div className="pr2-stat__val">{num(v.attPercent, "%")}</div>
+          <div className="pr2-stat__lb">{v.isSecondary ? "Điểm chuyên cần" : "Tỷ lệ chuyên cần"}</div>
+          {/* Khối cấp 2 chấm chuyên cần Đạt / Chưa đạt, không đọc phần trăm. */}
+          {v.isSecondary && v.attPassLabel ? (
+            <div className={`pr2-stat__val pass${v.attPass ? "" : " fail"}`}>{v.attPassLabel}</div>
+          ) : (
+            <div className="pr2-stat__val">{num(v.attPercent, "%")}</div>
+          )}
           <div className="pr2-stat__sub">{v.sessDone !== null && v.sessTotal ? `${v.sessDone} / ${v.sessTotal} buổi` : "—"}</div>
         </div>
         <div className="pr2-stat">
@@ -187,8 +244,20 @@ export default function ParentReportSheet({ v }) {
       <div className="pr2-card pr2-c1" data-screen-label="01">
         <div className="pr2-card__hd">
           <span className="pr2-no">1</span>
-          <h2>LỘ TRÌNH HỌC TẬP THÁNG {v.monthNum || v.periodShort}</h2>
-          {v.sessTotal ? (
+          <h2>
+            LỘ TRÌNH HỌC TẬP{coLoTrinhThang && v.roadmapYearLabel
+              ? ` NĂM HỌC ${v.roadmapYearLabel}`
+              : ` THÁNG ${v.monthNum || v.periodShort}`}
+          </h2>
+          {coLoTrinhThang && v.sessTotalYear ? (
+            <span className="pr2-right">
+              Số buổi đã học: &nbsp;{v.sessDoneYear !== null ? v.sessDoneYear : "—"} / {v.sessTotalYear} buổi
+              {v.sessPercentYear !== null ? ` (${r1(v.sessPercentYear)}%)` : ""}
+              {/* Nói rõ khi tổng buổi mới là số cộng tạm: lớp chưa khai số buổi cả
+                  khoá thì đây chưa phải mốc chính thức, không để phụ huynh hiểu nhầm. */}
+              {v.sessTotalSource === "months" ? <em className="pr2-rm__tam"> · tổng tạm tính</em> : null}
+            </span>
+          ) : !coLoTrinhThang && v.sessTotal ? (
             <span className="pr2-right">
               Số buổi đã học: &nbsp;{v.sessDone !== null ? v.sessDone : "—"} / {v.sessTotal} buổi
               {v.sessPercent !== null ? ` (${r1(v.sessPercent)}%)` : ""}
@@ -196,29 +265,36 @@ export default function ParentReportSheet({ v }) {
           ) : null}
         </div>
 
-        <div className="pr2-tl">
-          {units.map((u, i) => {
-            const st = u.state === "done" ? "done" : u.state === "current" ? "current" : "upcoming";
-            return (
-              <div className={`pr2-tl__item ${st}`} key={`${u.code || "u"}-${i}`}>
-                <span className="pr2-tl__dot">{st === "done" ? "✓" : <i />}</span>
-                <span className="pr2-tl__code">{txt(u.code)}</span>
-                <span className="pr2-tl__name">{u.title || ""}</span>
-              </div>
-            );
-          })}
-          <div className="pr2-tl__item flag">
-            <img src={A + "ic-flag.png"} alt="" />
-            <span className="pr2-tl__code">{v.mockName || "Mock Test"}</span>
-            <span className="pr2-tl__name">(Progress)</span>
+        {coLoTrinhThang ? (
+          <MonthRoadmap months={v.roadmapMonths} />
+        ) : (
+          <div className="pr2-tl">
+            {units.map((u, i) => {
+              const st = u.state === "done" ? "done" : u.state === "current" ? "current" : "upcoming";
+              return (
+                <div className={`pr2-tl__item ${st}`} key={`${u.code || "u"}-${i}`}>
+                  <span className="pr2-tl__dot">{st === "done" ? "✓" : <i />}</span>
+                  <span className="pr2-tl__code">{txt(u.code)}</span>
+                  <span className="pr2-tl__name">{u.title || ""}</span>
+                </div>
+              );
+            })}
+            <div className="pr2-tl__item flag">
+              <img src={A + "ic-flag.png"} alt="" />
+              <span className="pr2-tl__code">{v.mockName || "Mock Test"}</span>
+              <span className="pr2-tl__name">(Progress)</span>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="pr2-3box">
           <div className="pr2-3box__c1">
             <div className="pr2-box__lb">Đang học</div>
-            <div className="pr2-box__title">{txt(v.currentUnit?.title)}</div>
-            <div className="pr2-box__note">{v.currentUnit?.note || ""}</div>
+            {/* Dải Unit không còn nằm trên thẻ này nữa (đã nhường chỗ cho lộ trình
+                12 tháng), nên bài đang học lấy luôn từ danh sách Unit khi giáo
+                viên chưa điền riêng ô "Đang học" — để dữ liệu đã nhập không mất chỗ hiện. */}
+            <div className="pr2-box__title">{txt(v.currentUnit?.title || baiDangHoc?.title || baiDangHoc?.code)}</div>
+            <div className="pr2-box__note">{v.currentUnit?.note || baiDangHoc?.code || ""}</div>
           </div>
           <div className="pr2-3box__c2">
             <div className="pr2-box__lb">Bài kiểm tra giữa tháng</div>
@@ -283,7 +359,34 @@ export default function ParentReportSheet({ v }) {
         <Radar skills={skills} />
       </div>
 
-      {/* 3. SẴN SÀNG KỲ THI */}
+      {/* 3. KHỐI CẤP 2 — ĐIỂM THI THÁNG / các khối khác — SẴN SÀNG KỲ THI */}
+      {coDiemThiThang ? (
+        <div className="pr2-card pr2-c3" data-screen-label="03">
+          <div className="pr2-card__hd">
+            <span className="pr2-no">3</span><h2>ĐIỂM THI THÁNG</h2>
+            <span className="pr2-right">Kết quả đã lưu từ đầu năm học</span>
+          </div>
+          <div className="pr2-mock">
+            <div>
+              <div className="pr2-mock__ttl">
+                <b>DIỄN BIẾN QUA CÁC THÁNG</b>
+                <span className="pr2-mock__date">Thang điểm <b>10</b></span>
+              </div>
+              <ExamHistory rows={diemThiThang} />
+            </div>
+            <div className="pr2-panel">
+              <div className="pr2-panel__lb">THÁNG {v.periodShort}</div>
+              <div className="pr2-shield"><span>{num(v.monthlyExams.find((x) => x.isCurrent)?.score)}</span></div>
+              <div className="pr2-panel__tag">{txt(v.gradeLabel) !== "—" ? v.gradeLabel : ""}</div>
+              <div className="pr2-panel__note">
+                {v.monthlyExamAverage !== null
+                  ? <>Trung bình {diemThiThang.length} tháng:<br /><b>{num(v.monthlyExamAverage)}</b> / 10</>
+                  : ""}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
       <div className="pr2-card pr2-c3" data-screen-label="03">
         <div className="pr2-card__hd"><span className="pr2-no">3</span><h2>SẴN SÀNG KỲ THI CAMBRIDGE</h2></div>
         <div className="pr2-mock">
@@ -321,6 +424,7 @@ export default function ParentReportSheet({ v }) {
         </div>
         {v.mockFootnote ? <div className="pr2-foot-note">{v.mockFootnote}</div> : null}
       </div>
+      )}
 
       {/* 4. TIẾN ĐỘ CẤP ĐỘ */}
       <div className="pr2-card pr2-c4" data-screen-label="04">

@@ -178,6 +178,7 @@ const buildDefaultForm = ({ month, year, classroom = "", programType = "basic" }
   attendance_total: "",
   attendance_present: "",
   attendance_late: "",
+  monthly_exam_score: "",
   score_components: {},
   grade_label: "",
   student_group: "",
@@ -208,6 +209,7 @@ const buildFormFromScorecard = (scorecard) => ({
   attendance_total: scorecard.attendance_total ?? "",
   attendance_present: scorecard.attendance_present ?? "",
   attendance_late: scorecard.attendance_late ?? "",
+  monthly_exam_score: scorecard.monthly_exam_score ?? "",
   score_components: Object.fromEntries(
     Object.entries(scorecard.score_components || {}).map(([key, value]) => [
       key,
@@ -920,6 +922,7 @@ function MonthlyScorecards() {
       attendance_total: toNullableNumber(form.attendance_total),
       attendance_present: toNullableNumber(form.attendance_present),
       attendance_late: toNullableNumber(form.attendance_late),
+      monthly_exam_score: toNullableNumber(form.monthly_exam_score),
       score_components: normalizedComponents,
       total_score: summary.totalScore,
       total_percent: summary.totalPercent,
@@ -1971,6 +1974,22 @@ function MonthlyScorecards() {
                       value={form.attendance_late}
                       onChange={(event) =>
                         updateFormField("attendance_late", event.target.value)
+                      }
+                    />
+                  </label>
+                  {/* Điểm thi tháng nhập riêng, KHÔNG suy từ các đầu điểm: khối
+                      cấp 2 thi một bài mỗi tháng chứ không chấm 6 kỹ năng. Phiếu
+                      báo cáo dựng lại lịch sử điểm thi từ chính ô này. */}
+                  <label className={styles.field}>
+                    <span>Điểm thi tháng (0-10)</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="10"
+                      step="0.1"
+                      value={form.monthly_exam_score}
+                      onChange={(event) =>
+                        updateFormField("monthly_exam_score", event.target.value)
                       }
                     />
                   </label>

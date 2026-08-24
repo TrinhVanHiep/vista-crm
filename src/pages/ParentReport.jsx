@@ -404,6 +404,33 @@ export default function ParentReport() {
 
     const units = Array.isArray(roadmap.units) ? roadmap.units.filter(Boolean) : [];
 
+    /* Lộ trình học = tiến độ buổi học theo 12 tháng năm học (05 -> 04).
+       Backend trả sẵn đủ 12 mốc; ở đây chỉ ép kiểu, không tính lại. */
+    const ry = rd.roadmap_year && typeof rd.roadmap_year === "object" ? rd.roadmap_year : {};
+    const roadmapMonths = (Array.isArray(ry.months) ? ry.months : []).map((m) => ({
+      month: m.month,
+      year: m.year,
+      label: m.label || `T${m.month}`,
+      short: m.short || "",
+      present: isNum(m.present) ? Number(m.present) : null,
+      total: isNum(m.total) ? Number(m.total) : null,
+      percent: isNum(m.percent) ? Number(m.percent) : null,
+      state: m.state || "upcoming",
+      hasData: Boolean(m.has_data),
+    }));
+
+    /* Khối cấp 2: chuyên cần chấm Đạt / Chưa đạt thay vì phần trăm. */
+    const isSecondary = rd.grade_band === "secondary";
+    const monthlyExams = (Array.isArray(rd.monthly_exams) ? rd.monthly_exams : []).map((x) => ({
+      month: x.month,
+      year: x.year,
+      label: x.label || "",
+      short: x.short || `T${x.month}`,
+      score: isNum(x.score) ? Number(x.score) : null,
+      delta: isNum(x.delta) ? Number(x.delta) : null,
+      isCurrent: Boolean(x.is_current),
+    }));
+
     return {
       /* Đầu phiếu */
       programLabel: (rd.program_label || card.program_type || "").toString().toUpperCase(),
@@ -439,8 +466,27 @@ export default function ParentReport() {
       classSize: isNum(rd.class_size) ? Number(rd.class_size) : null,
       classTopPercent: isNum(rd.class_top_percent) ? Number(rd.class_top_percent) : null,
 
+      /* Khối lớp — quyết định phiếu cấp 2 hay phiếu Cambridge */
+      gradeLevel: isNum(rd.grade_level) ? Number(rd.grade_level) : null,
+      isSecondary,
+      attPass: typeof rd.attendance_pass === "boolean" ? rd.attendance_pass : null,
+      attPassLabel: rd.attendance_pass_label || "",
+      attPassThreshold: isNum(rd.attendance_pass_threshold) ? Number(rd.attendance_pass_threshold) : null,
+
       /* Mục 1 — lộ trình */
       units,
+      roadmapMonths,
+      roadmapYearLabel: ry.label || "",
+      sessDoneYear: isNum(ry.sessions_done) ? Number(ry.sessions_done) : null,
+      sessTotalYear: isNum(ry.sessions_total) ? Number(ry.sessions_total) : null,
+      sessPercentYear: isNum(ry.percent) ? Number(ry.percent) : null,
+      // "class" = số buổi do lớp khai; "months" = cộng tạm từ các tháng đã có
+      // phiếu. Phiếu phải nói rõ để phụ huynh không hiểu nhầm là con số chính thức.
+      sessTotalSource: ry.sessions_total_source || "",
+
+      /* Mục 3 (khối cấp 2) — điểm thi từng tháng đã lưu */
+      monthlyExams,
+      monthlyExamAverage: isNum(rd.monthly_exam_average) ? Number(rd.monthly_exam_average) : null,
       currentUnit: roadmap.current_unit || null,
       midterm: roadmap.midterm || null,
       checkpoint: roadmap.checkpoint || null,
@@ -504,10 +550,15 @@ export default function ParentReport() {
     L.push("");
 
     L.push("── CHỈ SỐ THÁNG ──");
+    // Khối cấp 2 chấm chuyên cần Đạt / Chưa đạt, không đọc phần trăm.
     L.push(
-      `• Chuyên cần: ${showNum(v.attPercent, "%")}${
-        v.sessDone !== null && v.sessTotal ? ` (${v.sessDone}/${v.sessTotal} buổi)` : ""
-      }`,
+      v.isSecondary && v.attPassLabel
+        ? `• Chuyên cần: ${v.attPassLabel}${
+            v.sessDone !== null && v.sessTotal ? ` (${v.sessDone}/${v.sessTotal} buổi)` : ""
+          }`
+        : `• Chuyên cần: ${showNum(v.attPercent, "%")}${
+            v.sessDone !== null && v.sessTotal ? ` (${v.sessDone}/${v.sessTotal} buổi)` : ""
+          }`,
     );
     if (v.taskPercent !== null || v.taskTotal) {
       L.push(
@@ -532,6 +583,33 @@ export default function ParentReport() {
           v.classTopPercent !== null ? ` (Top ${round1(v.classTopPercent)}%)` : ""
         }`,
       );
+    }
+
+    if (v.roadmapMonths.length) {
+      L.push("");
+      L.push(`── LỘ TRÌNH NĂM HỌC ${v.roadmapYearLabel} ──`);
+      if (v.sessTotalYear) {
+        L.push(
+          `Đã học ${v.sessDoneYear ?? 0}/${v.sessTotalYear} buổi${
+            v.sessPercentYear !== null ? ` (${round1(v.sessPercentYear)}%)` : ""
+          }${v.sessTotalSource === "months" ? " — tổng buổi tạm cộng từ các tháng đã có phiếu" : ""}`,
+        );
+      }
+      L.push(
+        v.roadmapMonths
+          .map((m) => `${m.label} ${m.present !== null && m.total ? `${m.present}/${m.total}` : "—"}`)
+          .join("  |  "),
+      );
+    }
+
+    if (v.isSecondary && v.monthlyExams.length) {
+      L.push("");
+      L.push("── ĐIỂM THI THÁNG ──");
+      v.monthlyExams.forEach((x) => {
+        const d = isNum(x.delta) && x.delta !== 0 ? ` (${x.delta > 0 ? "+" : "-"}${round1(Math.abs(x.delta))})` : "";
+        L.push(`• ${x.label}: ${showNum(x.score, "/10")}${d}`);
+      });
+      if (v.monthlyExamAverage !== null) L.push(`→ Trung bình: ${round1(v.monthlyExamAverage)}/10`);
     }
 
     if (v.skills.length) {
