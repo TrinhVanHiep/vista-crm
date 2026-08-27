@@ -304,6 +304,19 @@ table.ka-sm tr.ka-plusminus b.ka-m { color: var(--ka-red); font-weight: 700; mar
 .ka-alert.ka-err { background: #fdecea; border: 1px solid #f5c6c2; color: var(--ka-red); }
 .ka-alert.ka-info { background: #e9f6ee; border: 1px solid #c6e5d2; color: var(--ka-green-dk); }
 
+/* ---- Khi nhúng trong màn Thi đua tháng ----
+   Bỏ nền xám và khung tối thiểu của bản đứng riêng: ở đây nó là NỘI DUNG của
+   một tab, không phải cả trang, nên phải hoà vào nền trang cha. */
+.ka-page--nhung { background: transparent; padding-bottom: 0; min-height: 0; }
+.ka-page--nhung .ka-wrap { min-width: 0; }
+.ka-page--nhung .ka-topbar {
+  background: transparent; border-bottom: 0; padding: 0 0 12px;
+  justify-content: flex-end; flex-wrap: wrap;
+}
+.ka-page--nhung .ka-topbar-actions { padding-top: 0; flex-wrap: wrap; }
+.ka-page--nhung .ka-pad { padding: 0 0 0; }
+.ka-page--nhung .ka-layout { padding: 14px 0 0; }
+
 /* ==========================================================================
    RESPONSIVE — bản thiết kế gốc là trang desktop cố định 1640px. Ba mốc:
    - ≤1400: ba cột thành hai (cột phải xuống dưới, trải ngang).

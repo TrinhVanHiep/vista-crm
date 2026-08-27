@@ -29,7 +29,6 @@ import ResetPassword from './pages/ResetPassword.jsx';
 import StudentLearningReport from './pages/StudentLearningReport.jsx';
 import StudentProfile from './pages/StudentProfile.jsx';
 import Emulation from './pages/Emulation.jsx';
-import KpiAdminBoard from "./pages/KpiAdminBoard";
 import styles from './styles/dashboard.module.css';
 import { useAuth } from './auth/AuthProvider.jsx';
 import { getDefaultRouteForRole, isRouteAllowedForRole } from './auth/roleRoutes.js';
@@ -172,14 +171,10 @@ function App() {
               </RoleGuard>
             }
           />
-          <Route
-            path="cham-thi-dua"
-            element={
-              <RoleGuard allowedRoles={ROUTE_PERMISSIONS.kpiAdmin}>
-                <KpiAdminBoard />
-              </RoleGuard>
-            }
-          />
+          {/* Màn chấm nay là một tab BÊN TRONG Thi đua tháng — cùng một menu,
+              nội dung đổi theo vai. Giữ đường dẫn cũ để link/bookmark đã gửi đi
+              không chết, chỉ dẫn về đúng chỗ mới. */}
+          <Route path="cham-thi-dua" element={<Navigate to="/thi-dua-thang" replace />} />
           <Route
             path="quan-ly-lop"
             element={

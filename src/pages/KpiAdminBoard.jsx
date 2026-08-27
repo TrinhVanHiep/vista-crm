@@ -132,12 +132,23 @@ const IcoPhai = (p) => <Ico {...p} d={<><path d="M9.5 6 15 12l-5.5 6" /></>} />;
 
 /* ------------------------------------------------------------------- trang */
 
-export default function KpiAdminBoard() {
+/**
+ * @param {boolean} nhungTrongTrang  Đang nằm trong màn Thi đua tháng: bỏ tiêu đề,
+ *   breadcrumb, chip tài khoản và ô chọn tháng/năm — trang cha đã có sẵn cả bốn
+ *   thứ đó, để lại là màn hình có hai tiêu đề và hai bộ chọn kỳ chống nhau.
+ * @param {number} month, @param {number} year  Kỳ do trang cha quyết định khi nhúng.
+ */
+export default function KpiAdminBoard({ nhungTrongTrang = false, month, year } = {}) {
   const { user } = useAuth();
   const homNay = new Date();
 
-  const [thang, setThang] = useState(homNay.getMonth() + 1);
-  const [nam, setNam] = useState(homNay.getFullYear());
+  const [thangTuQuan, setThangTuQuan] = useState(homNay.getMonth() + 1);
+  const [namTuQuan, setNamTuQuan] = useState(homNay.getFullYear());
+  // Khi nhúng thì kỳ lấy từ trang cha; khi đứng riêng thì tự quản.
+  const thang = nhungTrongTrang && month ? month : thangTuQuan;
+  const nam = nhungTrongTrang && year ? year : namTuQuan;
+  const setThang = setThangTuQuan;
+  const setNam = setNamTuQuan;
   const [coSo, setCoSo] = useState("");
   const [trangThai, setTrangThai] = useState("");
   const [tuKhoa, setTuKhoa] = useState("");
@@ -456,10 +467,11 @@ export default function KpiAdminBoard() {
   const tt = bang.summary || {};
 
   return (
-    <div className="ka-page">
+    <div className={`ka-page${nhungTrongTrang ? " ka-page--nhung" : ""}`}>
       <div className="ka-wrap">
         {/* ---------------- Thanh trên ---------------- */}
         <header className="ka-topbar">
+          {!nhungTrongTrang && (
           <div className="ka-topbar-main">
             <h1 className="ka-page-title">
               Chấm thi đua giáo viên tháng {String(thang).padStart(2, "0")}/{nam}
@@ -473,15 +485,20 @@ export default function KpiAdminBoard() {
               <b>Chấm thi đua</b>
             </nav>
           </div>
+          )}
           <div className="ka-topbar-actions">
-            <select className="ka-sel" style={{ width: 104 }} value={thang}
-                    onChange={(e) => { setThang(Number(e.target.value)); setTrang(1); }}>
-              {THANG.map((m) => <option key={m} value={m}>Tháng {m}</option>)}
-            </select>
-            <select className="ka-sel" style={{ width: 86 }} value={nam}
-                    onChange={(e) => { setNam(Number(e.target.value)); setTrang(1); }}>
-              {NAM.map((y) => <option key={y} value={y}>{y}</option>)}
-            </select>
+            {!nhungTrongTrang && (
+              <>
+                <select className="ka-sel" style={{ width: 104 }} value={thang}
+                        onChange={(e) => { setThang(Number(e.target.value)); setTrang(1); }}>
+                  {THANG.map((m) => <option key={m} value={m}>Tháng {m}</option>)}
+                </select>
+                <select className="ka-sel" style={{ width: 86 }} value={nam}
+                        onChange={(e) => { setNam(Number(e.target.value)); setTrang(1); }}>
+                  {NAM.map((y) => <option key={y} value={y}>{y}</option>)}
+                </select>
+              </>
+            )}
             <button type="button" className="ka-btn" onClick={() => luuCham()}
                     disabled={!phieu || dangLuu || !duocSua}>
               <IcoLich />Lưu nháp
@@ -493,13 +510,17 @@ export default function KpiAdminBoard() {
             <button type="button" className="ka-btn" onClick={xuatBaoCao} disabled={!bang.results.length}>
               <IcoTai />Xuất báo cáo
             </button>
-            <div className="ka-sep" />
-            <div className="ka-me">
-              <div className="ka-avatar ka-s30">
-                {(user?.name || "?").trim().split(/\s+/).slice(-2).map((x) => x[0]).join("").toUpperCase()}
-              </div>
-              <span className="ka-name">{user?.name || "Quản trị"}</span>
-            </div>
+            {!nhungTrongTrang && (
+              <>
+                <div className="ka-sep" />
+                <div className="ka-me">
+                  <div className="ka-avatar ka-s30">
+                    {(user?.name || "?").trim().split(/\s+/).slice(-2).map((x) => x[0]).join("").toUpperCase()}
+                  </div>
+                  <span className="ka-name">{user?.name || "Quản trị"}</span>
+                </div>
+              </>
+            )}
           </div>
         </header>
 

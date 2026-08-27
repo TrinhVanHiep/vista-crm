@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAuth } from "../auth/AuthProvider";
 import YearPlan from "../components/emulation/YearPlan";
 import KpiScoreBoard from "../components/emulation/KpiScoreBoard";
+import KpiAdminBoard from "./KpiAdminBoard";
 import { Page, PageHeader } from "../ui";
 import "../styles/emulation.css";
 
@@ -29,12 +30,17 @@ export default function Emulation() {
   const { role } = useAuth();
   const homNay = new Date();
 
-  const [tab, setTab] = useState("cham");
+  // Quản lý mở màn này chủ yếu để CHẤM phiếu người khác, nên vào thẳng tab đó;
+  // giáo viên/nhân viên thì vào tab tự chấm. Cùng một menu, khác vai khác nội dung.
+  const [tab, setTab] = useState(() => (VAI_QUAN_LY.has(role) ? "quantri" : "cham"));
   const [thang, setThang] = useState(homNay.getMonth() + 1);
   const [nam, setNam] = useState(homNay.getFullYear());
   const [thongBao, setThongBao] = useState("");
 
   const laQuanLy = VAI_QUAN_LY.has(role);
+  // Chấm phiếu NGƯỜI KHÁC. Danh sách vai phải khớp VAI_CHAM bên kpi/views.py,
+  // lệch là hiện tab ra rồi bấm vào nhận 403.
+  const chamDuocNguoiKhac = laQuanLy;
   const taoDuocKhung = VAI_TAO_KHUNG.has(role);
 
   return (
@@ -42,7 +48,11 @@ export default function Emulation() {
       <PageHeader
         crumbs={[{ label: "Tổng quan", to: "/" }, { label: "Thi đua tháng" }]}
         title="Thi đua tháng"
-        description="Khung thi đua cả năm và bảng chấm điểm thi đua từng tháng"
+        description={
+          chamDuocNguoiKhac
+            ? "Chấm và duyệt phiếu thi đua của nhân sự, phiếu của chính mình, và khung thi đua cả năm"
+            : "Khung thi đua cả năm và bảng chấm điểm thi đua từng tháng"
+        }
       />
 
       {thongBao ? (
@@ -55,9 +65,15 @@ export default function Emulation() {
 
       <div className="em-bar">
         <div className="em-tabs" role="group" aria-label="Phần của thi đua tháng">
+          {chamDuocNguoiKhac && (
+            <button type="button" className={tab === "quantri" ? "is-active" : ""}
+                    aria-pressed={tab === "quantri"} onClick={() => setTab("quantri")}>
+              Chấm thi đua
+            </button>
+          )}
           <button type="button" className={tab === "cham" ? "is-active" : ""}
                   aria-pressed={tab === "cham"} onClick={() => setTab("cham")}>
-            Bảng chấm thi đua tháng
+            {chamDuocNguoiKhac ? "Phiếu của tôi" : "Bảng chấm thi đua tháng"}
           </button>
           <button type="button" className={tab === "kehoach" ? "is-active" : ""}
                   aria-pressed={tab === "kehoach"} onClick={() => setTab("kehoach")}>
@@ -65,7 +81,7 @@ export default function Emulation() {
           </button>
         </div>
 
-        {tab === "cham" ? (
+        {tab !== "kehoach" ? (
           <div className="em-period">
             <label>
               <span>Tháng</span>
@@ -85,6 +101,8 @@ export default function Emulation() {
 
       {tab === "kehoach" ? (
         <YearPlan suaDuoc={laQuanLy} taoDuocKhung={taoDuocKhung} />
+      ) : tab === "quantri" ? (
+        <KpiAdminBoard nhungTrongTrang month={thang} year={nam} />
       ) : (
         <KpiScoreBoard
           month={thang}
