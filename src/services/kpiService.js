@@ -22,6 +22,28 @@ export async function layKhungKpi() {
   return Array.isArray(data) ? data : data?.results || [];
 }
 
+/** Khung thi đua kèm cả mục đã tắt — chỉ màn SỬA khung mới cần. */
+export async function layKhungKpiDayDu() {
+  const [g, r] = await Promise.all([
+    apiClient.get("/kpi-frame/", { params: { include_inactive: 1 } }),
+    apiClient.get("/kpi-frame/adjustment-rules/", { params: { include_inactive: 1 } }),
+  ]);
+  return {
+    groups: Array.isArray(g.data) ? g.data : g.data?.results || [],
+    rules: Array.isArray(r.data) ? r.data : r.data?.results || [],
+  };
+}
+
+export async function luuKhungKpi(payload) {
+  const { data } = await apiClient.post("/kpi-frame/bulk-save/", payload);
+  return data;
+}
+
+export async function taoKhungMacDinh() {
+  const { data } = await apiClient.post("/kpi-frame/seed-default/");
+  return data;
+}
+
 export async function layQuyTacDieuChinh() {
   const { data } = await apiClient.get("/kpi-frame/adjustment-rules/");
   return Array.isArray(data) ? data : data?.results || [];

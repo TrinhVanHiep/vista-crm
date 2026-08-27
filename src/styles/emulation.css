@@ -375,3 +375,38 @@
 .rce-daco>p{font-size:11.5px;color:var(--text-2);margin-top:9px}
 .ype-row--unit{grid-template-columns:100px 1fr 150px 34px}
 .ype-row--mock{grid-template-columns:1fr 100px 110px 34px}
+
+/* ---------- Khung thi đua (tab xem / sửa bộ tiêu chí chấm) ---------- */
+.kf-group { margin-top: 18px; }
+.kf-group:first-of-type { margin-top: 6px; }
+.kf-group__head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+.kf-group__head h4 { font-size: 13.5px; font-weight: 700; margin: 0; }
+.kf-no { width: 20px; height: 20px; flex: 0 0 20px; border-radius: 5px; background: var(--primary, #E4572E);
+  color: #fff; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+.kf-pts { margin-left: auto; font-size: 12px; font-weight: 700; color: var(--primary, #E4572E); white-space: nowrap; }
+.kf-nowrap { white-space: nowrap; }
+
+/* Ô nhập trong bảng: viền nhạt để bảng vẫn đọc như bảng, không thành cái form rối. */
+.kf-in { width: 100%; min-width: 0; height: 30px; padding: 0 8px; font: inherit; font-size: 12.5px;
+  border: 1px solid var(--border, #E8DFD4); border-radius: 6px; background: #fff; color: inherit; }
+.kf-in:focus { outline: 2px solid #F6C9A5; outline-offset: -1px; border-color: var(--primary, #E4572E); }
+.kf-in--name { flex: 1 1 200px; height: 32px; font-weight: 700; }
+.kf-in--num { width: 74px; text-align: center; font-weight: 600; }
+.kf-del { color: #C0332A; }
+.kf-tbl th, .kf-tbl td { vertical-align: middle; }
+/* Ô nhập nằm trong bảng thì bảng không được ép một hàng, nếu không ô bị bóp lại. */
+.kf-tbl td { white-space: normal; }
+
+.kf-adj-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 20px; }
+.kf-adj { border-radius: 10px; padding: 12px 13px; }
+.kf-adj--plus { border: 1px solid #D8EBE0; background: #FBFDFC; }
+.kf-adj--minus { border: 1px solid #F2DCD9; background: #FFFCFB; }
+.kf-adj h4 { margin: 0 0 9px; font-size: 11.5px; font-weight: 700; letter-spacing: .3px; }
+.kf-adj--plus h4 { color: #12703C; }
+.kf-adj--minus h4 { color: #C0332A; }
+
+@media (max-width: 760px) {
+  .kf-adj-grid { grid-template-columns: minmax(0, 1fr); }
+  .kf-in--name { flex: 1 1 100%; }
+  .kf-pts { margin-left: 0; }
+}

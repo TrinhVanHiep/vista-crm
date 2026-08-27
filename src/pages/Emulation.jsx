@@ -3,6 +3,7 @@ import { useAuth } from "../auth/AuthProvider";
 import YearPlan from "../components/emulation/YearPlan";
 import KpiScoreBoard from "../components/emulation/KpiScoreBoard";
 import KpiAdminBoard from "./KpiAdminBoard";
+import KpiFrameBoard from "../components/emulation/KpiFrameBoard";
 import { Page, PageHeader } from "../ui";
 import "../styles/emulation.css";
 
@@ -81,13 +82,19 @@ export default function Emulation() {
               Bảng chấm thi đua tháng
             </button>
           )}
+          {/* Ai cũng xem được: giáo viên cần biết tháng này bị chấm theo tiêu chí
+              nào. Chỉ admin/super admin mới thấy nút "Sửa khung" bên trong. */}
+          <button type="button" className={tab === "khung" ? "is-active" : ""}
+                  aria-pressed={tab === "khung"} onClick={() => setTab("khung")}>
+            Khung thi đua
+          </button>
           <button type="button" className={tab === "kehoach" ? "is-active" : ""}
                   aria-pressed={tab === "kehoach"} onClick={() => setTab("kehoach")}>
             Kế hoạch năm học
           </button>
         </div>
 
-        {tab !== "kehoach" ? (
+        {tab !== "kehoach" && tab !== "khung" ? (
           <div className="em-period">
             <label>
               <span>Tháng</span>
@@ -107,6 +114,8 @@ export default function Emulation() {
 
       {tab === "kehoach" ? (
         <YearPlan suaDuoc={laQuanLy} taoDuocKhung={taoDuocKhung} />
+      ) : tab === "khung" ? (
+        <KpiFrameBoard suaDuoc={taoDuocKhung} onNotice={setThongBao} />
       ) : tab === "quantri" || !coPhieuCuaMinh ? (
         /* Vai không có phiếu riêng mà tab lỡ rơi vào "cham" (state cũ trong
            phiên đang mở) thì vẫn ra bảng chấm, không rơi vào màn trắng. */
