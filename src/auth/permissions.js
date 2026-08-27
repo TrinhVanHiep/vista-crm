@@ -12,6 +12,11 @@ export const ROUTE_PERMISSIONS = {
   // Thi đua tháng: giáo viên/nhân viên tự chấm rồi nộp, quản lý duyệt. Học viên
   // không liên quan nên không vào.
   emulation: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager'],
+  // Màn CHẤM thi đua của quản trị: chấm phiếu của NGƯỜI KHÁC nên chỉ mở cho
+  // các vai quản lý. Giáo viên/nhân viên tự chấm ở /thi-dua-thang.
+  // Danh sách này phải khớp VAI_CHAM bên kpi/views.py, lệch là menu hiện ra
+  // nhưng bấm vào lại 403.
+  kpiAdmin: ['superadmin', 'admin', 'center_manager', 'training_manager'],
   // Phiếu báo cáo tháng gửi phụ huynh — do giáo viên/quản lý lập.
   parentReport: ['superadmin', 'admin', 'teacher'],
   // Báo cáo kết quả học tập là màn TỔNG HỢP để theo dõi chất lượng, nên quản lý

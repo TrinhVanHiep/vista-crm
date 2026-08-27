@@ -163,6 +163,20 @@ const navItems = [
     ),
   },
   {
+    // Tách khỏi "Thi đua tháng" vì hai việc khác nhau: mục trên là TỰ CHẤM phiếu
+    // của mình, mục này là CHẤM phiếu của người khác nên chỉ quản lý mới thấy.
+    label: "Chấm thi đua",
+    to: "/cham-thi-dua",
+    allowedRoles: ROUTE_PERMISSIONS.kpiAdmin,
+    icon: navIcon(
+      <>
+        <path d="M9 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7" />
+        <path d="M9 4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V6H9V4.5z" />
+        <path d="m14 13 2 2 5-5" />
+      </>
+    ),
+  },
+  {
     label: "Kết quả học tập",
     to: "/bao-cao-hoc-tap",
     allowedRoles: ROUTE_PERMISSIONS.studentLearningReport,

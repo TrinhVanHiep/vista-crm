@@ -29,6 +29,7 @@ import ResetPassword from './pages/ResetPassword.jsx';
 import StudentLearningReport from './pages/StudentLearningReport.jsx';
 import StudentProfile from './pages/StudentProfile.jsx';
 import Emulation from './pages/Emulation.jsx';
+import KpiAdminBoard from "./pages/KpiAdminBoard";
 import styles from './styles/dashboard.module.css';
 import { useAuth } from './auth/AuthProvider.jsx';
 import { getDefaultRouteForRole, isRouteAllowedForRole } from './auth/roleRoutes.js';
@@ -168,6 +169,14 @@ function App() {
             element={
               <RoleGuard allowedRoles={ROUTE_PERMISSIONS.emulation}>
                 <Emulation />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="cham-thi-dua"
+            element={
+              <RoleGuard allowedRoles={ROUTE_PERMISSIONS.kpiAdmin}>
+                <KpiAdminBoard />
               </RoleGuard>
             }
           />
