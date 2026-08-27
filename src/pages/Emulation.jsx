@@ -24,7 +24,10 @@ const VAI_QUAN_LY = new Set(["admin", "superadmin", "center_manager", "training_
 // Tạo khung mặc định chỉ dành cho admin/super admin — khớp đúng luật backend,
 // nếu rộng hơn thì quản lý cơ sở sẽ thấy nút rồi bấm vào nhận 403.
 const VAI_TAO_KHUNG = new Set(["admin", "superadmin"]);
-const VAI_TU_CHAM = new Set(["teacher", "staff", "center_manager", "training_manager", "admin", "superadmin"]);
+// Ai CÓ phiếu thi đua của chính mình. Chủ dự án chốt (27/08/2026): chỉ giáo viên
+// (và nhân viên) lập phiếu; quản lý / admin / super admin chỉ chấm lại và duyệt,
+// không có phiếu riêng. Vì vậy các vai đó không thấy tab "Phiếu của tôi" nữa.
+const VAI_TU_CHAM = new Set(["teacher", "staff"]);
 
 export default function Emulation() {
   const { role } = useAuth();
@@ -41,6 +44,7 @@ export default function Emulation() {
   // Chấm phiếu NGƯỜI KHÁC. Danh sách vai phải khớp VAI_CHAM bên kpi/views.py,
   // lệch là hiện tab ra rồi bấm vào nhận 403.
   const chamDuocNguoiKhac = laQuanLy;
+  const coPhieuCuaMinh = VAI_TU_CHAM.has(role);
   const taoDuocKhung = VAI_TAO_KHUNG.has(role);
 
   return (
@@ -50,7 +54,7 @@ export default function Emulation() {
         title="Thi đua tháng"
         description={
           chamDuocNguoiKhac
-            ? "Chấm và duyệt phiếu thi đua của nhân sự, phiếu của chính mình, và khung thi đua cả năm"
+            ? "Chấm lại và duyệt phiếu thi đua của giáo viên, cùng khung thi đua cả năm"
             : "Khung thi đua cả năm và bảng chấm điểm thi đua từng tháng"
         }
       />
@@ -71,10 +75,12 @@ export default function Emulation() {
               Chấm thi đua
             </button>
           )}
-          <button type="button" className={tab === "cham" ? "is-active" : ""}
-                  aria-pressed={tab === "cham"} onClick={() => setTab("cham")}>
-            {chamDuocNguoiKhac ? "Phiếu của tôi" : "Bảng chấm thi đua tháng"}
-          </button>
+          {coPhieuCuaMinh && (
+            <button type="button" className={tab === "cham" ? "is-active" : ""}
+                    aria-pressed={tab === "cham"} onClick={() => setTab("cham")}>
+              Bảng chấm thi đua tháng
+            </button>
+          )}
           <button type="button" className={tab === "kehoach" ? "is-active" : ""}
                   aria-pressed={tab === "kehoach"} onClick={() => setTab("kehoach")}>
             Kế hoạch năm học
@@ -101,7 +107,9 @@ export default function Emulation() {
 
       {tab === "kehoach" ? (
         <YearPlan suaDuoc={laQuanLy} taoDuocKhung={taoDuocKhung} />
-      ) : tab === "quantri" ? (
+      ) : tab === "quantri" || !coPhieuCuaMinh ? (
+        /* Vai không có phiếu riêng mà tab lỡ rơi vào "cham" (state cũ trong
+           phiên đang mở) thì vẫn ra bảng chấm, không rơi vào màn trắng. */
         <KpiAdminBoard nhungTrongTrang month={thang} year={nam} />
       ) : (
         <KpiScoreBoard
