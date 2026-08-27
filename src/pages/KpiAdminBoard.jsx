@@ -651,7 +651,7 @@ export default function KpiAdminBoard({ nhungTrongTrang = false, month, year } =
                         <div className={`ka-avatar ka-s38 ${mau}`}>{x.initials}</div>
                         <div className="ka-tcard-info">
                           <div className="ka-tcard-row">
-                            <div className="ka-tcard-name">
+                            <div className="ka-tcard-name" title={x.owner_name}>
                               {(trang - 1) * MOI_TRANG + i + 1}. {x.owner_name}
                             </div>
                             <div className="ka-tcard-hint">
@@ -715,7 +715,7 @@ export default function KpiAdminBoard({ nhungTrongTrang = false, month, year } =
                   <div className="ka-profile">
                     <div className="ka-avatar ka-s46">{ho.initials || "?"}</div>
                     <div>
-                      <div className="ka-profile-name">{phieu.owner_name}</div>
+                      <div className="ka-profile-name" title={phieu.owner_name}>{phieu.owner_name}</div>
                       <div className="ka-profile-role">{ho.role_label || "Giáo viên"}</div>
                     </div>
                     <div className="ka-profile-facts">

@@ -105,9 +105,15 @@ select.ka-sel { width: 100%; height: 31px; border: 1px solid #dcdfe4; border-rad
 .ka-tcard-body { display: flex; gap: 10px; }
 .ka-tcard-info { flex: 1; min-width: 0; }
 .ka-tcard-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
-.ka-tcard-name { font-size: 12.5px; font-weight: 700; }
+/* Tài khoản chưa khai họ tên thì hệ thống lấy EMAIL làm tên hiển thị. Email là
+   một từ liền không có dấu cách, nên bề rộng tối thiểu của nó bằng cả chuỗi:
+   flex không co xuống được và chữ tràn hẳn ra ngoài thẻ. Cắt bằng dấu ba chấm,
+   tên đầy đủ xem bằng cách rê chuột (thuộc tính title trong JSX). */
+.ka-tcard-name { font-size: 12.5px; font-weight: 700;
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ka-tcard-hint { font-size: 9.5px; color: var(--ka-faint); white-space: nowrap; }
-.ka-tcard-role { font-size: 11px; color: var(--ka-muted); margin-top: 1px; }
+.ka-tcard-role { font-size: 11px; color: var(--ka-muted); margin-top: 1px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ka-tcard-row.ka-bottom { align-items: flex-end; }
 .ka-tcard-meta { font-size: 11px; color: var(--ka-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ka-tcard-meta em { font-style: normal; margin: 0 5px; color: #c3c7cd; }
@@ -138,7 +144,10 @@ select.ka-sel { width: 100%; height: 31px; border: 1px solid #dcdfe4; border-rad
 
 /* ---- Đầu phiếu ---- */
 .ka-profile { display: flex; align-items: center; gap: 16px; padding: 15px 18px; border-bottom: 1px solid #edeff1; }
-.ka-profile-name { font-size: 16px; font-weight: 700; }
+.ka-profile > div { min-width: 0; }
+/* Ở đầu phiếu thì có chỗ rộng nên cho XUỐNG DÒNG giữa chuỗi thay vì cắt —
+   đọc được trọn email vẫn hơn là thấy ba chấm. */
+.ka-profile-name { font-size: 16px; font-weight: 700; min-width: 0; overflow-wrap: anywhere; }
 .ka-profile-role { font-size: 11.5px; color: var(--ka-muted); margin-top: 2px; }
 .ka-profile-facts { display: flex; gap: 34px; margin-left: 26px; }
 .ka-fact-k { font-size: 10.5px; color: var(--ka-faint); margin-bottom: 3px; }
@@ -280,7 +289,7 @@ table.ka-sm tr.ka-plusminus b.ka-m { color: var(--ka-red); font-weight: 700; mar
 .ka-logs { display: flex; flex-direction: column; gap: 9px; font-size: 11.5px; }
 .ka-log { display: flex; gap: 12px; }
 .ka-log time { color: var(--ka-faint); white-space: nowrap; width: 82px; flex: 0 0 82px; }
-.ka-log p { margin: 0; color: var(--ka-ink-2); }
+.ka-log p { margin: 0; color: var(--ka-ink-2); min-width: 0; overflow-wrap: anywhere; }
 .ka-log-more { text-align: right; margin-top: 10px; font-size: 11px; }
 .ka-log-more button { border: 0; background: none; padding: 0; color: #1f6fd0; cursor: pointer; font-size: 11px; }
 .ka-log-more button:hover { text-decoration: underline; }
