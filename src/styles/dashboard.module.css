@@ -3032,7 +3032,9 @@
   box-shadow: none;
   border: none;
   border-right: 1px solid var(--color-border);
-  height: 100vh;
+  /* dvh chứ không vh: trên trình duyệt điện thoại, thanh địa chỉ ẩn/hiện
+     làm 100vh cao hơn màn thật, đáy menu bị cắt. */
+  height: 100dvh;
   padding: 20px 14px;
   background: #ffffff;
   /* Laptop màn thấp (VD 1366x700) không đủ chỗ cho 13 mục menu -> phải cuộn
@@ -3195,6 +3197,10 @@
 .dashboard__topbar-search { min-width: 120px; position: relative; }
 .dashboard__user { cursor: pointer; font: inherit; text-align: left; }
 
+/* Nút menu và lớp phủ: chỉ dùng ở cỡ điện thoại, mặc định ẩn hẳn. */
+.dashboard__menu-btn { display: none; }
+.dashboard__scrim { display: none; }
+
 /* Kết quả tìm kiếm */
 .dashboard__search-pop {
   position: absolute;
@@ -3307,14 +3313,100 @@
     padding: 12px 14px;
   }
 
-  .dashboard__search {
+  /* Tên class thật là dashboard__topbar-search; .dashboard__search không tồn
+     tại nên quy tắc này trước đây không có tác dụng, ô tìm kiếm vẫn ép 1 hàng. */
+  .dashboard__topbar-search {
     order: 3;
     width: 100%;
     min-width: 0;
+    flex: 1 1 100%;
   }
 
   .dashboard__content {
     padding: 16px 14px 32px;
+  }
+}
+
+/* ---- Điện thoại: menu thành NGĂN KÉO, nội dung chiếm trọn bề ngang ----
+   Ở 992px menu đã thu thành cột icon 60px, nhưng trên màn 375px thì 60px đó vẫn
+   ăn mất 1/6 bề ngang và mọi bảng đều tràn. Từ 768px trở xuống menu trượt hẳn ra
+   ngoài, mở bằng nút ba gạch trên thanh trên. */
+@media (max-width: 768px) {
+  .dashboard,
+  .dashboard--collapsed {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dashboard__sidebar {
+    position: fixed;
+    z-index: 60;
+    top: 0;
+    left: 0;
+    width: 244px;
+    max-width: 82vw;
+    height: 100dvh;
+    padding: 18px 12px;
+    transform: translateX(-100%);
+    transition: transform 0.22s ease;
+    box-shadow: 0 18px 46px rgba(15, 23, 42, 0.24);
+  }
+
+  .dashboard__sidebar--open {
+    transform: translateX(0);
+  }
+
+  /* Trong ngăn kéo thì hiện lại chữ — đây là menu đầy đủ, không phải cột icon. */
+  .dashboard__sidebar .dashboard__brand-name,
+  .dashboard__sidebar .dashboard__nav-label {
+    display: block;
+  }
+
+  .dashboard__sidebar .dashboard__brand {
+    justify-content: flex-start;
+  }
+
+  .dashboard__sidebar .dashboard__nav-item {
+    justify-content: flex-start;
+    padding: 10px 12px;
+    gap: 10px;
+  }
+
+  .dashboard__scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    border: 0;
+    padding: 0;
+    background: rgba(15, 23, 42, 0.42);
+  }
+
+  .dashboard__menu-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background: #fff;
+    color: #43301f;
+    cursor: pointer;
+  }
+
+  .dashboard__menu-btn svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .dashboard__topbar {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .dashboard__content {
+    padding: 14px 12px 28px;
   }
 }
 
@@ -3325,5 +3417,10 @@
 
   .dashboard__content {
     padding: 12px 10px 28px;
+  }
+
+  /* Bộ lọc tháng/năm xuống dòng riêng cho đỡ chen với nút menu. */
+  .dashboard__topbar-scope {
+    flex-wrap: wrap;
   }
 }

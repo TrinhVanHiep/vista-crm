@@ -465,7 +465,10 @@ export default function KpiAdminBoard() {
               Chấm thi đua giáo viên tháng {String(thang).padStart(2, "0")}/{nam}
             </h1>
             <nav className="ka-crumbs">
-              <Link to="/dashboard">Trang chủ</Link><i>›</i>
+              {/* "/dashboard" không phải route có thật; nó rơi vào path="*" rồi
+                  bị đẩy đi lung tung với hai vai quản lý — vốn là hai vai
+                  chính dùng màn này. */}
+              <Link to="/">Trang chủ</Link><i>›</i>
               <Link to="/thi-dua-thang">Thi đua tháng</Link><i>›</i>
               <b>Chấm thi đua</b>
             </nav>

@@ -451,3 +451,25 @@
 .kpi2-scale__r > span { white-space: nowrap; }
 .kpi2-scale__s { gap: 1px; }
 .kpi2-scale__r .wide { white-space: normal; }
+
+/* ---- Điện thoại: bảng chấm thi đua và kế hoạch năm ---- */
+@media (max-width: 900px) {
+  .kpi2-exp { grid-template-columns: minmax(0, 1fr) !important; }
+  /* Bảng điểm cộng/trừ khai cột cứng (Cách tính 120px + Trần 52px...) nên khi
+     thẻ hẹp lại là chữ tràn ra ngoài viền. Bỏ cột "Cách tính" — nội dung của nó
+     đã có trong ô mô tả ngay bên trên. */
+  .kpi2-adj__cols { grid-template-columns: minmax(0, 1fr) auto !important; }
+  .kpi2-adj__how { display: none; }
+  /* Bảng xếp loại cũng khai cột cứng; cho ô chữ co lại và xuống dòng. */
+  .kpi2-scale__r { grid-template-columns: minmax(0, 1fr) auto !important; }
+  .kpi2-scale__r > * { min-width: 0; white-space: normal; }
+  .kpi2-strip { flex-wrap: wrap; gap: 8px; }
+  .kpi2-head { flex-wrap: wrap; gap: 10px; }
+}
+
+@media (max-width: 640px) {
+  .kpi2-btn { flex: 1 1 46%; justify-content: center; }
+  /* Bảng tiêu chí cuộn ngang trong khung, không đẩy cả trang rộng ra. */
+  .kpi2-tbl-wrap, .kpi2-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .kpi2-card { padding: 12px; }
+}

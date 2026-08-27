@@ -22,7 +22,10 @@ export default function DataTable({
 
   return (
     <div className="tbl-wrap">
-      <table className={`tbl ui-table ${className}`.trim()} style={{ minWidth }}>
+      {/* minWidth là ngưỡng để bảng CUỘN trong khung, không phải bề rộng ép:
+          dùng min() nên trên màn hẹp hơn ngưỡng thì bảng co lại vừa khung rồi
+          mới cuộn, thay vì đẩy cả trang rộng ra. */}
+      <table className={`tbl ui-table ${className}`.trim()} style={{ minWidth: `min(${typeof minWidth === "number" ? `${minWidth}px` : minWidth}, 100%)` }}>
         <thead>
           <tr>
             {columns.map((c) => (

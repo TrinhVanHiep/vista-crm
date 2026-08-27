@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import { ROUTE_PERMISSIONS } from "../auth/permissions";
 import {
@@ -38,7 +38,6 @@ const getInitialCollapsed = () => {
   return window.innerWidth < 992;
 };
 
-const MY_PROFILE_ROLES = ['teacher', 'student'];
 
 const navIcon = (children) => (
   <svg
@@ -234,6 +233,25 @@ function DashboardLayout() {
     return parts.length ? `Tìm kiếm ${parts.join(", ")}...` : "";
   })();
   const [collapsed, setCollapsed] = useState(getInitialCollapsed);
+  // Ngăn kéo menu cho điện thoại. Dưới 768px thanh menu dạng cột icon 60px vẫn
+  // ăn mất 1/6 bề ngang màn 375px, nên ở cỡ đó menu chuyển hẳn thành ngăn kéo
+  // trượt lên trên nội dung.
+  const [menuDiDong, setMenuDiDong] = useState(false);
+  const location = useLocation();
+
+  /* Đổi trang hoặc bấm Esc thì đóng ngăn kéo — mở nó rồi điều hướng mà không
+     đóng thì menu che mất nội dung vừa mở. */
+  useEffect(() => {
+    setMenuDiDong(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!menuDiDong) return undefined;
+    const onKey = (e) => e.key === "Escape" && setMenuDiDong(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [menuDiDong]);
+
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -486,7 +504,10 @@ function DashboardLayout() {
 
   const myProfilePath = (() => {
     if (role === 'teacher' && user?.teacher_id) return `/teachers/${user.teacher_id}`;
-    if (role === 'student' && user?.student_id) return `/students/${user.student_id}`;
+    // Vai 'student' CỐ Ý không có mục này: route /students/:id chặn vai học viên
+    // (ROUTE_PERMISSIONS.studentProfile), và backend cũng 403 ngay ở tầng quyền.
+    // Bày nút ra thì bấm vào là văng sang /unauthorized — mà đó lại đang là mục
+    // duy nhất trong menu của vai này.
     return null;
   })();
   const roleLabel =
@@ -530,7 +551,7 @@ function DashboardLayout() {
       <aside
         className={`${styles["dashboard__sidebar"]}${
           collapsed ? ` ${styles["dashboard__sidebar--collapsed"]}` : ""
-        }`}
+        }${menuDiDong ? ` ${styles["dashboard__sidebar--open"]}` : ""}`}
       >
         <button
           type="button"
@@ -627,8 +648,30 @@ function DashboardLayout() {
 
       </aside>
 
+      {/* Lớp phủ: bấm ra ngoài là đóng ngăn kéo. */}
+      {menuDiDong && (
+        <button
+          type="button"
+          className={styles["dashboard__scrim"]}
+          aria-label="Đóng menu"
+          onClick={() => setMenuDiDong(false)}
+        />
+      )}
+
       <div className={styles["dashboard__main"]}>
         <header className={styles["dashboard__topbar"]}>
+          {/* Chỉ hiện ở cỡ điện thoại (CSS ẩn từ 769px trở lên). */}
+          <button
+            type="button"
+            className={styles["dashboard__menu-btn"]}
+            aria-label="Mở menu"
+            aria-expanded={menuDiDong}
+            onClick={() => setMenuDiDong((v) => !v)}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none" />
+            </svg>
+          </button>
           <div className={styles["dashboard__topbar-scope"]}>
             {!isSingleCenter(scopeCenters) && (
               <label className={styles["dashboard__scope-field"]}>

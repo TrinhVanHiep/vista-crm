@@ -303,3 +303,92 @@ table.ka-sm tr.ka-plusminus b.ka-m { color: var(--ka-red); font-weight: 700; mar
 .ka-alert { margin: 12px 22px 0; padding: 10px 14px; border-radius: 8px; font-size: 12.5px; }
 .ka-alert.ka-err { background: #fdecea; border: 1px solid #f5c6c2; color: var(--ka-red); }
 .ka-alert.ka-info { background: #e9f6ee; border: 1px solid #c6e5d2; color: var(--ka-green-dk); }
+
+/* ==========================================================================
+   RESPONSIVE — bản thiết kế gốc là trang desktop cố định 1640px. Ba mốc:
+   - ≤1400: ba cột thành hai (cột phải xuống dưới, trải ngang).
+   - ≤1024: một cột, danh sách người được chấm nằm trên cùng.
+   - ≤640: bảng chấm bỏ cột phụ, mỗi tiêu chí gói thành một thẻ để không tràn.
+   Cỡ chữ và ô nhập cũng hạ theo, vì bảng 7 cột không thể vừa màn 375px.
+   ========================================================================== */
+@media (max-width: 1400px) {
+  .ka-wrap { min-width: 0; }
+  .ka-layout { flex-wrap: wrap; }
+  .ka-col-left { width: 280px; flex: 0 0 280px; }
+  .ka-col-mid { flex: 1 1 460px; }
+  /* Cột phải xuống hàng dưới và trải hết bề ngang, chia 2 nửa cho đỡ trống. */
+  .ka-col-right {
+    width: 100%; flex: 1 1 100%; order: 3;
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start;
+  }
+  .ka-actions { grid-column: 1 / -1; }
+}
+
+@media (max-width: 1024px) {
+  .ka-topbar { flex-wrap: wrap; gap: 12px; }
+  .ka-topbar-actions { width: 100%; flex-wrap: wrap; }
+  .ka-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ka-kpi + .ka-kpi { border-left: 0; }
+  .ka-kpi:nth-child(2n) { border-left: 1px solid #edeff1; }
+  .ka-kpi:nth-child(n + 3) { border-top: 1px solid #edeff1; }
+
+  .ka-layout { flex-direction: column; }
+  .ka-col-left, .ka-col-mid, .ka-col-right { width: 100%; flex: 1 1 auto; }
+  .ka-col-left { order: 1; }
+  .ka-col-mid { order: 2; }
+  .ka-col-right { order: 3; }
+  /* Danh sách nằm trên cùng thì cho chạy nhiều cột, đỡ phải cuộn dài mới tới bảng. */
+  .ka-tlist { display: grid; grid-template-columns: repeat(auto-fill, minmax(252px, 1fr)); }
+
+  .ka-profile { flex-wrap: wrap; }
+  .ka-profile-facts { margin-left: 0; width: 100%; gap: 22px; flex-wrap: wrap; }
+  .ka-profile-tags { margin-left: 0; align-items: flex-start; flex-direction: row; }
+}
+
+@media (max-width: 760px) {
+  .ka-page-title { font-size: 17px; }
+  .ka-kpis { grid-template-columns: minmax(0, 1fr); }
+  .ka-kpi:nth-child(2n) { border-left: 0; }
+  .ka-kpi:nth-child(n + 2) { border-top: 1px solid #edeff1; }
+  .ka-col-right { grid-template-columns: minmax(0, 1fr); }
+  .ka-adj-grid { grid-template-columns: minmax(0, 1fr); }
+  .ka-finals { grid-template-columns: minmax(0, 1fr); }
+  .ka-pad, .ka-layout { padding-left: 12px; padding-right: 12px; }
+  .ka-topbar { padding: 12px; }
+  .ka-btn { flex: 1 1 auto; justify-content: center; }
+}
+
+@media (max-width: 640px) {
+  /* Bảng 7 cột không thể vừa màn 375px. Đổi hẳn sang dạng THẺ: mỗi tiêu chí một
+     khối, nhãn cột ghi kèm bằng ::before. Cho cuộn ngang thì người dùng phải kéo
+     qua kéo lại mới thấy ô nhập điểm — dùng được nhưng rất khó chấm trên điện thoại. */
+  table.ka-score thead { display: none; }
+  table.ka-score, table.ka-score tbody, table.ka-score tr, table.ka-score td { display: block; width: 100%; }
+  table.ka-score tr:not(.ka-grp):not(.ka-sum) {
+    border: 1px solid #e8eaed; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px;
+    display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center;
+  }
+  table.ka-score td { border: 0; padding: 0; text-align: left; white-space: normal; }
+  table.ka-score td.ka-stt { grid-column: 1; font-size: 10.5px; }
+  table.ka-score td.ka-crit { grid-column: 1 / -1; font-weight: 600; font-size: 12.5px; }
+  /* Cột "Minh chứng" chỉ là một icon trang trí, bỏ trên điện thoại cho gọn. */
+  table.ka-score tr:not(.ka-grp):not(.ka-sum) td:nth-child(3) { display: none; }
+  table.ka-score tr:not(.ka-grp):not(.ka-sum) td:nth-child(4)::before { content: "Tối đa: "; color: var(--ka-muted); }
+  table.ka-score tr:not(.ka-grp):not(.ka-sum) td:nth-child(4) { grid-column: 1; font-size: 11px; }
+  table.ka-score td.ka-prop::before { content: "Đề xuất: "; color: var(--ka-muted); font-weight: 400; }
+  table.ka-score td.ka-prop { grid-column: 2; text-align: right; font-size: 11px; }
+  table.ka-score td.ka-mark { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; }
+  table.ka-score td.ka-mark::before { content: "Admin chấm"; font-size: 11px; color: var(--ka-muted); }
+  table.ka-score td.ka-mark input { width: 64px; height: 32px; }
+  table.ka-score td:last-child { grid-column: 1 / -1; }
+  tr.ka-grp td, tr.ka-sum td { border-radius: 6px; }
+  tr.ka-sum td { text-align: left; }
+
+  /* Bảng điểm cộng/trừ và bảng tổng hợp: bỏ cột thanh, thu cỡ chữ. */
+  table.ka-sm th.ka-barh, table.ka-sm td:nth-child(3) { display: none; }
+  table.ka-adjt select { width: 100%; min-width: 58px; }
+  .ka-actions { flex-wrap: wrap; }
+  .ka-actions button { flex: 1 1 46%; }
+  .ka-final b { font-size: 28px; }
+  .ka-tlist { grid-template-columns: minmax(0, 1fr); }
+}

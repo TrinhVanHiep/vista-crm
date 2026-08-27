@@ -215,3 +215,16 @@
 .rp-form .ui-btn{width:100%;margin-top:4px}
 .rp-error{background:var(--danger-soft);color:#9C2121;border-radius:9px;padding:10px 12px;
   font-size:12.5px;line-height:1.45}
+
+/* ---- Điện thoại: form 1 cột, bảng cuộn trong khung, nút đủ to để bấm ---- */
+@media (max-width: 640px) {
+  .ui-form-grid { grid-template-columns: minmax(0, 1fr) !important; }
+  .ui-modal { width: min(100%, 100vw - 20px); max-height: 92dvh; }
+  .ui-modal__foot { flex-wrap: wrap; gap: 8px; }
+  .ui-modal__foot > * { flex: 1 1 46%; justify-content: center; }
+  .ui-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .ui-page__head { flex-wrap: wrap; gap: 10px; }
+  .ui-page__actions { flex-wrap: wrap; width: 100%; }
+  /* 40px là mốc chạm tối thiểu thoải mái bằng ngón tay. */
+  .ui-btn { min-height: 38px; }
+}

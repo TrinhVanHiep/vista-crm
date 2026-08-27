@@ -372,3 +372,22 @@
 .pr2-root .pr-note { width:100%; max-width:1055px; font-size:12.5px; line-height:1.5;
   background:#fff; border:1px solid #E7DCCB; border-radius:10px; padding:10px 14px; color:#43301F; }
 .pr2-root .pr-note.warn { background:#FEF6E7; border-color:#F6E0B5; color:#8A5A00; }
+
+/* ==========================================================================
+   MÀN HÌNH HẸP — tờ phiếu là canvas toạ độ tuyệt đối 1055x1491 nên KHÔNG thể
+   xếp lại theo chiều ngang. Việc bắt buộc phải sửa: .pr2-root đang canh giữa
+   (align-items:center) nên khi màn hẹp hơn 1055px, tờ phiếu tràn CẢ HAI BÊN và
+   phần bên trái không cuộn tới được — mất hẳn nội dung. Đổi sang canh trái +
+   cho cuộn ngang thì không mất gì, kéo ngang là xem được hết.
+   ========================================================================== */
+@media (max-width: 1120px) {
+  .pr2-root { align-items: flex-start; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  /* Thanh công cụ vẫn bám bề ngang màn, không chạy theo tờ phiếu. */
+  .pr-toolbar { position: sticky; left: 0; width: 100%; flex-wrap: wrap; gap: 8px; }
+}
+
+@media (max-width: 768px) {
+  .pr2-root { padding: 12px 10px 24px; }
+  .pr-toolbar__btns { flex-wrap: wrap; gap: 8px; }
+  .pr-toolbar__btns > * { flex: 1 1 45%; }
+}

@@ -11,6 +11,8 @@ import {
   deleteSchedule,
   listAssignableUsers,
   importTeachingSessions,
+  bulkDeleteMonthSessions,
+  bulkDeleteMonthSchedules,
   listCompetitionFrames,
   listApprovalQueue,
   listCentersAll,
@@ -549,6 +551,16 @@ const getFinancePerSession = (financeItem) => {
 
 const safeArray = (value) => (Array.isArray(value) ? value : []);
 
+/** Bỏ dấu + hạ chữ thường, dùng để so tên sheet với backend (backend khớp y hệt). */
+const boDau = (value) =>
+  String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .trim()
+    .toLowerCase();
+
 const sortClassrooms = (items) =>
   [...safeArray(items)].sort((left, right) => {
     const leftLabel = left.class_code || left.name || "";
@@ -963,6 +975,71 @@ function CalendarDetail() {
     }
     return WORK_CARDS.filter((card) => duocPhep.includes(card.id));
   }, [canCreateTeachingPlan, isTeacherRole, role]);
+
+  // Có được nhập lịch công tác không — cùng luật với ô chọn loại lịch.
+  // Phải đặt SAU calendarTypeOptions: const trong thân component nằm trong vùng
+  // chết tạm thời, đọc trước dòng khai báo là ReferenceError, trắng cả trang.
+  const coQuyenLichCongTac = calendarTypeOptions.some((c) => c.source === "schedule");
+
+  /* ---- Xoá toàn bộ lịch của tháng đang xem (chỉ admin) ----
+     Hai bước bắt buộc: bước một chạy THỬ để đếm, hiện đúng con số người dùng
+     sắp mất rồi mới hỏi; bước hai mới xoá thật. Xoá ca dạy kéo theo CASCADE ba
+     bảng (báo cáo ca dạy, điểm danh học viên, bằng chứng điểm danh) nên không
+     được xoá thẳng khi bấm một cái. */
+  const [xoaThangDangHoi, setXoaThangDangHoi] = useState(null);
+  const [xoaThangDangChay, setXoaThangDangChay] = useState(false);
+  const [xoaThangLoi, setXoaThangLoi] = useState("");
+
+  const goiXoaThang = useCallback(
+    async (confirm) => {
+      const payload = { month: selectedMonth, year: selectedYear, confirm };
+      const [ca, ct] = await Promise.all([
+        canCreateTeachingPlan || canManageSessions
+          ? bulkDeleteMonthSessions(payload).catch(() => null)
+          : null,
+        coQuyenLichCongTac ? bulkDeleteMonthSchedules(payload).catch(() => null) : null,
+      ]);
+      return {
+        sessions: ca?.sessions || 0,
+        reports: ca?.reports || 0,
+        attendances: ca?.attendances || 0,
+        evidences: ca?.evidences || 0,
+        schedules: ct?.schedules || 0,
+        by_category: ct?.by_category || {},
+      };
+    },
+    [selectedMonth, selectedYear, canCreateTeachingPlan, canManageSessions, coQuyenLichCongTac],
+  );
+
+  const moHopXoaThang = useCallback(async () => {
+    setXoaThangLoi("");
+    setXoaThangDangChay(true);
+    try {
+      setXoaThangDangHoi(await goiXoaThang(false));
+    } catch (error) {
+      setXoaThangLoi(
+        error?.response?.data?.detail || "Không đếm được lịch của tháng. Vui lòng thử lại.",
+      );
+    } finally {
+      setXoaThangDangChay(false);
+    }
+  }, [goiXoaThang]);
+
+  const xacNhanXoaThang = useCallback(async () => {
+    setXoaThangDangChay(true);
+    setXoaThangLoi("");
+    try {
+      await goiXoaThang(true);
+      setXoaThangDangHoi(null);
+      setReloadKey((prev) => prev + 1);
+    } catch (error) {
+      setXoaThangLoi(
+        error?.response?.data?.detail || "Không xoá được lịch của tháng. Vui lòng thử lại.",
+      );
+    } finally {
+      setXoaThangDangChay(false);
+    }
+  }, [goiXoaThang]);
 
   const [createForm, setCreateForm] = useState({
     center: "",
@@ -2964,17 +3041,56 @@ function CalendarDetail() {
     setImportError("");
     setImportResult(null);
     try {
-      const formData = new FormData();
-      formData.append("file", importFile);
-      if (importMode === "schedule") {
-        formData.append("year", selectedYear);
+      // Đọc TÊN SHEET ngay ở trình duyệt rồi mới quyết định gọi endpoint nào.
+      // Hai loại lịch nằm ở hai model / hai endpoint khác nhau, mà file mẫu lại
+      // gộp chung một workbook — trước đây phải bấm nhập HAI LẦN ở hai nút khác
+      // nhau, mỗi lần chỉ ăn sheet của phía mình, nên nhập một lượt là mất sạch
+      // các sheet còn lại mà không báo gì.
+      const XLSX = await import("xlsx");
+      const wb = XLSX.read(await importFile.arrayBuffer(), { type: "array", bookSheets: true });
+      const tenSheet = (wb.SheetNames || []).map((x) => boDau(x));
+      const coSheetDay = tenSheet.some((x) => x.includes("bao giang") || x.includes("lich day"));
+      const coSheetCongTac = SCHEDULE_SHEET_TYPES.some((loai) =>
+        tenSheet.includes(boDau(SHEET_NAMES[loai])),
+      );
+
+      const phan = [];
+      if (coSheetDay && canCreateTeachingPlan) {
+        const fd = new FormData();
+        fd.append("file", importFile);
+        phan.push({ ten: "Lịch dạy", kq: await importTeachingSessions(fd) });
       }
-      const result =
-        importMode === "schedule"
-          ? await importSchedules(formData)
-          : await importTeachingSessions(formData);
-      setImportResult(result);
-      if (result?.success_count) {
+      if (coSheetCongTac && coQuyenLichCongTac) {
+        const fd = new FormData();
+        fd.append("file", importFile);
+        fd.append("year", selectedYear);
+        phan.push({ ten: "Lịch công tác", kq: await importSchedules(fd) });
+      }
+      if (!phan.length) {
+        setImportError(
+          coSheetDay || coSheetCongTac
+            ? "File chỉ có loại lịch bạn không được phép nhập."
+            : "Không nhận ra sheet nào trong file. Hãy tải file mẫu và điền vào đúng sheet.",
+        );
+        return;
+      }
+
+      const gop = {
+        success_count: phan.reduce((t, x) => t + (Number(x.kq?.success_count) || 0), 0),
+        error_count: phan.reduce((t, x) => t + (Number(x.kq?.error_count) || 0), 0),
+        errors: phan.flatMap((x) =>
+          safeArray(x.kq?.errors).map((e) =>
+            typeof e === "string" ? `[${x.ten}] ${e}` : { ...e, message: `[${x.ten}] ${e?.message || ""}` },
+          ),
+        ),
+        theo_loai: phan.map((x) => ({
+          ten: x.ten,
+          success_count: Number(x.kq?.success_count) || 0,
+          error_count: Number(x.kq?.error_count) || 0,
+        })),
+      };
+      setImportResult(gop);
+      if (gop.success_count) {
         setReloadKey((prev) => prev + 1);
       }
     } catch (error) {
@@ -3291,8 +3407,26 @@ function CalendarDetail() {
                   hàng thay vì chen với tiêu đề. */}
               <div className="cal-toolbar">
                 <button className="btn ghost sm" onClick={handleExportCalendarReport} disabled={isLoading}>Xuất Excel</button>
-                {canCreateTeachingPlan && (<button className="btn ghost sm" onClick={() => openImportModal("teaching")}>Nhập lịch dạy</button>)}
-                {calendarTypeOptions.some((c) => c.source === "schedule") && (<button className="btn ghost sm" onClick={() => openImportModal("schedule")}>Nhập lịch công tác</button>)}
+                {/* MỘT nút cho cả workbook. Trước đây hai nút cùng nhận một file
+                    mẫu nhưng mỗi nút chỉ đọc sheet của phía mình — người dùng
+                    nhập một lượt rồi tưởng xong, trong khi các sheet kia bị bỏ. */}
+                {(canCreateTeachingPlan || coQuyenLichCongTac) && (
+                  <button className="btn ghost sm" onClick={() => openImportModal("teaching")}>
+                    Nhập lịch dạy từ Excel
+                  </button>
+                )}
+                {/* Xoá cả tháng là việc không lấy lại được nên chỉ admin thấy nút,
+                    và backend cũng chặn lại lần nữa chứ không tin mỗi giao diện. */}
+                {canManageSessions && (
+                  <button
+                    className="btn ghost sm"
+                    style={{ color: "#c0332a", borderColor: "#f0cfcb" }}
+                    disabled={xoaThangDangChay}
+                    onClick={moHopXoaThang}
+                  >
+                    Xoá lịch tháng {pad2(selectedMonth)}
+                  </button>
+                )}
                 {canManageSessions && (<button className="btn ghost sm" onClick={handleOpenReviewPlan}>Duyệt lịch báo giảng tháng</button>)}
                 <button className="btn ghost sm" onClick={() => openStaffCreateModal("leave")}>Tạo đơn nhân sự</button>
                 {canSubmitTeachingPlan && (<button className="btn ghost sm" onClick={handleSubmitMonthPlan} disabled={Boolean(planActionLoading) || !sessions.length || !isSubmitWindowOpen}>{planActionLoading === "submit" ? "Đang gửi..." : "Gửi duyệt lịch tháng"}</button>)}
@@ -4885,20 +5019,97 @@ function CalendarDetail() {
         </div>
       )}
 
+      {xoaThangDangHoi && (
+        <div className={styles.modalBackdrop} role="dialog" aria-modal="true">
+          <div className={styles.reasonDialog}>
+            <header className={styles.modalHeader}>
+              <div>
+                <h2>Xoá toàn bộ lịch tháng {pad2(selectedMonth)}/{selectedYear}?</h2>
+                <p>Việc này không hoàn tác được.</p>
+              </div>
+            </header>
+            <div className={styles.modalBody}>
+              {xoaThangDangHoi.sessions + xoaThangDangHoi.schedules === 0 ? (
+                <p>Tháng này chưa có lịch nào để xoá.</p>
+              ) : (
+                <>
+                  <p>Hệ thống sẽ xoá:</p>
+                  <ul>
+                    {xoaThangDangHoi.sessions > 0 && (
+                      <li><strong>{xoaThangDangHoi.sessions}</strong> ca dạy</li>
+                    )}
+                    {xoaThangDangHoi.schedules > 0 && (
+                      <li>
+                        <strong>{xoaThangDangHoi.schedules}</strong> đầu việc lịch công tác
+                        {Object.keys(xoaThangDangHoi.by_category).length > 0 && (
+                          <span className="small muted">
+                            {" "}
+                            ({Object.entries(xoaThangDangHoi.by_category)
+                              .map(([k, v]) => `${k}: ${v}`)
+                              .join(", ")})
+                          </span>
+                        )}
+                      </li>
+                    )}
+                  </ul>
+                  {/* Nói thẳng phần mất kèm: ba bảng này CASCADE theo ca dạy, không
+                      cảnh báo thì người dùng tưởng chỉ mất mỗi dòng lịch. */}
+                  {(xoaThangDangHoi.reports > 0 ||
+                    xoaThangDangHoi.attendances > 0 ||
+                    xoaThangDangHoi.evidences > 0) && (
+                    <div className={styles.errorNotice}>
+                      Xoá ca dạy sẽ mất theo:{" "}
+                      {[
+                        xoaThangDangHoi.reports && `${xoaThangDangHoi.reports} báo cáo ca dạy`,
+                        xoaThangDangHoi.attendances && `${xoaThangDangHoi.attendances} dòng điểm danh học viên`,
+                        xoaThangDangHoi.evidences && `${xoaThangDangHoi.evidences} bằng chứng điểm danh`,
+                      ]
+                        .filter(Boolean)
+                        .join(", ")}
+                      .
+                    </div>
+                  )}
+                </>
+              )}
+              {xoaThangLoi && <div className={styles.errorNotice}>{xoaThangLoi}</div>}
+            </div>
+            <div className={styles.modalFooter}>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() => setXoaThangDangHoi(null)}
+                disabled={xoaThangDangChay}
+              >
+                Huỷ
+              </button>
+              <button
+                type="button"
+                className={styles.primaryButton}
+                style={{ background: "#c0332a", borderColor: "#c0332a" }}
+                onClick={xacNhanXoaThang}
+                disabled={
+                  xoaThangDangChay ||
+                  xoaThangDangHoi.sessions + xoaThangDangHoi.schedules === 0
+                }
+              >
+                {xoaThangDangChay ? "Đang xoá..." : "Xoá vĩnh viễn"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isImportOpen && (
         <div className={styles.modalBackdrop} role="dialog" aria-modal="true">
           <div className={styles.modal}>
             <header className={styles.modalHeader}>
               <div>
-                <h2>
-                  {importMode === "schedule"
-                    ? "Nhập lịch công tác từ Excel"
-                    : "Nhập lịch dạy từ Excel"}
-                </h2>
+                <h2>Nhập lịch dạy từ Excel</h2>
                 <p>
-                  {importMode === "schedule"
-                    ? "Import vào lịch công tác/tháng."
-                    : "Import vào lịch báo giảng/ca dạy."}
+                  Tải file mẫu, điền vào sheet <b>{SHEET_NAMES.teaching_plan}</b> rồi nhập lên.
+                  {coQuyenLichCongTac
+                    ? " Nếu file còn các sheet lịch công tác đã điền, hệ thống nhập luôn trong cùng một lượt."
+                    : ""}
                 </p>
               </div>
               <button
@@ -4970,10 +5181,21 @@ function CalendarDetail() {
               {importResult && (
                 <div className={styles.note}>
                   <p>
-                    Đã nhập thành công {importResult.success_count || 0}{" "}
-                    {importMode === "schedule" ? "đầu mục lịch" : "buổi dạy"}
+                    Đã nhập thành công {importResult.success_count || 0} dòng
                     {importResult.error_count ? `, ${importResult.error_count} dòng lỗi:` : "."}
                   </p>
+                  {/* Tách theo LOẠI LỊCH: một lượt nhập nay chạm cả hai model,
+                      chỉ một con số tổng thì không biết phần nào vào được. */}
+                  {Array.isArray(importResult.theo_loai) && importResult.theo_loai.length > 1 && (
+                    <ul>
+                      {importResult.theo_loai.map((item) => (
+                        <li key={item.ten}>
+                          <strong>{item.ten}</strong>: {item.success_count} dòng
+                          {item.error_count ? `, ${item.error_count} lỗi` : ""}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                   {/* File mẫu mới có nhiều sheet nên cần biết sheet nào vào được
                       bao nhiêu — chỉ một con số tổng thì không đủ để dò lỗi. */}
                   {Array.isArray(importResult.sheets) && importResult.sheets.length > 0 && (
@@ -5008,11 +5230,7 @@ function CalendarDetail() {
                   Đóng
                 </button>
                 <button type="submit" className={styles.primaryButton} disabled={importLoading}>
-                  {importLoading
-                    ? "Đang nhập..."
-                    : importMode === "schedule"
-                    ? "Nhập lịch công tác"
-                    : "Nhập lịch dạy"}
+                  {importLoading ? "Đang nhập..." : "Nhập lịch"}
                 </button>
               </div>
             </form>

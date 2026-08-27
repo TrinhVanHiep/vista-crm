@@ -166,6 +166,17 @@ export async function createTeachingSession(payload) {
   return data;
 }
 
+/** Xoá toàn bộ lịch của một tháng. Không truyền confirm = chạy thử, chỉ đếm. */
+export async function bulkDeleteMonthSessions(payload) {
+  const { data } = await apiClient.post("/teaching-sessions/bulk-delete-month/", payload);
+  return data;
+}
+
+export async function bulkDeleteMonthSchedules(payload) {
+  const { data } = await apiClient.post("/schedules/schedules/bulk-delete-month/", payload);
+  return data;
+}
+
 export async function importTeachingSessions(formData) {
   const { data } = await apiClient.post("/teaching-sessions/import_sessions/", formData, {
     headers: { "Content-Type": "multipart/form-data" },
