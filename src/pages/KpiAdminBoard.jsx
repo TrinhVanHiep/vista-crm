@@ -390,26 +390,57 @@ export default function KpiAdminBoard({ nhungTrongTrang = false, month, year } =
     }
   };
 
-  /** Ô ký hợp với vai người đang đăng nhập. Admin ký được cả ba. */
-  const khaOKy = () => {
+  /** Những ô ký mà người đang đăng nhập được phép ký.
+   *
+   *  Phải KHỚP QUYEN_DUYET bên kpi/views.py:
+   *    training : training_manager, admin, superadmin
+   *    center   : center_manager,   admin, superadmin
+   *    director : admin, superadmin
+   *
+   *  Admin và super admin ký được CẢ BA ô, nên bấm "Duyệt" là ký hết những ô còn
+   *  đang chờ. Trước đây chỉ ký mỗi ô "Ban giám đốc": phiếu ký xong vẫn ở trạng
+   *  thái chờ (phải đủ 3 ô mới thành "đã duyệt"), nên bấm Duyệt mà nhìn như
+   *  không có gì xảy ra. */
+  const cacOKyDuoc = () => {
     const vai = user?.role;
-    if (vai === "training_manager") return "training";
-    if (vai === "center_manager") return "center";
-    return "director";
+    if (vai === "admin" || vai === "superadmin") return ["training", "center", "director"];
+    if (vai === "training_manager") return ["training"];
+    if (vai === "center_manager") return ["center"];
+    return [];
   };
 
   /** Lưu điểm rồi ký ô duyệt — duyệt mà chưa lưu là ký lên bản điểm cũ. */
   const kyDuyet = async (quyetDinh) => {
     if (!phieu) return;
+    const oKy = cacOKyDuoc();
+    if (!oKy.length) {
+      setLoi("Vai của bạn không ký được ô duyệt nào.");
+      return;
+    }
     if (!(await luuCham({ imLang: true }))) return;
     setDangLuu(true);
     try {
-      const moi = await kyDuyetPhieu(phieu.id, {
-        stage: khaOKy(), decision: quyetDinh, note: nhanXet,
-      });
+      // Yêu cầu bổ sung: một ô là đủ để trả phiếu về, không cần ký hết.
+      // Duyệt: ký mọi ô mình được phép mà còn đang chờ, để bấm một lần là xong.
+      const canKy = quyetDinh === "approved"
+        ? oKy.filter((o) => oDuyet[o]?.decision !== "approved")
+        : oKy.slice(0, 1);
+      let moi = phieu;
+      for (const stage of canKy) {
+        // Tuần tự chứ không song song: backend tính lại status của phiếu sau
+        // MỖI lần ký, chạy song song thì các lượt đọc chồng lên nhau.
+        // eslint-disable-next-line no-await-in-loop
+        moi = await kyDuyetPhieu(phieu.id, { stage, decision: quyetDinh, note: nhanXet });
+      }
       setPhieu(moi);
       await taiBang();
-      setThongBao(quyetDinh === "approved" ? "Đã duyệt phiếu." : "Đã gửi yêu cầu bổ sung.");
+      setThongBao(
+        quyetDinh === "approved"
+          ? (moi?.status === "approved"
+              ? "Đã duyệt phiếu."
+              : `Đã ký ${canKy.length} ô duyệt. Phiếu chờ các cấp còn lại ký.`)
+          : "Đã gửi yêu cầu bổ sung.",
+      );
     } catch (e) {
       setLoi(thongDiepLoi(e, "Không ghi được quyết định duyệt."));
     } finally {

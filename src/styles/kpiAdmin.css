@@ -405,3 +405,38 @@ table.ka-sm tr.ka-plusminus b.ka-m { color: var(--ka-red); font-weight: 700; mar
   .ka-final b { font-size: 28px; }
   .ka-tlist { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ==========================================================================
+   ĐÈ LẠI SAU KHI NHÚNG VÀO .v4page — BẮT BUỘC, KHÔNG PHẢI TRANG TRÍ
+
+   Màn Thi đua tháng bọc trong <Page className="v4page">, mà vista4.css có luật
+   toàn cục `.v4page button { border:none; background:none }`. Độ đặc hiệu của
+   nó là (0,1,1) — MỘT class + MỘT thẻ — nên nó THẮNG mọi luật `.ka-btn*`
+   (0,1,0, chỉ một class), bất kể thứ tự file.
+
+   Hậu quả đã tái hiện: nút "Duyệt kết quả" có chữ TRẮNG trên nền TRONG SUỐT
+   -> trắng tinh, nhìn như hỏng, dù thực ra vẫn bấm được. Ba nút Duyệt / Yêu cầu
+   bổ sung / Trả lại và cả thẻ người được chấm (đều là <button>) cũng mất nền.
+
+   Cách chữa: khai lại đúng những thuộc tính bị cướp, dưới tiền tố .ka-page để
+   lên (0,2,0) > (0,1,1). Không dùng !important — chỉ cần đủ đặc hiệu.
+   ========================================================================== */
+.ka-page .ka-btn { border: 1px solid #dcdfe4; background: #fff; }
+.ka-page .ka-btn:hover:not(:disabled) { background: #f7f8f9; }
+.ka-page .ka-btn-primary { border: 1px solid #0d6d36; background: var(--ka-green); }
+.ka-page .ka-btn-primary:hover:not(:disabled) { background: #0c6a34; }
+
+.ka-page .ka-tcard { border: 1px solid #e8eaed; background: #fff; }
+.ka-page .ka-tcard:hover { border-color: #d6dade; }
+.ka-page .ka-tcard.ka-active { border: 1.5px solid var(--ka-orange); background: #fffaf5; }
+
+.ka-page .ka-actions button { border: none; }
+.ka-page .ka-act-approve { background: var(--ka-green); }
+.ka-page .ka-act-approve:hover:not(:disabled) { background: #0c6a34; }
+.ka-page .ka-act-more { background: var(--ka-orange); }
+.ka-page .ka-act-more:hover:not(:disabled) { background: #dd6a1a; }
+.ka-page .ka-act-back { background: #f2f3f5; border: 1px solid #e0e3e7; color: #5c636e; }
+.ka-page .ka-act-back:hover:not(:disabled) { background: #e9ebee; }
+
+/* Nút bị khoá phải NHÌN RA là bị khoá, không thì lại tưởng hỏng lần nữa. */
+.ka-page button:disabled { opacity: .5; cursor: not-allowed; }
