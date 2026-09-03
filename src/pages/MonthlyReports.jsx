@@ -585,122 +585,103 @@ function MonthlyReports() {
     manualSessions.find((item) => item.id === report.session) ||
     {};
 
-  const manualColumns = [
-    {
-      key: "teacher",
-      header: "Giáo viên",
-      render: (report) =>
-        report.teacher_name || resolveManualSession(report).teacher_name || "--",
-    },
-    {
-      key: "session",
-      header: "Lớp / ca dạy",
-      render: (report) => {
-        const session = resolveManualSession(report);
-        return (
-          <div style={cellStackStyle}>
+  /* Báo cáo ca dạy hiển thị dạng THẺ chứ không phải bảng.
+     Bảng cũ có 9 cột, trong đó cột "Nội dung" chứa cả ba đoạn văn dài (nội dung
+     dạy + nhận xét + kế hoạch buổi sau). Hệ quả: một dòng cao gần hết màn hình,
+     bảng phải đặt minWidth 1180 nên tràn ngang và nuốt mất cột "Hành động" —
+     đúng thứ người duyệt cần bấm. Dạng thẻ cho phép nội dung dài xuống dòng tự
+     nhiên, và mỗi báo cáo gọn trong một khối đọc từ trên xuống. */
+  const TheBaoCaoCaDay = ({ report }) => {
+    const session = resolveManualSession(report);
+    const daTick = getChecklistFlag(report.completion_checklist, "manual_reported");
+    const tt = statusMeta[report.report_status] || {};
+    const [moRong, setMoRong] = useState(false);
+    // Chỉ hiện nút "Xem đầy đủ" khi nội dung THẬT SỰ bị cắt. Báo cáo ngắn mà vẫn
+    // bày nút thì bấm vào không thấy gì đổi. Đo lại khi đổi bề rộng vì cùng một
+    // đoạn văn có thể vừa khung ở màn rộng nhưng tràn ở màn hẹp.
+    const [biCat, setBiCat] = useState(false);
+    const oNoiDung = useRef(null);
+    useEffect(() => {
+      const el = oNoiDung.current;
+      if (!el) return undefined;
+      const do1 = () => setBiCat(el.scrollHeight > el.clientHeight + 4);
+      do1();
+      const ro = new ResizeObserver(do1);
+      ro.observe(el);
+      return () => ro.disconnect();
+    }, [moRong]);
+
+    const doanVan = [
+      report.content_taught ? { nhan: "Nội dung dạy", chu: report.content_taught } : null,
+      report.session_evaluation ? { nhan: "Nhận xét buổi học", chu: report.session_evaluation } : null,
+      report.next_session_plan ? { nhan: "Kế hoạch buổi sau", chu: report.next_session_plan } : null,
+    ].filter(Boolean);
+
+    return (
+      <article className="sr-card">
+        <header className="sr-card__head">
+          <div className="sr-card__who">
             <strong>{session.classroom_name || "--"}</strong>
             <span className="small muted">
-              {formatDate(session.session_date)} •{" "}
-              {formatTimeRange(session.start_at, session.end_at)}
+              {formatDate(session.session_date)} • {formatTimeRange(session.start_at, session.end_at)}
             </span>
           </div>
-        );
-      },
-    },
-    {
-      key: "student_count",
-      header: "Sĩ số",
-      align: "center",
-      render: (report) => report.student_count ?? "--",
-    },
-    {
-      key: "content",
-      header: "Nội dung",
-      render: (report) => (
-        <div style={cellStackStyle}>
-          <strong>{report.content_taught || "--"}</strong>
-          {report.session_evaluation ? (
-            <span className="small muted">{report.session_evaluation}</span>
-          ) : null}
-          {report.next_session_plan ? (
-            <span className="small muted">Buổi sau: {report.next_session_plan}</span>
-          ) : null}
+          <div className="sr-card__meta">
+            {/* Tài khoản chưa khai họ tên thì tên hiển thị là email — chuỗi liền
+                rất dài, phải cho xuống dòng giữa chuỗi kẻo tràn khỏi thẻ. */}
+            <span className="sr-card__teacher" title={report.teacher_name || session.teacher_name || ""}>
+              {report.teacher_name || session.teacher_name || "--"}
+            </span>
+            <Badge tone={tt.tone || "gray"}>{tt.label || report.report_status}</Badge>
+          </div>
+        </header>
+
+        <div className="sr-card__facts">
+          <span><em>Sĩ số</em><b>{report.student_count ?? "--"}</b></span>
+          <span><em>Đã báo cáo</em><b className={daTick ? "sr-ok" : "sr-no"}>{daTick ? "Rồi" : "Chưa tick"}</b></span>
+          <span><em>Zalo</em><b className={report.reported_on_zalo ? "sr-ok" : "sr-no"}>
+            {report.reported_on_zalo ? "Đã gửi" : "Chưa"}
+          </b></span>
         </div>
-      ),
-    },
-    {
-      key: "reported",
-      header: "Đã báo cáo",
-      render: (report) =>
-        getChecklistFlag(report.completion_checklist, "manual_reported")
-          ? "Đã báo cáo"
-          : "Chưa tick",
-    },
-    {
-      key: "zalo",
-      header: "Zalo",
-      render: (report) => (report.reported_on_zalo ? "Đã báo cáo" : "--"),
-    },
-    {
-      key: "status",
-      header: "Trạng thái",
-      render: (report) => (
-        <Badge tone={statusMeta[report.report_status]?.tone || "gray"}>
-          {statusMeta[report.report_status]?.label || report.report_status}
-        </Badge>
-      ),
-    },
-    {
-      key: "feedback",
-      header: "Phản hồi",
-      render: (report) => (
-        <div style={cellStackStyle}>{report.rejected_reason || "--"}</div>
-      ),
-    },
-    {
-      key: "actions",
-      header: "Hành động",
-      render: (report) =>
-        canReviewSession ? (
-          report.report_status === "submitted" ? (
-            <div style={actionGroupStyle}>
-              <Button
-                variant="primary"
-                size="sm"
-                disabled={manualReviewLoadingId === report.id}
-                onClick={() => handleManualReportReview(report.id, "approve")}
-              >
-                Duyệt
-              </Button>
-              <Button
-                size="sm"
-                disabled={manualReviewLoadingId === report.id}
-                onClick={() => handleManualReportReview(report.id, "request-revision")}
-              >
-                Yêu cầu sửa
-              </Button>
-              <Button
-                variant="danger"
-                size="sm"
-                disabled={manualReviewLoadingId === report.id}
-                onClick={() => handleManualReportReview(report.id, "reject")}
-              >
-                Từ chối
-              </Button>
-            </div>
-          ) : (
-            "--"
-          )
-        ) : !isReportManager && report.report_status === "revision_required" ? (
-          <Button size="sm" onClick={() => handleEditManualReport(report)}>
-            Chỉnh sửa
-          </Button>
+
+        {doanVan.length ? (
+          <div ref={oNoiDung} className={`sr-card__body${moRong ? " is-open" : ""}`}>
+            {doanVan.map((d) => (
+              <p key={d.nhan}><em>{d.nhan}:</em> {d.chu}</p>
+            ))}
+          </div>
         ) : (
-          "--"
-        ),
-    },
-  ];
+          <p className="small muted">Chưa nhập nội dung buổi dạy.</p>
+        )}
+        {doanVan.length && (biCat || moRong) ? (
+          <button type="button" className="sr-more" onClick={() => setMoRong((v) => !v)}>
+            {moRong ? "Thu gọn" : "Xem đầy đủ"}
+          </button>
+        ) : null}
+
+        {report.rejected_reason ? (
+          <div className="sr-card__fb">
+            <em>Phản hồi quản lý:</em> {report.rejected_reason}
+          </div>
+        ) : null}
+
+        {canReviewSession && report.report_status === "submitted" ? (
+          <div className="sr-card__act">
+            <Button variant="primary" size="sm" disabled={manualReviewLoadingId === report.id}
+                    onClick={() => handleManualReportReview(report.id, "approve")}>Duyệt</Button>
+            <Button size="sm" disabled={manualReviewLoadingId === report.id}
+                    onClick={() => handleManualReportReview(report.id, "request-revision")}>Yêu cầu sửa</Button>
+            <Button variant="danger" size="sm" disabled={manualReviewLoadingId === report.id}
+                    onClick={() => handleManualReportReview(report.id, "reject")}>Từ chối</Button>
+          </div>
+        ) : !isReportManager && report.report_status === "revision_required" ? (
+          <div className="sr-card__act">
+            <Button size="sm" onClick={() => handleEditManualReport(report)}>Chỉnh sửa</Button>
+          </div>
+        ) : null}
+      </article>
+    );
+  };
 
   const monthlyColumns = [
     { key: "teacher_name", header: "Giáo viên" },
@@ -1052,14 +1033,14 @@ function MonthlyReports() {
           </div>
         )}
 
-        <div style={{ marginTop: 14 }}>
-          <DataTable
-            columns={manualColumns}
-            rows={manualReports}
-            loading={manualLoading}
-            empty="Chưa có báo cáo nhập tay trong tháng này."
-            minWidth={1180}
-          />
+        <div className="sr-list">
+          {manualLoading ? (
+            <p className="small muted">Đang tải báo cáo ca dạy…</p>
+          ) : !manualReports.length ? (
+            <p className="small muted">Chưa có báo cáo nhập tay trong tháng này.</p>
+          ) : (
+            manualReports.map((report) => <TheBaoCaoCaDay key={report.id} report={report} />)
+          )}
         </div>
       </Card>
 

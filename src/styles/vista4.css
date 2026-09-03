@@ -683,3 +683,52 @@
   /* Nút trong hàng thao tác trải đủ bề ngang cho dễ bấm bằng ngón tay. */
   .v4page .toolbar .btn, .v4page .filters .btn { flex: 1 1 46%; justify-content: center; }
 }
+
+/* ---------- Thẻ báo cáo ca dạy (màn Báo cáo tháng) ----------
+   Thay bảng 9 cột cũ: cột "Nội dung" chứa ba đoạn văn nên bảng phải đặt
+   minWidth 1180, tràn ngang và che mất cột Hành động. */
+.v4page .sr-list { display: grid; gap: 12px; margin-top: 14px; }
+.v4page .sr-card { border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px;
+  background: #fff; display: grid; gap: 10px; }
+.v4page .sr-card__head { display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; }
+.v4page .sr-card__who { display: grid; gap: 2px; min-width: 0; }
+.v4page .sr-card__who strong { font-size: 14.5px; font-weight: 700; }
+.v4page .sr-card__meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-left: auto; min-width: 0; }
+/* Email dài là một từ liền, phải cho ngắt giữa chuỗi kẻo đẩy tràn thẻ. */
+.v4page .sr-card__teacher { font-size: 12.5px; color: var(--text-2); overflow-wrap: anywhere;
+  max-width: 260px; }
+
+.v4page .sr-card__facts { display: flex; gap: 26px; flex-wrap: wrap;
+  padding: 8px 0; border-top: 1px solid var(--border-soft); border-bottom: 1px solid var(--border-soft); }
+.v4page .sr-card__facts span { display: grid; gap: 1px; }
+.v4page .sr-card__facts em { font-style: normal; font-size: 11px; color: var(--muted); }
+.v4page .sr-card__facts b { font-size: 13px; font-weight: 700; }
+.v4page .sr-ok { color: #12703C; }
+.v4page .sr-no { color: var(--muted); font-weight: 600; }
+
+/* Mặc định gói gọn 6 dòng; bấm "Xem đầy đủ" mới bung. Không giới hạn thì một
+   báo cáo dài chiếm trọn màn hình, người duyệt phải cuộn mãi mới tới cái sau. */
+.v4page .sr-card__body { display: grid; gap: 8px; max-height: 8.6em; overflow: hidden;
+  position: relative; }
+.v4page .sr-card__body.is-open { max-height: none; }
+.v4page .sr-card__body:not(.is-open)::after { content: ""; position: absolute; left: 0; right: 0;
+  bottom: 0; height: 2.2em; background: linear-gradient(180deg, rgba(255,255,255,0), #fff); }
+.v4page .sr-card__body p { font-size: 13px; line-height: 1.6; color: var(--text-2); margin: 0; }
+.v4page .sr-card__body em { font-style: normal; font-weight: 700; color: var(--text); }
+.v4page .sr-more { justify-self: start; border: 0; background: none; padding: 0; cursor: pointer;
+  font-size: 12.5px; font-weight: 600; color: var(--primary); }
+.v4page .sr-more:hover { text-decoration: underline; }
+
+.v4page .sr-card__fb { border-radius: 8px; background: var(--warn-soft, #FFF6E6);
+  border: 1px solid #F3E3C2; padding: 9px 12px; font-size: 12.5px; line-height: 1.55; }
+.v4page .sr-card__fb em { font-style: normal; font-weight: 700; color: #9A6200; }
+.v4page .sr-card__act { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+
+@media (max-width: 640px) {
+  .v4page .sr-card { padding: 12px; }
+  .v4page .sr-card__meta { margin-left: 0; width: 100%; }
+  .v4page .sr-card__facts { gap: 16px; }
+  .v4page .sr-card__act > * { flex: 1 1 46%; justify-content: center; }
+}
