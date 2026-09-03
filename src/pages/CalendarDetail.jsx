@@ -1133,7 +1133,11 @@ function CalendarDetail() {
       }
       try {
         const [classroomResult, teacherResult] = await Promise.allSettled([
-          listClassroomsAll(),
+          // Giáo viên CHỈ lấy lớp mình phụ trách. Đổ toàn bộ 26 lớp ra thì họ
+          // chọn được lớp người khác, form cho qua sạch, rồi backend mới trả
+          // 403 "Teachers can only manage existing classrooms" — nhìn như hệ
+          // thống hỏng chứ không ai đoán ra là do chưa được gán lớp.
+          listClassroomsAll(isTeacherRole ? { mine: 1 } : {}),
           canSelectTeacherForCreate
             ? listTeachers({ page_size: 200 })
             : Promise.resolve({ results: [] }),
@@ -4440,7 +4444,11 @@ function CalendarDetail() {
                 </svg>
               </button>
             </header>
-            <form className={styles.modalBody} onSubmit={handleCreateSession}>
+            {/* noValidate: ô ngày có min=hôm nay, trình duyệt tự chặn submit mà
+                KHÔNG hiện gì cả — bấm "Tạo ca dạy" không có phản ứng nào, đúng
+                triệu chứng "bấm không thêm được". Tắt đi để thông báo của mình
+                hiện ra thay vì im lặng. */}
+            <form className={styles.modalBody} onSubmit={handleCreateSession} noValidate>
               <div className={styles.formGrid}>
                 <label className={`${styles.formGroup} ${styles.formGroupFull}`}>
                   <span>Loại lịch</span>
@@ -4499,6 +4507,14 @@ function CalendarDetail() {
                       </option>
                     ))}
                   </select>
+                  {/* Nói thẳng lý do và chỗ xử lý. Trước đây ô chỉ trống trơn,
+                      giáo viên không biết là do chưa được gán lớp. */}
+                  {isTeacherRole && !createClassrooms.length ? (
+                    <span className={styles.fieldHint} style={{ color: "#C0332A" }}>
+                      Bạn chưa được gán lớp nào nên chưa tạo được ca dạy.
+                      Nhờ quản trị vào <b>Hành chính - Nhân sự</b> → chọn bạn → <b>Gán lớp</b>.
+                    </span>
+                  ) : null}
                 </label>
 
                 {canSelectTeacherForCreate ? (

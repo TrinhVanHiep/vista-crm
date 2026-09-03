@@ -2100,3 +2100,6 @@
   color: #43301f;
   outline: none;
 }
+
+/* Dòng chú thích dưới một ô nhập — dùng để nói lý do ô đang rỗng. */
+.fieldHint { display: block; margin-top: 6px; font-size: 11.5px; line-height: 1.45; }
