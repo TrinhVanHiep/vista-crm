@@ -1,17 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  bulkReviewMonthlyScorecards,
+  bulkSubmitMonthlyScorecards,
   importReportCards,
   listClassroomsAll,
   listMonthlyScorecards,
   reportCardTemplate,
 } from "../services/calendarService";
+import { useAuth } from "../auth/AuthProvider";
 import {
   Badge,
   Button,
   Card,
   DataTable,
   EmptyState,
+  Field,
   Modal,
   Kpi,
   KpiGrid,
@@ -98,7 +102,14 @@ function trungBinh(ds) {
 
 export default function StudentLearningReport() {
   const navigate = useNavigate();
+  const { role } = useAuth();
   const homNay = new Date();
+
+  // Giáo viên NHẬP và GỬI DUYỆT; quản lý/admin DUYỆT hoặc TRẢ LẠI. Danh sách vai
+  // phải khớp SCORECARD_REVIEWER_ROLE_NAMES ở backend (users/permissions.py) —
+  // lệch một vai là nút hiện ra nhưng bấm vào nhận 403.
+  const laNguoiDuyet = ["superadmin", "admin", "center_manager", "training_manager"].includes(role);
+  const laNguoiNhap = ["superadmin", "admin", "teacher"].includes(role);
 
   const [thang, setThang] = useState(homNay.getMonth() + 1);
   const [nam, setNam] = useState(homNay.getFullYear());
@@ -113,6 +124,13 @@ export default function StudentLearningReport() {
   const [taiLai, setTaiLai] = useState(0);
   const [xepLoai, setXepLoai] = useState("");
   const [chiXemGiam, setChiXemGiam] = useState(false);
+  const [locTrangThai, setLocTrangThai] = useState("");
+  // Tập id đang tích chọn, để nộp/duyệt cả lớp trong một lượt.
+  const [dangChon, setDangChon] = useState(() => new Set());
+  const [dangXuLy, setDangXuLy] = useState(false);
+  // { ids, quyetDinh } — mở hộp nhập lý do trước khi trả lại/từ chối.
+  const [hoiDuyet, setHoiDuyet] = useState(null);
+  const [ghiChuDuyet, setGhiChuDuyet] = useState("");
 
   const [lops, setLops] = useState([]);
   const [items, setItems] = useState([]);
@@ -189,13 +207,103 @@ export default function StudentLearningReport() {
 
   const danhSachHienThi = useMemo(() => {
     let ds = xepLoai ? items.filter((i) => i.grade_label === xepLoai) : items;
+    if (locTrangThai) ds = ds.filter((i) => i.status === locTrangThai);
     if (chiXemGiam) {
       ds = ds.filter((i) => { const d = chenhLech(i); return d != null && d < -0.05; });
       // Tụt nhiều nhất lên đầu — đó là những em cần can thiệp trước.
       ds = [...ds].sort((a, b) => (chenhLech(a) ?? 0) - (chenhLech(b) ?? 0));
     }
     return ds;
-  }, [items, xepLoai, chiXemGiam, diemTruocTheoHS]);
+  }, [items, xepLoai, locTrangThai, chiXemGiam, diemTruocTheoHS]);
+
+  // --- Nộp và duyệt bảng điểm -------------------------------------------
+  // Giáo viên chỉ nộp được phiếu nháp/cần sửa; quản lý chỉ duyệt được phiếu ĐÃ
+  // NỘP. Hai luật này backend cũng gác, ở đây chỉ để nút không mời bấm việc
+  // chắc chắn hỏng.
+  // Ba trạng thái này khớp TRANG_THAI_NOP_DUOC ở backend (teaching/views.py).
+  // "rejected" có mặt để phiếu bị từ chối không thành ngõ cụt.
+  const SUA_NOP_DUOC = ["draft", "revision_required", "rejected"];
+  const nopDuoc = (r) => laNguoiNhap && SUA_NOP_DUOC.includes(r.status);
+  const duyetDuoc = (r) => laNguoiDuyet && r.status === "submitted";
+  // Không thêm nhánh "|| laNguoiDuyet": admin vốn ghi được mọi trạng thái ở
+  // backend, nhưng màn phiếu đã ẩn ô nhập với phiếu đã duyệt, nên nút "Sửa" chỉ
+  // dẫn tới một trang không sửa được gì.
+  const suaDuoc = (r) => laNguoiNhap && SUA_NOP_DUOC.includes(r.status);
+
+  const idDangChon = useMemo(
+    () => danhSachHienThi.filter((r) => dangChon.has(r.id)).map((r) => r.id),
+    [danhSachHienThi, dangChon],
+  );
+  // Gửi ĐÚNG những phiếu làm được, không gửi cả tập đã chọn: chọn tất cả rồi bấm
+  // "Gửi duyệt" mà kèm theo phiếu đã duyệt thì backend phải bỏ qua và người dùng
+  // nhận một câu "bỏ qua N bảng" dài loằng ngoằng cho việc mình không hề định làm.
+  const idNopDuoc = useMemo(
+    () => danhSachHienThi.filter((r) => dangChon.has(r.id) && nopDuoc(r)).map((r) => r.id),
+    [danhSachHienThi, dangChon, laNguoiNhap],
+  );
+  const idDuyetDuoc = useMemo(
+    () => danhSachHienThi.filter((r) => dangChon.has(r.id) && duyetDuoc(r)).map((r) => r.id),
+    [danhSachHienThi, dangChon, laNguoiDuyet],
+  );
+
+  const doiChon = (id) =>
+    setDangChon((truoc) => {
+      const sau = new Set(truoc);
+      if (sau.has(id)) sau.delete(id);
+      else sau.add(id);
+      return sau;
+    });
+
+  const chonTatCa = () =>
+    setDangChon((truoc) => {
+      const het = danhSachHienThi.every((r) => truoc.has(r.id));
+      if (het) return new Set();
+      return new Set(danhSachHienThi.map((r) => r.id));
+    });
+
+  /** Gộp câu trả lời của backend thành một dòng người đọc hiểu được. */
+  const ketQuaThanhChu = (kq, so, danhTu) => {
+    const bo = Number(kq?.skipped_count) || 0;
+    let chu = `Đã ${danhTu} ${so} bảng điểm.`;
+    if (bo) {
+      const ly = (kq.skipped || []).slice(0, 3).map((x) => `${x.ten || `#${x.id}`}: ${x.ly_do}`);
+      chu += ` Bỏ qua ${bo} bảng — ${ly.join("; ")}${bo > 3 ? "..." : ""}`;
+    }
+    return chu;
+  };
+
+  const chayViec = async (viec) => {
+    setDangXuLy(true);
+    setLoi("");
+    setThongBao("");
+    try {
+      await viec();
+      setDangChon(new Set());
+      setTaiLai((v) => v + 1);
+    } catch (e) {
+      setLoi(
+        e?.response?.data?.detail ||
+          e?.response?.data?.decision ||
+          e?.message ||
+          "Không thực hiện được.",
+      );
+    } finally {
+      setDangXuLy(false);
+    }
+  };
+
+  const guiDuyet = (ids) =>
+    chayViec(async () => {
+      const kq = await bulkSubmitMonthlyScorecards(ids);
+      setThongBao(ketQuaThanhChu(kq, kq.submitted_count, "gửi duyệt"));
+    });
+
+  const chotDuyet = (ids, quyetDinh, ghiChu) =>
+    chayViec(async () => {
+      const kq = await bulkReviewMonthlyScorecards(ids, { decision: quyetDinh, note: ghiChu });
+      const nhan = { approve: "duyệt", reject: "từ chối", "request-revision": "trả lại" };
+      setThongBao(ketQuaThanhChu(kq, kq.reviewed_count, nhan[quyetDinh] || "xử lý"));
+    });
 
   const tongQuan = useMemo(() => {
     const diem = items.map((i) => Number(i.total_percent)).filter(Number.isFinite);
@@ -286,7 +394,36 @@ export default function StudentLearningReport() {
     },
   ];
 
+  const coTheThaoTac = laNguoiNhap || laNguoiDuyet;
+
   const cotHocSinh = [
+    // Cột tích chọn chỉ hiện với người có việc để làm; học viên/khách xem thì
+    // bảng giữ nguyên như cũ.
+    ...(coTheThaoTac
+      ? [{
+          key: "chon",
+          header: (
+            <input
+              type="checkbox"
+              aria-label="Chọn tất cả"
+              checked={danhSachHienThi.length > 0 && danhSachHienThi.every((r) => dangChon.has(r.id))}
+              onChange={chonTatCa}
+            />
+          ),
+          align: "center",
+          render: (r) => (
+            <input
+              type="checkbox"
+              aria-label={`Chọn ${r.student_name || "học sinh"}`}
+              checked={dangChon.has(r.id)}
+              // Cả dòng là vùng bấm điều hướng sang phiếu — không chặn nổi bọt
+              // thì tích một ô là nhảy sang màn khác.
+              onClick={(e) => e.stopPropagation()}
+              onChange={() => doiChon(r.id)}
+            />
+          ),
+        }]
+      : []),
     {
       key: "student_name",
       header: "Học sinh",
@@ -341,6 +478,64 @@ export default function StudentLearningReport() {
         </Badge>
       ),
     },
+    // Trước đây bảng dừng ở cột Trạng thái: muốn sửa một em phải BIẾT là bấm
+    // được vào cả dòng, mà không có gì gợi ý. Nay hiện nút rõ ràng.
+    ...(coTheThaoTac
+      ? [{
+          key: "thaotac",
+          header: "Thao tác",
+          align: "right",
+          // DataTable chỉ nhận `width` cho cột (không nhận className). 1% =
+          // co lại vừa đúng nội dung, để hàng nút nằm trên một dòng.
+          width: "1%",
+          render: (r) => (
+            <div
+              className="slr-thaotac"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {suaDuoc(r) ? (
+                <Button size="sm" onClick={() => navigate(`/phieu-bao-cao/${r.id}`)}>
+                  Sửa
+                </Button>
+              ) : (
+                <Button size="sm" variant="link" onClick={() => navigate(`/phieu-bao-cao/${r.id}`)}>
+                  Xem
+                </Button>
+              )}
+              {nopDuoc(r) ? (
+                <Button
+                  size="sm"
+                  variant="primary"
+                  disabled={dangXuLy}
+                  onClick={() => guiDuyet([r.id])}
+                >
+                  Gửi duyệt
+                </Button>
+              ) : null}
+              {duyetDuoc(r) ? (
+                <>
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    disabled={dangXuLy}
+                    onClick={() => chotDuyet([r.id], "approve", "")}
+                  >
+                    Duyệt
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    disabled={dangXuLy}
+                    onClick={() => { setHoiDuyet({ ids: [r.id], quyetDinh: "request-revision" }); setGhiChuDuyet(""); }}
+                  >
+                    Trả lại
+                  </Button>
+                </>
+              ) : null}
+            </div>
+          ),
+        }]
+      : []),
   ];
 
   // Xuất Excel TOÀN BỘ học viên đang lọc, 3 sheet: tổng quan, theo lớp, chi tiết.
@@ -596,7 +791,18 @@ export default function StudentLearningReport() {
       <Card
         title={`Danh sách học sinh${xepLoai ? ` — xếp loại ${xepLoai}` : ""}${chiXemGiam ? " — đang giảm" : ""}`}
         action={
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <select
+              className="slr-loc-tt"
+              value={locTrangThai}
+              onChange={(e) => setLocTrangThai(e.target.value)}
+              aria-label="Lọc theo trạng thái"
+            >
+              <option value="">Mọi trạng thái</option>
+              {Object.entries(NHAN_TRANG_THAI).map(([k, v]) => (
+                <option key={k} value={k}>{v}</option>
+              ))}
+            </select>
             <Button
               variant={chiXemGiam ? "primary" : "ghost"}
               size="sm"
@@ -611,6 +817,50 @@ export default function StudentLearningReport() {
           </div>
         }
       >
+        {/* Thanh này chỉ hiện khi đã tích chọn — nộp/duyệt cả lớp trong một lượt
+            thay vì bấm từng em. */}
+        {coTheThaoTac && idDangChon.length ? (
+          <div className="slr-hangloat">
+            <span>
+              Đã chọn <b>{idDangChon.length}</b> bảng điểm
+            </span>
+            <div className="slr-hangloat__nut">
+              {idNopDuoc.length ? (
+                <Button
+                  size="sm"
+                  variant="primary"
+                  loading={dangXuLy}
+                  onClick={() => guiDuyet(idNopDuoc)}
+                >
+                  Gửi duyệt {idNopDuoc.length} bảng
+                </Button>
+              ) : null}
+              {idDuyetDuoc.length ? (
+                <>
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    loading={dangXuLy}
+                    onClick={() => chotDuyet(idDuyetDuoc, "approve", "")}
+                  >
+                    Duyệt {idDuyetDuoc.length} bảng
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    disabled={dangXuLy}
+                    onClick={() => { setHoiDuyet({ ids: idDuyetDuoc, quyetDinh: "request-revision" }); setGhiChuDuyet(""); }}
+                  >
+                    Trả lại
+                  </Button>
+                </>
+              ) : null}
+              <Button size="sm" variant="ghost" onClick={() => setDangChon(new Set())}>
+                Bỏ chọn
+              </Button>
+            </div>
+          </div>
+        ) : null}
         <DataTable
           columns={cotHocSinh}
           rows={danhSachHienThi}
@@ -618,11 +868,13 @@ export default function StudentLearningReport() {
           rowKey={(r) => r.id}
           onRowClick={(r) => navigate(`/phieu-bao-cao/${r.id}`)}
           empty="Không có học sinh nào khớp bộ lọc."
-          minWidth={880}
+          minWidth={coTheThaoTac ? 1120 : 880}
         />
         {!dangTai && danhSachHienThi.length ? (
           <p className="small muted" style={{ marginTop: 10 }}>
-            Bấm vào một dòng để mở phiếu báo cáo gửi phụ huynh.
+            {coTheThaoTac
+              ? "Bấm “Sửa” để mở phiếu của một em, hoặc tích chọn nhiều em rồi xử lý một lượt."
+              : "Bấm vào một dòng để mở phiếu báo cáo gửi phụ huynh."}
           </p>
         ) : null}
       </Card>
@@ -670,10 +922,27 @@ export default function StudentLearningReport() {
                 <strong>{ketQuaNhap.updated_count ?? 0}</strong> phiếu
                 {ketQuaNhap.error_count ? `, ${ketQuaNhap.error_count} dòng lỗi:` : "."}
               </div>
+              {/* Phiếu đã gửi duyệt / đã duyệt / đã khoá thì backend giữ nguyên,
+                  không ghi đè. Không in ra thì người nhập tưởng đã lưu. */}
+              {ketQuaNhap.skipped_count ? (
+                <div style={{ marginTop: 6 }}>
+                  Giữ nguyên <strong>{ketQuaNhap.skipped_count}</strong> phiếu đã gửi duyệt
+                  hoặc đã duyệt — muốn sửa thì nhờ quản lý bấm “Trả lại” trước:
+                  <ul style={{ margin: "6px 0 0 18px", fontSize: 12.5 }}>
+                    {(ketQuaNhap.skipped || []).slice(0, 12).map((e, i) => (
+                      <li key={i}>{typeof e === "string" ? e : e.message}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
               {Array.isArray(ketQuaNhap.errors) && ketQuaNhap.errors.length ? (
                 <ul style={{ margin: "6px 0 0 18px", fontSize: 12.5 }}>
                   {ketQuaNhap.errors.slice(0, 12).map((e, i) => (
-                    <li key={i}>{typeof e === "string" ? e : JSON.stringify(e)}</li>
+                    <li key={i}>
+                      {typeof e === "string"
+                        ? e
+                        : `${e.row ? `Dòng ${e.row}: ` : ""}${e.message || JSON.stringify(e)}`}
+                    </li>
                   ))}
                 </ul>
               ) : null}
@@ -694,6 +963,42 @@ export default function StudentLearningReport() {
             </Button>
             <Button type="submit" variant="primary" loading={dangNhap} loadingText="Đang nhập..." disabled={!fileNhap}>
               Nhập file
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Trả lại / từ chối thì BẮT BUỘC nói lý do — giáo viên nhận thông báo mà
+          không biết sai chỗ nào thì lần nộp sau vẫn sai y hệt. */}
+      <Modal
+        open={Boolean(hoiDuyet)}
+        onClose={() => setHoiDuyet(null)}
+        title="Trả lại bảng điểm cho giáo viên"
+        subtitle={hoiDuyet ? `${hoiDuyet.ids.length} bảng điểm` : ""}
+        size="sm"
+      >
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const { ids, quyetDinh } = hoiDuyet;
+            setHoiDuyet(null);
+            chotDuyet(ids, quyetDinh, ghiChuDuyet.trim());
+          }}
+        >
+          <Field label="Lý do trả lại" required hint="Giáo viên sẽ nhận được đúng dòng này trong thông báo.">
+            <textarea
+              rows={4}
+              value={ghiChuDuyet}
+              onChange={(e) => setGhiChuDuyet(e.target.value)}
+              placeholder="Ví dụ: thiếu điểm kỹ năng Nghe của 3 em, nhờ thầy cô bổ sung."
+            />
+          </Field>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 14 }}>
+            <Button type="button" variant="ghost" onClick={() => setHoiDuyet(null)}>
+              Đóng
+            </Button>
+            <Button type="submit" variant="danger" disabled={!ghiChuDuyet.trim()}>
+              Trả lại
             </Button>
           </div>
         </form>

@@ -55,6 +55,12 @@ export default function DataTable({
                 onKeyDown={
                   onRowClick
                     ? (e) => {
+                        // CHỈ nhận phím gõ trên chính dòng. Không có điều kiện
+                        // này thì Space trên ô tích hay Enter trên nút bên trong
+                        // đều bị preventDefault rồi chuyển thành "bấm cả dòng":
+                        // ô không tích được, nút không chạy, mà màn hình lại nhảy
+                        // sang trang khác.
+                        if (e.target !== e.currentTarget) return;
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
                           onRowClick(row, i);

@@ -732,3 +732,22 @@
   .v4page .sr-card__facts { gap: 16px; }
   .v4page .sr-card__act > * { flex: 1 1 46%; justify-content: center; }
 }
+
+/* --- Kết quả học tập: cột thao tác + thanh xử lý hàng loạt --------------
+   Mọi luật đều bọc .v4page cho khớp phần .slr-* đã có ở trên. Nút bên trong
+   dùng <Button> (.ui-btn) nên đã thoát được luật reset .v4page button ở dòng 23
+   nhờ cặp class nhân đôi trong ui.css — đừng thay bằng <button> trần. */
+.v4page .slr-thaotac{display:flex;gap:6px;justify-content:flex-end;flex-wrap:nowrap;white-space:nowrap}
+
+.v4page .slr-loc-tt{font-family:inherit;font-size:12.5px;color:var(--text);background:var(--card);
+  border:1px solid var(--border);border-radius:9px;padding:6px 10px;cursor:pointer}
+.v4page .slr-loc-tt:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+.v4page .slr-hangloat{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  flex-wrap:wrap;margin-bottom:12px;padding:10px 14px;border-radius:12px;
+  background:var(--primary-soft);border:1px solid var(--primary-100);font-size:13px}
+.v4page .slr-hangloat__nut{display:flex;gap:8px;flex-wrap:wrap}
+
+@media (max-width:640px){
+  .v4page .slr-thaotac{justify-content:flex-start}
+  .v4page .slr-hangloat{flex-direction:column;align-items:flex-start}
+}

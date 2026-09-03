@@ -7,6 +7,7 @@ import {
 import ParentReportSheet from "./ParentReportSheet.jsx";
 import ReportCardEditor from "../components/report/ReportCardEditor";
 import { Button } from "../ui";
+import { useAuth } from "../auth/AuthProvider";
 import "../styles/vista4.css";
 import "../styles/parentReport.css";
 
@@ -315,6 +316,14 @@ const componentsOf = (card, schema) => {
 
 export default function ParentReport() {
   const { scorecardId } = useParams();
+  const { role } = useAuth();
+  // Quản lý cơ sở/đào tạo XEM phiếu để duyệt, không nhập điểm — backend cũng
+  // chặn (_assert_can_write), ẩn nút để không mời bấm vào việc chắc chắn 403.
+  const duocNhapPhieu = ["superadmin", "admin", "teacher"].includes(role);
+  // Backend chỉ cho ghi khi phiếu ở draft/revision_required/rejected
+  // (_assert_can_write). Hiện nút ở trạng thái khác thì người dùng gõ xong bấm
+  // Lưu mới nhận 403 và mất trắng những gì vừa nhập.
+  const TRANG_THAI_SUA_DUOC = ["draft", "revision_required", "rejected"];
   const navigate = useNavigate();
   const [card, setCard] = useState(null);
   const [moForm, setMoForm] = useState(false);
@@ -813,7 +822,10 @@ export default function ParentReport() {
       {/* ---------- Thanh công cụ (không in) ---------- */}
       <div className="pr-toolbar pr-noprint pr2-noprint">
         <div className="pr-crumb">
-          <Link to="/monthly-scorecards">Bảng điểm học viên</Link>
+          {/* Trước trỏ /monthly-scorecards — màn đó không mở cho quản lý cơ sở/
+              đào tạo, mà hai vai này nay vào phiếu để duyệt, nên bấm là văng ra
+              /unauthorized. Trỏ về đúng màn họ vừa rời đi. */}
+          <Link to="/bao-cao-hoc-tap">Kết quả học tập</Link>
           <span> / </span>
           <span>Phiếu báo cáo phụ huynh</span>
         </div>
@@ -823,7 +835,7 @@ export default function ParentReport() {
           </Button>
           {/* Chỉ mở form khi phiếu chưa duyệt: duyệt rồi mà sửa được thì con số
               trên tờ đã gửi phụ huynh và trong hệ thống lệch nhau. */}
-          {card.status !== "approved" ? (
+          {duocNhapPhieu && TRANG_THAI_SUA_DUOC.includes(card.status || "draft") ? (
             <Button size="sm" icon="✎" onClick={() => setMoForm(true)}>
               Nhập thông tin phiếu
             </Button>

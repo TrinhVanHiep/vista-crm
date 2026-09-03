@@ -18,7 +18,9 @@ export const ROUTE_PERMISSIONS = {
   // nhưng bấm vào lại 403.
   kpiAdmin: ['superadmin', 'admin', 'center_manager', 'training_manager'],
   // Phiếu báo cáo tháng gửi phụ huynh — do giáo viên/quản lý lập.
-  parentReport: ['superadmin', 'admin', 'teacher'],
+  // Quản lý cơ sở/đào tạo DUYỆT bảng điểm nên phải mở được phiếu của từng em
+  // để xem trước khi bấm duyệt. Quyền GHI vẫn do backend chặn (_assert_can_write).
+  parentReport: ['superadmin', 'admin', 'teacher', 'center_manager', 'training_manager'],
   // Báo cáo kết quả học tập là màn TỔNG HỢP để theo dõi chất lượng, nên quản lý
   // cơ sở và quản lý đào tạo xem được; học viên thì không (sẽ thấy cả trung tâm).
   studentLearningReport: ['superadmin', 'admin', 'teacher', 'center_manager', 'training_manager'],

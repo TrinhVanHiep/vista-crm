@@ -443,6 +443,18 @@ export async function reviewMonthlyScorecard(scorecardId, payload) {
   return data;
 }
 
+/** Nộp nhiều bảng điểm một lượt — một lớp có vài chục em, bấm từng cái không xuể. */
+export async function bulkSubmitMonthlyScorecards(ids) {
+  const { data } = await apiClient.post("/monthly-scorecards/bulk-submit/", { ids });
+  return data;
+}
+
+/** Duyệt/trả lại nhiều bảng điểm một lượt. payload: { decision, note }. */
+export async function bulkReviewMonthlyScorecards(ids, payload) {
+  const { data } = await apiClient.post("/monthly-scorecards/bulk-review/", { ids, ...payload });
+  return data;
+}
+
 export async function syncMonthlyScorecardsFromScores(payload) {
   const { data } = await apiClient.post("/monthly-scorecards/sync-from-scores/", payload);
   return data;
