@@ -655,25 +655,28 @@
 
   /* Thẻ chỉ số: 1-2 cột thay vì ép 4. */
   .v4page .kpis, .v4page .stat-row { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
-}
 
-  /* Lưới nhiều cột gộp về 1. Mốc 1300 sẵn có mới hạ c3/c4/c5 xuống 2 cột, còn
-     c2 thì không có mốc nào — trên màn 375px là mỗi cột chỉ ~150px, chữ vỡ và
-     thẻ tràn khỏi khung. */
+  /* Lưới nhiều cột gộp về 1 — CHỈ trên màn hẹp. Dấu đóng ngoặc của khối @media
+     này trước đây đặt nhầm ngay trên dòng chú thích, nên luật gộp rơi ra NGOÀI
+     mọi media query và áp dụng ở mọi bề ngang: trên màn hình lớn các thẻ đáng
+     lẽ đứng đôi (mục 2-3, mục 4-5 ở màn Học sinh) lại mỗi thẻ chiếm trọn một
+     hàng, nhìn rất trống trải. */
   .v4page .grid.c2, .v4page .grid.c3, .v4page .grid.c4, .v4page .grid.c5 {
     grid-template-columns: minmax(0, 1fr);
   }
-
-  /* Hàng tiêu đề thẻ: tiêu đề bên trái, cụm nút/bộ lọc bên phải. Không cho
-     xuống dòng thì cụm bên phải đẩy tràn ra ngoài khung thẻ. */
-  .v4page .card-head { flex-wrap: wrap; align-items: flex-start; }
-  .v4page .card-head > * { min-width: 0; max-width: 100%; }
-  .v4page .flex, .v4page .legend { flex-wrap: wrap; }
-  .v4page select, .v4page input[type="text"], .v4page input[type="search"] { max-width: 100%; }
-
-  /* Biểu đồ SVG co theo khung thay vì giữ bề ngang gốc. */
-  .v4page svg { max-width: 100%; height: auto; }
 }
+
+/* Những luật dưới đây CỐ Ý để toàn cục: chúng chỉ chống tràn khung, không đổi
+   bố cục, nên áp dụng ở mọi bề ngang đều đúng. */
+/* Hàng tiêu đề thẻ: tiêu đề bên trái, cụm nút/bộ lọc bên phải. Không cho
+   xuống dòng thì cụm bên phải đẩy tràn ra ngoài khung thẻ. */
+.v4page .card-head { flex-wrap: wrap; align-items: flex-start; }
+.v4page .card-head > * { min-width: 0; max-width: 100%; }
+.v4page .flex, .v4page .legend { flex-wrap: wrap; }
+.v4page select, .v4page input[type="text"], .v4page input[type="search"] { max-width: 100%; }
+
+/* Biểu đồ SVG co theo khung thay vì giữ bề ngang gốc. */
+.v4page svg { max-width: 100%; height: auto; }
 
 @media (max-width: 480px) {
   .v4page .content { padding: 10px 10px 28px; }
