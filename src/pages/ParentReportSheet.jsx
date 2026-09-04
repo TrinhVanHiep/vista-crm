@@ -193,6 +193,22 @@ export default function ParentReportSheet({ v }) {
   const coLoTrinhThang = Array.isArray(v.roadmapMonths) && v.roadmapMonths.length > 0;
   const diemThiThang = Array.isArray(v.monthlyExams) ? v.monthlyExams : [];
   const coDiemThiThang = v.isSecondary && diemThiThang.length > 0;
+
+  // --- Phiếu bám theo CHƯƠNG TRÌNH của em, không dựng cứng một khuôn ---------
+  // Khối cấp 2 thi MỘT bài mỗi tháng, không chấm 6 kỹ năng CEFR. Trước đây hai
+  // khối "Tổng quan kỹ năng" và "Chi tiết đánh giá" vẫn được vẽ dù rỗng, để lại
+  // gần 400px trống giữa phiếu — vừa xấu vừa đẩy nội dung tràn sang trang 2, và
+  // vì thiếu chỗ nên cỡ chữ phải ép xuống 8.5px.
+  const coKyNang = skills.length > 0;
+  const coChiTiet = Array.isArray(v.detailRows) && v.detailRows.length > 0;
+  // Khối cấp 2 không theo thang CEFR: chưa nhập cấp độ hiện tại/mục tiêu/tiến độ
+  // thì khối này chỉ còn ba ô trống dán nhãn "CEFR" — sai chương trình của em.
+  const coCapDoCefr = Boolean(v.cefrCurrent || v.cefrTarget) || isNum(v.cefrProgress);
+
+  // Số thứ tự chạy theo khối THỰC SỰ hiện ra, nếu không phiếu sẽ nhảy cóc
+  // 1 → 3 → 5 và phụ huynh tưởng bị thiếu mục.
+  let _stt = 0;
+  const stt = () => ++_stt;
   const baiDangHoc = units.find((u) => u.state === "current") || null;
   const kyThiThangNay = diemThiThang.find((x) => x.isCurrent) || null;
   const diemThiThangNay = kyThiThangNay ? kyThiThangNay.score : null;
@@ -209,7 +225,14 @@ export default function ParentReportSheet({ v }) {
   ];
 
   return (
-    <div className="pr2-sheet">
+    <div
+      className={[
+        "pr2-sheet",
+        coKyNang ? "" : "pr2-sheet--khong-ky-nang",
+        coCapDoCefr ? "" : "pr2-sheet--khong-cap-do",
+        coChiTiet ? "" : "pr2-sheet--khong-chi-tiet",
+      ].filter(Boolean).join(" ")}
+    >
       {/* ĐẦU PHIẾU */}
       <img className="pr2-logo" src={A + "logo.png"} alt="VISTA — Perfect Your English" />
       {v.avatarUrl ? (
@@ -301,7 +324,7 @@ export default function ParentReportSheet({ v }) {
       {/* 1. LỘ TRÌNH */}
       <div className={`pr2-card pr2-c1${coDiemThiThang ? " lt-full" : ""}`} data-screen-label="01">
         <div className="pr2-card__hd lt-head">
-          <span className="pr2-no lt-badge">1</span>
+          <span className="pr2-no lt-badge">{stt()}</span>
           <h2 className="lt-title">
             LỘ TRÌNH HỌC TẬP{coLoTrinhThang && v.roadmapYearLabel
               ? ` ${v.roadmapYearLabel.replace(" - ", "–")}`
@@ -381,10 +404,12 @@ export default function ParentReportSheet({ v }) {
         )}
       </div>
 
-      {/* 2. TỔNG QUAN KỸ NĂNG */}
+      {/* 2. TỔNG QUAN KỸ NĂNG — chỉ chương trình chấm theo kỹ năng mới có */}
+      {coKyNang ? (
+      <>
       <div className="pr2-card pr2-c2" data-screen-label="02">
         <div className="pr2-card__hd">
-          <span className="pr2-no">2</span>
+          <span className="pr2-no">{stt()}</span>
           <h2>TỔNG QUAN KỸ NĂNG</h2>
           <div className="pr2-c2colhd">
             <span>Kỹ năng</span><span /><span />
@@ -429,12 +454,14 @@ export default function ParentReportSheet({ v }) {
         </div>
         <Radar skills={skills} />
       </div>
+      </>
+      ) : null}
 
       {/* 3. KHỐI CẤP 2 — ĐIỂM THI THÁNG / các khối khác — SẴN SÀNG KỲ THI */}
       {coDiemThiThang ? (
         <div className="pr2-card pr2-c3" data-screen-label="03">
           <div className="pr2-card__hd">
-            <span className="pr2-no">3</span><h2>ĐIỂM THI THÁNG</h2>
+            <span className="pr2-no">{stt()}</span><h2>ĐIỂM THI THÁNG</h2>
             <span className="pr2-right">Kết quả đã lưu từ đầu năm học</span>
           </div>
           <div className="pr2-mock">
@@ -459,7 +486,7 @@ export default function ParentReportSheet({ v }) {
         </div>
       ) : (
       <div className="pr2-card pr2-c3" data-screen-label="03">
-        <div className="pr2-card__hd"><span className="pr2-no">3</span><h2>SẴN SÀNG KỲ THI CAMBRIDGE</h2></div>
+        <div className="pr2-card__hd"><span className="pr2-no">{stt()}</span><h2>SẴN SÀNG KỲ THI CAMBRIDGE</h2></div>
         <div className="pr2-mock">
           <div>
             <div className="pr2-mock__ttl">
@@ -497,9 +524,10 @@ export default function ParentReportSheet({ v }) {
       </div>
       )}
 
-      {/* 4. TIẾN ĐỘ CẤP ĐỘ */}
+      {/* 4. TIẾN ĐỘ CẤP ĐỘ — chỉ khi thực sự chấm theo thang CEFR */}
+      {coCapDoCefr ? (
       <div className="pr2-card pr2-c4" data-screen-label="04">
-        <div className="pr2-card__hd"><span className="pr2-no">4</span><h2>TIẾN ĐỘ HƯỚNG TỚI CẤP ĐỘ TIẾP THEO</h2></div>
+        <div className="pr2-card__hd"><span className="pr2-no">{stt()}</span><h2>TIẾN ĐỘ HƯỚNG TỚI CẤP ĐỘ TIẾP THEO</h2></div>
         <div className="pr2-level">
           <div className="pr2-lvl">
             <div className="pr2-lvl__lb">Cấp độ hiện tại</div>
@@ -536,10 +564,12 @@ export default function ParentReportSheet({ v }) {
           </div>
         </div>
       </div>
+      ) : null}
 
-      {/* 5. CHI TIẾT ĐÁNH GIÁ */}
+      {/* 5. CHI TIẾT ĐÁNH GIÁ — bảng rỗng thì bỏ hẳn, không để khung trống */}
+      {coChiTiet ? (
       <div className="pr2-card pr2-c5" data-screen-label="05">
-        <div className="pr2-card__hd"><span className="pr2-no">5</span><h2>CHI TIẾT ĐÁNH GIÁ</h2></div>
+        <div className="pr2-card__hd"><span className="pr2-no">{stt()}</span><h2>CHI TIẾT ĐÁNH GIÁ</h2></div>
         <div className="pr2-drow hd">
           <span>Hạng mục đánh giá</span>
           <span>Điểm số<br /><small>(/100)</small></span>
@@ -559,10 +589,11 @@ export default function ParentReportSheet({ v }) {
           </div>
         ))}
       </div>
+      ) : null}
 
       {/* 6. NHẬN XÉT GIÁO VIÊN */}
       <div className="pr2-card pr2-c6" data-screen-label="06">
-        <div className="pr2-card__hd"><span className="pr2-no">6</span><h2>NHẬN XÉT CỦA GIÁO VIÊN</h2></div>
+        <div className="pr2-card__hd"><span className="pr2-no">{stt()}</span><h2>NHẬN XÉT CỦA GIÁO VIÊN</h2></div>
         <div style={{ padding: "9px 10px 0 11px" }}>
           <div className="pr2-cbox good">
             <img src={A + "ic-thumb.png"} alt="" />
@@ -581,7 +612,7 @@ export default function ParentReportSheet({ v }) {
 
       {/* 7. ĐỊNH HƯỚNG */}
       <div className="pr2-card pr2-c7" data-screen-label="07">
-        <div className="pr2-card__hd"><span className="pr2-no">7</span><h2>ĐỊNH HƯỚNG PHÁT TRIỂN THÁNG TỚI</h2></div>
+        <div className="pr2-card__hd"><span className="pr2-no">{stt()}</span><h2>ĐỊNH HƯỚNG PHÁT TRIỂN THÁNG TỚI</h2></div>
         <div className="pr2-c7__list">
           {v.nextMonth.map((t, i) => (<div className="pr2-tick" key={i}><i>✓</i><span>{t}</span></div>))}
         </div>
@@ -589,7 +620,7 @@ export default function ParentReportSheet({ v }) {
 
       {/* 8. PHỤ HUYNH ĐỒNG HÀNH */}
       <div className="pr2-card pr2-c8" data-screen-label="08">
-        <div className="pr2-card__hd"><span className="pr2-no">8</span><h2>PHỤ HUYNH ĐỒNG HÀNH</h2></div>
+        <div className="pr2-card__hd"><span className="pr2-no">{stt()}</span><h2>PHỤ HUYNH ĐỒNG HÀNH</h2></div>
         <div className="pr2-c8__body">
           <img src={A + "ic-hand.png"} alt="" />
           <div className="pr2-c8__list">
@@ -607,7 +638,7 @@ export default function ParentReportSheet({ v }) {
       {/* 9. VINH DANH */}
       {v.honorOn ? (
         <div className="pr2-card pr2-c9" data-screen-label="09">
-          <div className="pr2-card__hd"><span className="pr2-no">9</span><h2>VINH DANH</h2></div>
+          <div className="pr2-card__hd"><span className="pr2-no">{stt()}</span><h2>VINH DANH</h2></div>
           <div className="pr2-award">
             <img src={A + "img-trophy.png"} alt="" />
             <div>

@@ -11,6 +11,17 @@
 .pr2-root *, .pr2-root *::before, .pr2-root *::after { box-sizing:border-box; }
 
 .pr2-sheet {
+  /* Toạ độ dọc của từng hàng khối, khai thành biến để bản rút gọn (phiếu khối
+     cấp 2 — không có "Tổng quan kỹ năng" và "Chi tiết đánh giá") chỉ cần đổi
+     mấy con số này thay vì chép lại toàn bộ luật vị trí. */
+  --y-c3:742px;    /* hàng: Điểm thi tháng + Tiến độ cấp độ */
+  --y-c5:954px;    /* Chi tiết đánh giá */
+  --y-c6:1135px;   /* hàng: Nhận xét + Định hướng + Phụ huynh */
+  --y-c9:1312px;   /* hàng: Vinh danh + Chữ ký */
+  --y-footer:1442px;
+  --h-c3:201px;    /* chiều cao hàng Điểm thi tháng */
+  --h-c6:166px;    /* chiều cao hàng Nhận xét */
+  --h-c9:114px;
   position:relative; width:1055px; min-width:1055px; flex-shrink:0; height:1491px;
   background:#FEFCF9; overflow:hidden; color:#33302E;
   font-family:"Be Vietnam Pro",-apple-system,"Segoe UI",Roboto,sans-serif;
@@ -208,7 +219,7 @@
 .pr2-radar__rg { font:8.5px "Be Vietnam Pro",sans-serif; fill:#A2958A; }
 
 /* ---------- mục 3 ---------- */
-.pr2-c3 { left:41px; top:742px; width:480px; height:201px; }
+.pr2-c3 { left:41px; top:var(--y-c3); width:480px; height:var(--h-c3); }
 .pr2-c3 .pr2-card__hd { height:29px; padding:0 14px 0 11px; }
 .pr2-mock { margin:8px 8px 0 6px; border:1px solid #F2E7DA; border-radius:10px; overflow:hidden; display:grid; grid-template-columns:332px 133px; }
 .pr2-mock__ttl { height:25px; display:flex; align-items:center; justify-content:space-between; padding:0 8px 0 18px; border-bottom:1px solid #F4EBE0; }
@@ -251,7 +262,7 @@
 .pr2-exam__d { margin-top:2px; font-size:7.5px; line-height:1.1; min-height:9px; }
 
 /* ---------- mục 4 ---------- */
-.pr2-c4 { left:532px; top:742px; width:482px; height:201px; }
+.pr2-c4 { left:532px; top:var(--y-c3); width:482px; height:var(--h-c3); }
 .pr2-c4 .pr2-card__hd { height:29px; padding:0 14px 0 8px; }
 .pr2-level { display:grid; grid-template-columns:106px 102px 110px 162px; height:170px; }
 .pr2-level > div { border-right:1px solid #F4EBE0; }
@@ -275,7 +286,7 @@
 .pr2-tick span { font-size:9px; color:#4A443E; line-height:1.45; }
 
 /* ---------- mục 5 ---------- */
-.pr2-c5 { left:41px; top:954px; width:973px; height:170px; overflow:hidden; }
+.pr2-c5 { left:41px; top:var(--y-c5); width:973px; height:170px; overflow:hidden; }
 .pr2-c5 .pr2-card__hd { height:24px; padding:0 0 0 11px; border-bottom:1px solid #F2E7DA; }
 .pr2-drow { display:grid; grid-template-columns:197px 122px 123px 101px 109px 319px; align-items:center; height:20px; border-bottom:1px solid #F7EFE5; font-size:8.5px; color:#4A443E; }
 .pr2-drow:last-child { border-bottom:0; }
@@ -293,9 +304,9 @@
 .pr2-dash { color:#B5A899; }
 
 /* ---------- mục 6/7/8 ---------- */
-.pr2-c6 { left:41px; top:1135px; width:317px; height:166px; }
-.pr2-c7 { left:371px; top:1135px; width:305px; height:166px; }
-.pr2-c8 { left:691px; top:1135px; width:323px; height:166px; }
+.pr2-c6 { left:41px; top:var(--y-c6); width:317px; height:var(--h-c6); }
+.pr2-c7 { left:371px; top:var(--y-c6); width:305px; height:var(--h-c6); }
+.pr2-c8 { left:691px; top:var(--y-c6); width:323px; height:var(--h-c6); }
 .pr2-c6 .pr2-card__hd, .pr2-c7 .pr2-card__hd, .pr2-c8 .pr2-card__hd { height:22px; padding:0 0 0 11px; }
 .pr2-cbox { border-radius:10px; display:flex; }
 .pr2-cbox.good { border:1px solid #DBEBE0; background:#F3F9F5; height:66px; gap:12px; padding:0 8px 0 17px; }
@@ -321,8 +332,8 @@
 .pr2-c8__note span { font-size:17px; color:#F7610A; line-height:1; }
 
 /* ---------- mục 9/10 + chữ ký ---------- */
-.pr2-c9 { left:41px; top:1312px; width:245px; height:114px; }
-.pr2-c10 { left:297px; top:1312px; width:219px; height:114px; }
+.pr2-c9 { left:41px; top:var(--y-c9); width:245px; height:var(--h-c9); }
+.pr2-c10 { left:297px; top:var(--y-c9); width:219px; height:var(--h-c9); }
 .pr2-c9 .pr2-card__hd { height:24px; padding:0 0 0 11px; }
 .pr2-c10 .pr2-card__hd { height:24px; padding:0 0 0 9px; gap:11px; }
 .pr2-award { display:flex; align-items:center; gap:6px; padding:2px 0 0 8px; }
@@ -334,7 +345,7 @@
 .pr2-cert__t { font-size:9px; color:#6E645B; line-height:1.75; }
 .pr2-cert__t b { font-size:10.5px; font-weight:800; color:#33302E; }
 
-.pr2-signs { left:532px; top:1313px; width:482px; height:113px; display:grid; grid-template-columns:164px 168px 149px; }
+.pr2-signs { left:532px; top:var(--y-c9); width:482px; height:var(--h-c9); display:grid; grid-template-columns:164px 168px 149px; }
 .pr2-sign { display:flex; flex-direction:column; align-items:center; padding-top:9px; border-right:1px dotted #E7D9C8; }
 .pr2-sign:last-child { border-right:0; }
 .pr2-sign__t { font-size:8px; font-weight:800; letter-spacing:.5px; color:#33302E; }
@@ -344,19 +355,26 @@
 .pr2-sign__n.ph { font-size:8.5px; font-style:italic; color:#A2958A; }
 
 /* ---------- chân phiếu ---------- */
-.pr2-footer { position:absolute; left:41px; top:1442px; width:973px; border-top:1.5px solid #F2E4D4; padding-top:13px; display:flex; align-items:center; gap:20px; }
+.pr2-footer { position:absolute; left:41px; top:var(--y-footer); width:973px; border-top:1.5px solid #F2E4D4; padding-top:13px; display:flex; align-items:center; gap:20px; }
 .pr2-footer b { font-size:9px; font-weight:800; letter-spacing:1.2px; color:#F7610A; margin-left:3px; }
 .pr2-footer span { flex:1; text-align:center; font-size:9px; font-style:italic; color:#6E645B; }
 .pr2-footer em { font-size:9.5px; font-style:italic; color:#8A7C6E; }
 
 /* ---------- IN A4 ---------- */
 @media print {
-  @page { size:A4 portrait; margin:0; }
+  /* Chừa lề 6mm: bản cũ đặt margin 0 và scale 0.7526 nên phiếu rộng ĐÚNG 21.0cm
+     = tràn sát mép A4. Máy in nào cũng có vùng không in được ở rìa, nên mép
+     phiếu bị xén; còn chiều cao 1491px x 0.7526 = 29.7cm, đúng bằng chiều cao
+     A4, chỉ cần làm tròn lệch một chút là rớt sang trang thứ hai — đúng hiện
+     tượng chủ dự án gặp. */
+  @page { size:A4 portrait; margin:6mm; }
   body * { visibility:hidden !important; }
   .pr2-root, .pr2-root * { visibility:visible !important; }
   .pr2-noprint { display:none !important; }
   .pr2-root { position:absolute !important; left:0; top:0; width:100%; padding:0; background:#fff; display:block; }
-  .pr2-sheet { transform:scale(0.7526); transform-origin:top left; box-shadow:none; }
+  /* 0.708 = (210mm - 2x6mm lề) / 1055px. Giữ đúng tỉ lệ khung, và hạ chiều cao
+     bản đầy đủ từ 29.7cm xuống 27.9cm nên chắc chắn nằm gọn một trang. */
+  .pr2-sheet { transform:scale(0.708); transform-origin:top left; box-shadow:none; }
   .pr2-root, .pr2-root * { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
 }
 
@@ -391,3 +409,58 @@
   .pr-toolbar__btns { flex-wrap: wrap; gap: 8px; }
   .pr-toolbar__btns > * { flex: 1 1 45%; }
 }
+
+/* ---------- Bản rút gọn: phiếu không có khối kỹ năng / chi tiết ----------
+   Khối cấp 2 thi MỘT bài mỗi tháng nên không có 6 kỹ năng CEFR, cũng chưa dùng
+   bảng chi tiết đánh giá. Trước đây hai khối ấy vẫn được vẽ dù rỗng: gần 400px
+   trống giữa phiếu, nội dung bị đẩy tràn sang trang 2, và vì hết chỗ nên cỡ chữ
+   phải ép xuống 8.5px — đúng hai điều chủ dự án phản ánh (04/09/2026).
+
+   Chỗ tiết kiệm được dùng để NỚI chữ và giãn dòng, chứ không bỏ trống. */
+.pr2-sheet--khong-ky-nang {
+  --y-c3:511px;
+  --h-c3:246px;
+  --y-c6:775px;
+  --h-c6:214px;
+  --y-c9:1007px;
+  --h-c9:132px;
+  --y-footer:1163px;
+  height:1210px;
+}
+/* Không có bảng chi tiết thì hàng dưới kéo lên thêm một nấc nữa. */
+.pr2-sheet--khong-ky-nang.pr2-sheet--khong-chi-tiet .pr2-c5 { display:none; }
+
+/* Chỉ thiếu bảng chi tiết (vẫn có kỹ năng): kéo ba khối cuối lên đúng 181px
+   mà khối đó chiếm, giữ nguyên phần trên. */
+.pr2-sheet--khong-chi-tiet:not(.pr2-sheet--khong-ky-nang) {
+  --y-c6:962px;
+  --y-c9:1139px;
+  --y-footer:1269px;
+  height:1318px;
+}
+
+/* --- Cỡ chữ: bản rút gọn có chỗ nên đọc được hơn hẳn --- */
+.pr2-sheet--khong-ky-nang .pr2-mrow { height:31px; font-size:10.5px; }
+.pr2-sheet--khong-ky-nang .pr2-cbox__list { font-size:10.5px; line-height:1.5; }
+.pr2-sheet--khong-ky-nang .pr2-dot span { font-size:10.5px; line-height:1.5; }
+.pr2-sheet--khong-ky-nang .pr2-card__hd h2 { font-size:12px; }
+.pr2-sheet--khong-ky-nang .pr2-mock__ttl b { font-size:11.5px; }
+
+/* Không có thang CEFR (khối cấp 2): bỏ khối "Tiến độ cấp độ" và cho khối
+   "Điểm thi tháng" trải hết bề ngang thay vì để trống nửa phải. */
+.pr2-sheet--khong-cap-do .pr2-c3 { width:973px; }
+.pr2-sheet--khong-cap-do .pr2-mock { grid-template-columns:1fr 240px; }
+/* Đầu năm học mới có 1-2 tháng điểm: cột bám theo flex:1 sẽ giãn hết bề ngang
+   và cây cột đứng trơ trọi giữa khoảng trống. Chặn bề rộng mỗi cột rồi gom cụm
+   vào giữa — càng về cuối năm càng đầy dần, không phải sửa lại gì. */
+.pr2-sheet--khong-cap-do .pr2-exam { justify-content:center; gap:10px; }
+.pr2-sheet--khong-cap-do .pr2-exam__col { flex:0 1 62px; }
+.pr2-sheet--khong-cap-do .pr2-exam { height:150px; }
+.pr2-sheet--khong-cap-do .pr2-exam__bar { width:22px; }
+.pr2-sheet--khong-cap-do .pr2-exam__val { font-size:11px; }
+.pr2-sheet--khong-cap-do .pr2-exam__mon { font-size:10px; }
+
+/* Nới nốt phần chữ nhỏ nhất của bản rút gọn — vẫn còn thừa chỗ theo chiều dọc. */
+.pr2-sheet--khong-ky-nang .pr2-panel__lb { font-size:9.5px; }
+.pr2-sheet--khong-ky-nang .pr2-panel__note { font-size:10px; line-height:1.45; }
+.pr2-sheet--khong-ky-nang .pr2-cbox__list .pr2-dot span { font-size:10.5px; }
