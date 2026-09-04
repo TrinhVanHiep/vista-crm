@@ -304,16 +304,25 @@
 .pr2-dash { color:#B5A899; }
 
 /* ---------- mục 6/7/8 ---------- */
-.pr2-c6 { left:41px; top:var(--y-c6); width:317px; height:var(--h-c6); }
-.pr2-c7 { left:371px; top:var(--y-c6); width:305px; height:var(--h-c6); }
-.pr2-c8 { left:691px; top:var(--y-c6); width:323px; height:var(--h-c6); }
+/* height -> min-height: ba thẻ này chứa văn bản do giáo viên gõ, dài ngắn khác
+   nhau từng em. Khoá cứng là tràn chữ. Hàng bên dưới (vinh danh + chữ ký) được
+   đẩy xuống theo chiều cao thật, tính trong ParentReportSheet.jsx. */
+.pr2-c6 { left:41px; top:var(--y-c6); width:317px; min-height:var(--h-c6); }
+.pr2-c7 { left:371px; top:var(--y-c6); width:305px; min-height:var(--h-c6); }
+.pr2-c8 { left:691px; top:var(--y-c6); width:323px; min-height:var(--h-c6); }
 .pr2-c6 .pr2-card__hd, .pr2-c7 .pr2-card__hd, .pr2-c8 .pr2-card__hd { height:22px; padding:0 0 0 11px; }
-.pr2-cbox { border-radius:10px; display:flex; }
-.pr2-cbox.good { border:1px solid #DBEBE0; background:#F3F9F5; height:66px; gap:12px; padding:0 8px 0 17px; }
-.pr2-cbox.good img { width:32px; height:34px; flex-shrink:0; margin-top:9px; }
-.pr2-cbox.warn { margin-top:11px; border:1px solid #FAE3D0; background:#FFF8F1; height:53px; gap:21px; padding:0 8px 0 5px; }
-.pr2-cbox.warn img { width:36px; height:40px; flex-shrink:0; margin-top:1px; }
-.pr2-cbox__list { display:flex; flex-direction:column; gap:3px; align-self:center; }
+/* Chiều cao là MIN, không phải cố định.
+   Bản cũ khoá cứng height 66px/53px và căn giữa nội dung, nên nhận xét dài hơn
+   chỗ chứa là chữ tràn ĐỀU RA HAI PHÍA: đè lên tiêu đề "NHẬN XÉT CỦA GIÁO VIÊN"
+   ở trên và đè lên hộp bên dưới. Đo trên phiếu thật: khung 66px mà nội dung cần
+   98px, khung 53px cần 116px. Nhận xét của giáo viên vốn dài ngắn tuỳ em nên
+   không thể đóng khung cứng. */
+.pr2-cbox { border-radius:10px; display:flex; align-items:flex-start; }
+.pr2-cbox.good { border:1px solid #DBEBE0; background:#F3F9F5; min-height:66px; gap:12px; padding:9px 8px 9px 17px; }
+.pr2-cbox.good img { width:32px; height:34px; flex-shrink:0; }
+.pr2-cbox.warn { margin-top:11px; border:1px solid #FAE3D0; background:#FFF8F1; min-height:53px; gap:21px; padding:7px 8px 7px 5px; }
+.pr2-cbox.warn img { width:36px; height:40px; flex-shrink:0; }
+.pr2-cbox__list { display:flex; flex-direction:column; gap:3px; flex:1 1 auto; min-width:0; }
 .pr2-dot { display:flex; gap:9px; align-items:flex-start; }
 .pr2-dot i { width:3.5px; height:3.5px; border-radius:50%; background:#1A8A45; flex-shrink:0; margin-top:4.5px; }
 .pr2-cbox.warn .pr2-dot i { background:#F7610A; }
@@ -371,10 +380,37 @@
   body * { visibility:hidden !important; }
   .pr2-root, .pr2-root * { visibility:visible !important; }
   .pr2-noprint { display:none !important; }
-  .pr2-root { position:absolute !important; left:0; top:0; width:100%; padding:0; background:#fff; display:block; }
-  /* 0.708 = (210mm - 2x6mm lề) / 1055px. Giữ đúng tỉ lệ khung, và hạ chiều cao
-     bản đầy đủ từ 29.7cm xuống 27.9cm nên chắc chắn nằm gọn một trang. */
-  .pr2-sheet { transform:scale(0.708); transform-origin:top left; box-shadow:none; }
+  /* Ẩn phần còn lại của ứng dụng bằng visibility là CHƯA ĐỦ: phần tử ẩn kiểu
+     đó vẫn chiếm chỗ, nên khung ứng dụng vẫn đẩy thêm một trang trắng phía sau
+     phiếu. Phải thu chiều cao của các lớp bọc về 0 — phiếu nằm position:absolute
+     nên không bị ảnh hưởng. */
+  html, body { margin:0 !important; padding:0 !important; height:auto !important; background:#fff !important; }
+  #root, #root > div, #root > div > div, #root main {
+    height:0 !important; min-height:0 !important; max-height:none !important;
+    margin:0 !important; padding:0 !important; overflow:visible !important;
+    display:block !important; background:none !important;
+  }
+  /* padding PHẢI !important: khối @media (max-width:768px) ở CUỐI file cũng đặt
+     .pr2-root{padding:12px 10px 24px} — cùng độ ưu tiên nhưng đứng sau nên thắng,
+     và 12+24=36px thừa đó đủ đẩy tài liệu sang trang thứ hai. */
+  .pr2-root { position:absolute !important; left:0; top:0; width:100%;
+    padding:0 !important; margin:0 !important; background:#fff; display:block;
+    min-height:0 !important; gap:0 !important; }
+  /* Mọi thứ trong khung phiếu mà KHÔNG phải tờ phiếu đều bỏ hẳn khỏi bố cục.
+     visibility:hidden chỉ giấu chứ vẫn chiếm chỗ: dải cảnh báo "Bảng điểm chưa
+     được duyệt" chiếm 36px, đủ đẩy tài liệu vượt một trang và sinh ra trang
+     trắng thứ hai. */
+  .pr2-root > *:not(.pr2-sheet) { display:none !important; }
+  /* PHẢI là zoom, KHÔNG phải transform:scale.
+     transform chỉ thu nhỏ lúc VẼ — hộp vẫn chiếm nguyên chiều cao gốc khi trình
+     duyệt chia trang. Phiếu cao 1282px = 33.9cm nên dù đã scale 0.708 vẫn bị
+     cắt sang trang hai; đó là lý do bản in luôn ra 2 trang dù tính toán trên
+     giấy nói là vừa. zoom thì thu nhỏ cả BỐ CỤC, nên chia trang mới đúng.
+     0.708 = (210mm - 2x6mm lề) / 1055px. */
+  /* Tỉ lệ do ParentReportSheet.jsx tính theo chiều cao THẬT của tờ phiếu (nhận
+     xét dài ngắn tuỳ em nên chiều cao không cố định). 0.708 chỉ là mức dự phòng
+     khi vì lý do nào đó chưa tính được. */
+  .pr2-sheet { zoom:var(--ty-le-in, 0.708); box-shadow:none; }
   .pr2-root, .pr2-root * { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
 }
 

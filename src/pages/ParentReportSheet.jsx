@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from "react";
 import "../styles/parentReport.css";
 
 /* ==========================================================================
@@ -209,6 +210,42 @@ export default function ParentReportSheet({ v }) {
   // 1 → 3 → 5 và phụ huynh tưởng bị thiếu mục.
   let _stt = 0;
   const stt = () => ++_stt;
+
+  // Nhận xét của giáo viên là văn bản gõ tay, dài ngắn tuỳ em, nên hàng
+  // "Nhận xét / Định hướng / Phụ huynh" không thể đóng khung cứng. Đo chiều cao
+  // THẬT của hàng đó rồi đẩy hàng dưới (vinh danh + chữ ký) và chân phiếu xuống
+  // theo, đồng thời nới chiều cao cả tờ. Không làm bước này thì hoặc chữ tràn
+  // đè lên nhau, hoặc phải cắt bớt nhận xét của giáo viên.
+  const refPhieu = useRef(null);
+  useLayoutEffect(() => {
+    const el = refPhieu.current;
+    if (!el) return;
+    const doc = (sel) => {
+      const e = el.querySelector(sel);
+      return e ? e.offsetTop + e.offsetHeight : 0;
+    };
+    const dayHang = Math.max(doc(".pr2-c6"), doc(".pr2-c7"), doc(".pr2-c8"));
+    if (!dayHang) return;
+    const KHE = 11;   // khe giữa hai hàng, giữ đúng nhịp của bản thiết kế
+    const CAO_KY = 132;
+    const yKy = dayHang + KHE;
+    el.style.setProperty("--y-c9", `${yKy}px`);
+    el.style.setProperty("--y-footer", `${yKy + CAO_KY + 24}px`);
+    const caoTo = yKy + CAO_KY + 24 + 46;
+    el.style.height = `${caoTo}px`;
+
+    // Tỉ lệ thu nhỏ khi in, tính theo CẢ hai chiều để tờ luôn nằm gọn một trang
+    // A4 dù nhận xét dài tới đâu. Dùng zoom (không phải transform) vì transform
+    // chỉ thu nhỏ lúc vẽ, còn khi chia trang trình duyệt vẫn tính theo kích
+    // thước gốc — đó là lý do bản in luôn ra hai trang.
+    const PX_MM = 96 / 25.4;
+    const LE = 6;                        // khớp @page margin
+    const rongIn = (210 - 2 * LE) * PX_MM;
+    const caoIn = (297 - 2 * LE) * PX_MM;
+    // Chừa 2%: Chrome làm tròn khi chia trang, sát quá là rớt sang trang sau.
+    const tyLe = Math.min(rongIn / el.offsetWidth, caoIn / caoTo) * 0.98;
+    el.style.setProperty("--ty-le-in", String(Math.min(tyLe, 1).toFixed(4)));
+  });
   const baiDangHoc = units.find((u) => u.state === "current") || null;
   const kyThiThangNay = diemThiThang.find((x) => x.isCurrent) || null;
   const diemThiThangNay = kyThiThangNay ? kyThiThangNay.score : null;
@@ -226,6 +263,7 @@ export default function ParentReportSheet({ v }) {
 
   return (
     <div
+      ref={refPhieu}
       className={[
         "pr2-sheet",
         coKyNang ? "" : "pr2-sheet--khong-ky-nang",
