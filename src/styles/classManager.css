@@ -1,0 +1,112 @@
+/* ---------- Hộp thoại lớp học ----------
+   Bản cũ tự dựng backdrop + form bằng inline style nên lệch hẳn tông so với
+   phần còn lại: ô nhập để mặc định trình duyệt, nhãn dính sát ô, các cột rộng
+   hẹp khác nhau. Nay dùng Modal/Field chung, chỉ còn phần bố cục riêng ở đây. */
+
+.cls-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 18px;
+}
+/* Ô cuối đứng lẻ ở hàng riêng thì cho trải hết chiều ngang, đỡ hụt hẫng. */
+.cls-form > *:last-child:nth-child(odd) { grid-column: 1 / -1; }
+
+@media (max-width: 640px) {
+  .cls-form { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ---------- Tab trong hộp thoại ---------- */
+.cls-tabs {
+  display: flex;
+  gap: 4px;
+  margin: -4px 0 16px;
+  padding: 4px;
+  background: var(--primary-soft, #FDF1E7);
+  border-radius: 11px;
+}
+/* Nhân đôi class để thắng luật reset .v4page button{border:none;background:none}
+   (độ ưu tiên 0-1-1, nặng hơn mọi luật một class). */
+.cls-tabs button.cls-tabs__x,
+.cls-tabs > button {
+  flex: 1 1 0;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2, #6E645B);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.cls-tabs > button:hover { color: var(--primary, #F26522); }
+.cls-tabs > button.is-active {
+  background: var(--card, #fff);
+  color: var(--primary, #F26522);
+  border-color: var(--primary-100, #F8D6C0);
+  box-shadow: 0 1px 3px rgba(120, 80, 40, .10);
+}
+
+/* ---------- Danh sách học viên trong lớp ---------- */
+.cls-roster__hd {
+  font-size: 13px;
+  color: var(--text-2, #6E645B);
+  margin-bottom: 10px;
+}
+
+.cls-roster__list {
+  border: 1px solid var(--border, #EFE6DA);
+  border-radius: 11px;
+  overflow: hidden auto;
+  /* Lớp 30 em mà đổ hết ra thì hộp thoại dài quá màn hình; cho cuộn trong khung
+     và giữ ô "Thêm học viên" luôn nhìn thấy ở dưới. */
+  max-height: 300px;
+}
+
+.cls-roster__row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border-soft, #F6EFE6);
+}
+.cls-roster__row:last-child { border-bottom: none; }
+
+.cls-roster__who { min-width: 0; display: grid; gap: 2px; }
+.cls-roster__who b {
+  font-size: 13.5px;
+  font-weight: 600;
+  /* Tên dài không được đẩy nút thao tác tràn ra ngoài. */
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cls-roster__who small { font-size: 11.5px; color: var(--text-2, #8A7C6E); }
+
+.cls-roster__empty {
+  padding: 18px 12px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-2, #8A7C6E);
+}
+
+/* Khi đang tìm để thêm em mới, thu gọn danh sách hiện có lại để khung kết quả
+   nằm trong tầm nhìn — nếu không nó rơi xuống dưới nếp gấp của hộp thoại. */
+.cls-roster--dang-tim .cls-roster__list { max-height: 148px; }
+
+.cls-roster__add { margin-top: 16px; }
+
+.cls-roster__found {
+  margin-top: 8px;
+  border: 1px solid var(--primary-100, #F8D6C0);
+  border-radius: 11px;
+  overflow: hidden auto;
+  max-height: 230px;
+  background: var(--primary-soft, #FDF7F2);
+}
+
+@media (max-width: 560px) {
+  .cls-roster__row { grid-template-columns: 1fr auto; }
+  /* Nút xuống hàng riêng cho đủ chỗ bấm bằng ngón tay. */
+  .cls-roster__row > button { grid-column: 1 / -1; justify-self: stretch; }
+}

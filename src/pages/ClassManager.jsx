@@ -9,7 +9,10 @@ import {
   listCentersAll,
 } from "../services/calendarService";
 import { CenterField } from "../utils/centerField";
+import HocVienTrongLop from "../components/classes/HocVienTrongLop";
+import { Button, Field, Modal } from "../ui";
 import "../styles/vista4.css";
+import "../styles/classManager.css";
 
 // Quản lý lớp học: đổi mã/tên lớp, gán chương trình (kể cả chương trình mới),
 // cấp độ, trạng thái — để danh sách lớp khớp với hệ thống và lịch dạy.
@@ -57,6 +60,9 @@ export default function ClassManager() {
   const [form, setForm] = useState(emptyForm);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [formError, setFormError] = useState("");
+  // "thongtin" | "hocvien" — sửa lớp mà không sửa được danh sách lớp là thiếu
+  // đúng nửa việc, nên gộp luôn vào đây thay vì bắt đi vòng qua màn Học sinh.
+  const [tabForm, setTabForm] = useState("thongtin");
   const [saving, setSaving] = useState(false);
   const [moNhapExcel, setMoNhapExcel] = useState(false);
 
@@ -140,6 +146,7 @@ export default function ClassManager() {
       ...emptyForm,
       center_id: centers.length ? String(centers[0].id) : "",
     });
+    setTabForm("thongtin");
     setIsFormOpen(true);
   };
 
@@ -157,6 +164,7 @@ export default function ClassManager() {
       expected_end_date: cls.expected_end_date || "",
       center_id: cls.center?.id ? String(cls.center.id) : "",
     });
+    setTabForm("thongtin");
     setIsFormOpen(true);
   };
 
@@ -422,52 +430,72 @@ export default function ClassManager() {
       </div>
 
       {/* Modal thêm/sửa lớp */}
-      {isFormOpen ? (
-        <div
-          role="dialog"
-          aria-modal="true"
-          style={{
-            position: "fixed", inset: 0, background: "rgba(30,20,10,.45)",
-            display: "flex", alignItems: "center", justifyContent: "center", zIndex: 60, padding: 16,
-          }}
-          onClick={() => setIsFormOpen(false)}
-        >
-          <form
-            className="card"
-            onClick={(e) => e.stopPropagation()}
-            onSubmit={handleSave}
-            style={{ width: "min(680px, 100%)", maxHeight: "90vh", overflow: "auto", padding: 22 }}
-          >
-            <h2 style={{ marginTop: 0 }}>{form.id ? "Sửa lớp học" : "Thêm lớp học"}</h2>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                gap: 12,
-                marginTop: 12,
-              }}
+      <Modal
+        open={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        title={form.id ? "Sửa lớp học" : "Thêm lớp học"}
+        subtitle={form.id ? `${form.class_code || ""} ${form.name || ""}`.trim() : "Điền thông tin lớp mới"}
+        size="lg"
+        footer={
+          tabForm === "thongtin" ? (
+            <>
+              <Button type="button" variant="ghost" onClick={() => setIsFormOpen(false)}>Đóng</Button>
+              <Button type="submit" form="form-lop" variant="primary" loading={saving} loadingText="Đang lưu...">
+                {form.id ? "Lưu thay đổi" : "Tạo lớp"}
+              </Button>
+            </>
+          ) : (
+            <Button type="button" variant="ghost" onClick={() => setIsFormOpen(false)}>Đóng</Button>
+          )
+        }
+      >
+        {/* Lớp chưa tạo thì chưa có gì để xếp học viên vào — chỉ hiện tab khi sửa. */}
+        {form.id ? (
+          <div className="cls-tabs" role="tablist">
+            <button
+              type="button" role="tab" aria-selected={tabForm === "thongtin"}
+              className={tabForm === "thongtin" ? "is-active" : ""}
+              onClick={() => setTabForm("thongtin")}
             >
-              <label>
-                <span className="field-label">Mã lớp</span>
+              Thông tin lớp
+            </button>
+            <button
+              type="button" role="tab" aria-selected={tabForm === "hocvien"}
+              className={tabForm === "hocvien" ? "is-active" : ""}
+              onClick={() => setTabForm("hocvien")}
+            >
+              Học viên trong lớp
+            </button>
+          </div>
+        ) : null}
+
+        {tabForm === "hocvien" && form.id ? (
+          <HocVienTrongLop
+            lopId={form.id}
+            tenLop={form.class_code || form.name}
+            onNotice={(t) => { setFormError(""); setNotice(t); setReloadKey((k) => k + 1); }}
+          />
+        ) : (
+          <form id="form-lop" onSubmit={handleSave}>
+            <div className="cls-form">
+              <Field label="Mã lớp">
                 <input
                   value={form.class_code}
                   onChange={(e) => setForm((p) => ({ ...p, class_code: e.target.value }))}
                   placeholder="VD: V701"
                   maxLength={50}
                 />
-              </label>
-              <label>
-                <span className="field-label">Tên lớp *</span>
+              </Field>
+              <Field label="Tên lớp" required>
                 <input
                   value={form.name}
                   onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-                  placeholder="VD: V701"
+                  placeholder="VD: Lớp 701"
                   maxLength={255}
                   required
                 />
-              </label>
-              <label>
-                <span className="field-label">Chương trình</span>
+              </Field>
+              <Field label="Chương trình" hint="Tên này in trên phiếu báo cáo gửi phụ huynh.">
                 <input
                   list="program-options"
                   value={form.program_name}
@@ -475,27 +503,24 @@ export default function ClassManager() {
                   placeholder="Chọn hoặc gõ chương trình mới"
                   maxLength={255}
                 />
-              </label>
-              <label>
-                <span className="field-label">Cấp độ</span>
+              </Field>
+              <Field label="Cấp độ">
                 <input
                   value={form.level_name}
                   onChange={(e) => setForm((p) => ({ ...p, level_name: e.target.value }))}
-                  placeholder="VD: 13 TUỔI"
+                  placeholder="VD: Khối 8"
                   maxLength={255}
                 />
-              </label>
-              <label>
-                <span className="field-label">Cơ sở</span>
+              </Field>
+              <Field label="Cơ sở">
                 <CenterField
                   centers={centers}
                   value={form.center_id}
                   onChange={(e) => setForm((p) => ({ ...p, center_id: e.target.value }))}
                   placeholder="-- Chọn cơ sở --"
                 />
-              </label>
-              <label>
-                <span className="field-label">Hình thức</span>
+              </Field>
+              <Field label="Hình thức">
                 <select
                   value={form.delivery_mode}
                   onChange={(e) => setForm((p) => ({ ...p, delivery_mode: e.target.value }))}
@@ -504,9 +529,8 @@ export default function ClassManager() {
                     <option key={m.value} value={m.value}>{m.label}</option>
                   ))}
                 </select>
-              </label>
-              <label>
-                <span className="field-label">Trạng thái</span>
+              </Field>
+              <Field label="Trạng thái">
                 <select
                   value={form.status}
                   onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}
@@ -515,40 +539,29 @@ export default function ClassManager() {
                     <option key={s.value} value={s.value}>{s.label}</option>
                   ))}
                 </select>
-              </label>
-              <label>
-                <span className="field-label">Ngày bắt đầu</span>
+              </Field>
+              <Field label="Ngày bắt đầu">
                 <input
                   type="date"
                   value={form.start_date || ""}
                   onChange={(e) => setForm((p) => ({ ...p, start_date: e.target.value }))}
                 />
-              </label>
-              <label>
-                <span className="field-label">Dự kiến kết thúc</span>
+              </Field>
+              <Field label="Dự kiến kết thúc">
                 <input
                   type="date"
                   value={form.expected_end_date || ""}
                   onChange={(e) => setForm((p) => ({ ...p, expected_end_date: e.target.value }))}
                 />
-              </label>
+              </Field>
             </div>
 
             {formError ? (
-              <div style={{ marginTop: 12, color: "#c0392b", fontSize: 13 }}>{formError}</div>
+              <div className="alert red" style={{ marginTop: 12 }}><span>⚠️</span><div>{formError}</div></div>
             ) : null}
-
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 18 }}>
-              <button type="button" className="btn ghost sm" onClick={() => setIsFormOpen(false)}>
-                Đóng
-              </button>
-              <button type="submit" className="btn primary" disabled={saving}>
-                {saving ? "Đang lưu..." : form.id ? "Lưu thay đổi" : "Tạo lớp"}
-              </button>
-            </div>
           </form>
-        </div>
-      ) : null}
+        )}
+      </Modal>
 
       <BulkImportModal
         loai="lop"
