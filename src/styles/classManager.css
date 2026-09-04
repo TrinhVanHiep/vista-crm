@@ -110,3 +110,23 @@
   /* Nút xuống hàng riêng cho đủ chỗ bấm bằng ngón tay. */
   .cls-roster__row > button { grid-column: 1 / -1; justify-self: stretch; }
 }
+
+/* Dòng tiêu đề nhóm chương trình trong bảng lớp. */
+.cls-nhom > td {
+  background: var(--primary-soft, #FDF1E7);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: .3px;
+  text-transform: uppercase;
+  color: var(--primary, #C2410C);
+  padding: 7px 12px !important;
+}
+
+/* Ô bật kho lớp đã giải tán trên thanh công cụ. */
+.cls-kho {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 13px; color: var(--text-2, #6E645B);
+  padding: 0 4px; cursor: pointer; white-space: nowrap;
+}
+/* Dòng lớp đã giải tán: mờ đi để phân biệt ngay với lớp đang chạy. */
+.cls-datan > td { opacity: .62; }

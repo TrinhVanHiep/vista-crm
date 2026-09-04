@@ -548,6 +548,21 @@ export async function listCentersAll() {
   return Array.isArray(data) ? data : [];
 }
 
+/**
+ * Giải tán lớp — cất vào kho, KHÔNG xoá. Không gửi confirm thì backend chỉ ĐẾM
+ * số học viên và số dòng công nợ sẽ bị ảnh hưởng, chưa đổi gì.
+ * payload: { reason, confirm, transfer_to }
+ */
+export async function giaiTanLop(classroomId, payload) {
+  const { data } = await apiClient.post(`/classrooms/classrooms/${classroomId}/giai-tan/`, payload);
+  return data;
+}
+
+export async function moLaiLop(classroomId) {
+  const { data } = await apiClient.post(`/classrooms/classrooms/${classroomId}/mo-lai/`);
+  return data;
+}
+
 export async function listClassroomsAll(params = {}) {
   // Giữ NGUYÊN kiểu trả về (mảng) — 6 màn đang dùng hàm này, đổi sang dạng
   // khác là vỡ hết. Chỉ thêm đường truyền tham số lọc.
