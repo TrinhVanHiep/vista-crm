@@ -94,7 +94,10 @@ export default function Emulation() {
           </button>
         </div>
 
-        {tab !== "kehoach" && tab !== "khung" ? (
+        {/* Tab "Khung thi đua" TRƯỚC ĐÂY ẩn ô chọn kỳ vì khung là bộ dùng chung
+            cho mọi tháng. Nay khung tách theo từng tháng nên phải chọn được
+            tháng, nếu không thì không biết mình đang sửa khung của tháng nào. */}
+        {tab !== "kehoach" ? (
           <div className="em-period">
             <label>
               <span>Tháng</span>
@@ -115,7 +118,7 @@ export default function Emulation() {
       {tab === "kehoach" ? (
         <YearPlan suaDuoc={laQuanLy} taoDuocKhung={taoDuocKhung} />
       ) : tab === "khung" ? (
-        <KpiFrameBoard suaDuoc={taoDuocKhung} onNotice={setThongBao} />
+        <KpiFrameBoard suaDuoc={taoDuocKhung} onNotice={setThongBao} month={thang} year={nam} />
       ) : tab === "quantri" || !coPhieuCuaMinh ? (
         /* Vai không có phiếu riêng mà tab lỡ rơi vào "cham" (state cũ trong
            phiên đang mở) thì vẫn ra bảng chấm, không rơi vào màn trắng. */

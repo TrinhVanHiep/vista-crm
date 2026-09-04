@@ -751,3 +751,18 @@
   .v4page .slr-thaotac{justify-content:flex-start}
   .v4page .slr-hangloat{flex-direction:column;align-items:flex-start}
 }
+
+/* --- Danh sách học viên: ô lọc + cột thao tác ---------------------------
+   Không bọc .v4page vì thành phần này nằm trong màn Học sinh dùng khung cũ
+   (.card), không phải trang .v4page. Nút bên trong dùng <Button> (.ui-btn) nên
+   đã tự thoát luật reset button. */
+.dshv-thaotac{display:flex;gap:6px;justify-content:flex-end;flex-wrap:nowrap;white-space:nowrap}
+.dshv-o{font-family:inherit;font-size:13px;color:var(--text);background:var(--card);
+  border:1px solid var(--border);border-radius:9px;padding:7px 11px;min-width:150px}
+.dshv-o:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+input.dshv-o[type=search]{min-width:230px;flex:1 1 230px}
+
+@media (max-width:640px){
+  .dshv-thaotac{justify-content:flex-start}
+  .dshv-o{min-width:0;width:100%}
+}

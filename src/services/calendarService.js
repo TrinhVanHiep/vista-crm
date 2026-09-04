@@ -443,6 +443,15 @@ export async function reviewMonthlyScorecard(scorecardId, payload) {
   return data;
 }
 
+/**
+ * Xoá bảng điểm của một kỳ. Không gửi confirm thì backend chỉ ĐẾM và trả về,
+ * chưa xoá gì — dùng để hỏi lại người dùng trước khi làm thật.
+ */
+export async function bulkDeleteScorecardPeriod(payload) {
+  const { data } = await apiClient.post("/monthly-scorecards/bulk-delete-period/", payload);
+  return data;
+}
+
 /** Nộp nhiều bảng điểm một lượt — một lớp có vài chục em, bấm từng cái không xuể. */
 export async function bulkSubmitMonthlyScorecards(ids) {
   const { data } = await apiClient.post("/monthly-scorecards/bulk-submit/", { ids });
@@ -504,6 +513,20 @@ export async function importStudentsFile(formData) {
   const { data } = await apiClient.post("/students/students/import_students/", formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
+  return data;
+}
+
+/**
+ * Cho học viên nghỉ — KHÔNG xoá hồ sơ. Xoá thật sẽ CASCADE mất bảng điểm, điểm
+ * danh và người giám hộ, còn dòng học phí thì mất chủ.
+ */
+export async function choHocVienNghi(studentId, payload) {
+  const { data } = await apiClient.post(`/students/students/${studentId}/cho-nghi/`, payload);
+  return data;
+}
+
+export async function nhanHocVienHocLai(studentId) {
+  const { data } = await apiClient.post(`/students/students/${studentId}/nhan-hoc-lai/`);
   return data;
 }
 

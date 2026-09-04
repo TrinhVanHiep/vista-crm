@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  bulkDeleteScorecardPeriod,
   bulkReviewMonthlyScorecards,
   bulkSubmitMonthlyScorecards,
   importReportCards,
@@ -110,6 +111,8 @@ export default function StudentLearningReport() {
   // lệch một vai là nút hiện ra nhưng bấm vào nhận 403.
   const laNguoiDuyet = ["superadmin", "admin", "center_manager", "training_manager"].includes(role);
   const laNguoiNhap = ["superadmin", "admin", "teacher"].includes(role);
+  // Xoá hàng loạt là thao tác không hồi được nên chỉ quản trị, khớp backend.
+  const laQuanTri = ["superadmin", "admin"].includes(role);
 
   const [thang, setThang] = useState(homNay.getMonth() + 1);
   const [nam, setNam] = useState(homNay.getFullYear());
@@ -131,6 +134,9 @@ export default function StudentLearningReport() {
   // { ids, quyetDinh } — mở hộp nhập lý do trước khi trả lại/từ chối.
   const [hoiDuyet, setHoiDuyet] = useState(null);
   const [ghiChuDuyet, setGhiChuDuyet] = useState("");
+  // Dọn bảng điểm nhập nhầm tháng: bước 1 đếm, bước 2 mới xoá thật.
+  const [hoiDon, setHoiDon] = useState(null);
+  const [donCaDaDuyet, setDonCaDaDuyet] = useState(false);
 
   const [lops, setLops] = useState([]);
   const [items, setItems] = useState([]);
@@ -296,6 +302,29 @@ export default function StudentLearningReport() {
     chayViec(async () => {
       const kq = await bulkSubmitMonthlyScorecards(ids);
       setThongBao(ketQuaThanhChu(kq, kq.submitted_count, "gửi duyệt"));
+    });
+
+  /** Bước 1: chỉ ĐẾM, chưa xoá — để người dùng thấy rõ sắp mất những gì. */
+  const demTruocKhiDon = () =>
+    chayViec(async () => {
+      const kq = await bulkDeleteScorecardPeriod({
+        month: thang, year: nam,
+        classroom: lopId || undefined,
+        include_approved: donCaDaDuyet || undefined,
+      });
+      setHoiDon(kq);
+    });
+
+  const donThatSu = () =>
+    chayViec(async () => {
+      const kq = await bulkDeleteScorecardPeriod({
+        month: thang, year: nam,
+        classroom: lopId || undefined,
+        include_approved: donCaDaDuyet || undefined,
+        confirm: true,
+      });
+      setHoiDon(null);
+      setThongBao(`Đã xoá ${kq.scorecards} bảng điểm của tháng ${thang}/${nam}.`);
     });
 
   const chotDuyet = (ids, quyetDinh, ghiChu) =>
@@ -713,6 +742,13 @@ export default function StudentLearningReport() {
           <Button variant="ghost" onClick={() => { setMoNhap(true); setLoiNhap(""); setKetQuaNhap(null); }}>
             Nhập bảng điểm
           </Button>
+          {/* Nhập file là phép GỘP một chiều — nhập lại KHÔNG hoàn tác được lượt
+              nhập sai tháng, vì ô để trống giữ nguyên số cũ. Đây là lối thoát. */}
+          {laQuanTri ? (
+            <Button variant="danger" disabled={dangTai || !items.length} onClick={demTruocKhiDon}>
+              Dọn bảng điểm tháng này
+            </Button>
+          ) : null}
           <Button
             variant="primary"
             onClick={xuatExcel}
@@ -966,6 +1002,55 @@ export default function StudentLearningReport() {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      <Modal
+        open={Boolean(hoiDon)}
+        onClose={() => setHoiDon(null)}
+        title={`Dọn bảng điểm tháng ${thang}/${nam}`}
+        subtitle={lopId ? "Chỉ lớp đang lọc" : "Toàn bộ các lớp"}
+        size="sm"
+      >
+        {hoiDon ? (
+          <>
+            <div className="alert red" style={{ display: "block", marginBottom: 12 }}>
+              <div>
+                Sắp xoá <strong>{hoiDon.scorecards}</strong> bảng điểm
+                {hoiDon.classrooms ? ` thuộc ${hoiDon.classrooms} lớp` : ""}. Không hoàn tác được.
+              </div>
+              {hoiDon.by_status && Object.keys(hoiDon.by_status).length ? (
+                <ul style={{ margin: "6px 0 0 18px", fontSize: 12.5 }}>
+                  {Object.entries(hoiDon.by_status).map(([k, v]) => (
+                    <li key={k}>{NHAN_TRANG_THAI[k] || k}: {v}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+            <label style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 13 }}>
+              <input
+                type="checkbox"
+                checked={donCaDaDuyet}
+                onChange={(e) => { setDonCaDaDuyet(e.target.checked); setHoiDon(null); }}
+              />
+              <span>
+                Xoá cả bảng điểm <strong>đã duyệt</strong> và <strong>đã khoá</strong>.
+                Mặc định giữ lại — tích ô này rồi bấm “Dọn bảng điểm tháng này” lần nữa để đếm lại.
+              </span>
+            </label>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 16 }}>
+              <Button type="button" variant="ghost" onClick={() => setHoiDon(null)}>Huỷ</Button>
+              <Button
+                type="button"
+                variant="danger"
+                loading={dangXuLy}
+                disabled={!hoiDon.scorecards}
+                onClick={donThatSu}
+              >
+                Xoá {hoiDon.scorecards} bảng điểm
+              </Button>
+            </div>
+          </>
+        ) : null}
       </Modal>
 
       {/* Trả lại / từ chối thì BẮT BUỘC nói lý do — giáo viên nhận thông báo mà

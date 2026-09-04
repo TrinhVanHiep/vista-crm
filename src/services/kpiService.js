@@ -17,21 +17,38 @@ function locThamSo(params = {}) {
   return ra;
 }
 
-export async function layKhungKpi() {
-  const { data } = await apiClient.get("/kpi-frame/");
+/**
+ * Khung thi đua có hiệu lực THEO KỲ. Không truyền tháng/năm thì backend trả
+ * "khung gốc" — bộ dùng chung cho mọi tháng chưa có khung riêng.
+ */
+export async function layKhungKpi(ky = {}) {
+  const { data } = await apiClient.get("/kpi-frame/", { params: locThamSo(ky) });
   return Array.isArray(data) ? data : data?.results || [];
 }
 
 /** Khung thi đua kèm cả mục đã tắt — chỉ màn SỬA khung mới cần. */
-export async function layKhungKpiDayDu() {
+export async function layKhungKpiDayDu(ky = {}) {
+  const p = { ...locThamSo(ky), include_inactive: 1 };
   const [g, r] = await Promise.all([
-    apiClient.get("/kpi-frame/", { params: { include_inactive: 1 } }),
-    apiClient.get("/kpi-frame/adjustment-rules/", { params: { include_inactive: 1 } }),
+    apiClient.get("/kpi-frame/", { params: p }),
+    apiClient.get("/kpi-frame/adjustment-rules/", { params: p }),
   ]);
   return {
     groups: Array.isArray(g.data) ? g.data : g.data?.results || [],
     rules: Array.isArray(r.data) ? r.data : r.data?.results || [],
   };
+}
+
+/**
+ * Chuẩn bị khung RIÊNG cho một tháng trước khi sửa.
+ *
+ * Phải gọi TRƯỚC khi mở form, không phải lúc lưu: nếu sao khung ở bước lưu thì
+ * các id màn hình đang cầm vẫn là id của khung gốc, và lượt ghi rơi vào khung
+ * gốc — tức là sửa tháng 9 vẫn làm hỏng tháng 8.
+ */
+export async function chuanBiKhungThang(month, year) {
+  const { data } = await apiClient.post("/kpi-frame/ensure-period/", { month, year });
+  return data;
 }
 
 export async function luuKhungKpi(payload) {

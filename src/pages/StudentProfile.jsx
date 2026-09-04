@@ -90,8 +90,11 @@ const TRUONG_HO_SO = [
   { key: "parent_email", nhan: "Email phụ huynh", nhom: "phu_huynh", loai: "email" },
   { key: "parent_relationship", nhan: "Quan hệ với học viên", nhom: "phu_huynh" },
   { key: "current_status", nhan: "Tình trạng học vụ", nhom: "hoc_vu", loai: "select", batBuoc: true,
-    chon: [["active", "Đang theo học"], ["inactive", "Tạm nghỉ"], ["suspended", "Bảo lưu"],
-           ["graduated", "Đã hoàn thành"], ["dropped", "Đã nghỉ"]] },
+    // Phải đúng 4 giá trị của model (students/models.py STATUS_CHOICES). Bản cũ
+    // gửi inactive/suspended/dropped — không có trong model, nên chọn "Đã nghỉ"
+    // là nhận HTTP 400 và không ai đánh dấu nghỉ học được.
+    chon: [["active", "Đang học"], ["paused", "Bảo lưu"],
+           ["graduated", "Hoàn thành"], ["withdrawn", "Nghỉ học"]] },
   { key: "learning_note", nhan: "Ghi chú học vụ", nhom: "hoc_vu", loai: "textarea" },
 ];
 

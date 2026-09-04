@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
+  chuanBiKhungThang,
   layKhungKpiDayDu,
   luuKhungKpi,
   taoKhungMacDinh,
@@ -44,7 +45,12 @@ function thongDiepLoi(e, macDinh) {
 let dem = 0;
 const khoaMoi = () => `moi-${(dem += 1)}`;
 
-export default function KpiFrameBoard({ suaDuoc = false, onNotice }) {
+export default function KpiFrameBoard({ suaDuoc = false, onNotice, month, year }) {
+  // Khung thi đua gắn với TỪNG THÁNG. Trước đây cả hệ thống chỉ có một khung
+  // dùng chung, nên sửa ở tháng 9 là sửa luôn tháng 8 đã chấm xong.
+  const coKy = Number.isFinite(Number(month)) && Number.isFinite(Number(year));
+  const ky = coKy ? { month: Number(month), year: Number(year) } : {};
+
   const [nhom, setNhom] = useState([]);
   const [quyTac, setQuyTac] = useState([]);
   const [boNhom, setBoNhom] = useState([]);
@@ -54,12 +60,13 @@ export default function KpiFrameBoard({ suaDuoc = false, onNotice }) {
   const [dangSua, setDangSua] = useState(false);
   const [dangTai, setDangTai] = useState(true);
   const [dangLuu, setDangLuu] = useState(false);
+  const [dangChuanBi, setDangChuanBi] = useState(false);
   const [loi, setLoi] = useState("");
 
   const tai = useCallback(async () => {
     setDangTai(true);
     try {
-      const kq = await layKhungKpiDayDu();
+      const kq = await layKhungKpiDayDu(ky);
       // Chỉ dựng mục CÒN BẬT: mục đã tắt là dấu vết của khung cũ, bày ra thì
       // người dùng tưởng vẫn đang chấm theo nó.
       setNhom(
@@ -80,7 +87,9 @@ export default function KpiFrameBoard({ suaDuoc = false, onNotice }) {
     } finally {
       setDangTai(false);
     }
-  }, []);
+    // Phụ thuộc month/year dạng SỐ, không phải object ky — object dựng mới mỗi
+    // lần render sẽ làm useCallback đổi liên tục và nạp lại vô tận.
+  }, [month, year]);
 
   useEffect(() => { tai(); }, [tai]);
 
@@ -150,11 +159,38 @@ export default function KpiFrameBoard({ suaDuoc = false, onNotice }) {
     tai();
   };
 
+  /** Vào chế độ sửa: tách khung của tháng này ra bản riêng trước đã. */
+  const moSua = async () => {
+    setLoi("");
+    if (!coKy) {
+      // Không biết đang ở tháng nào thì sửa thẳng khung gốc — vẫn cho, nhưng
+      // phải nói rõ để người dùng không tưởng mình chỉ sửa một tháng.
+      setDangSua(true);
+      return;
+    }
+    setDangChuanBi(true);
+    try {
+      const kq = await chuanBiKhungThang(ky.month, ky.year);
+      await tai();
+      setDangSua(true);
+      if (kq?.vua_tao_ban_rieng && onNotice) {
+        onNotice(
+          `Đã tách khung riêng cho tháng ${ky.month}/${ky.year}. Sửa ở đây không ảnh hưởng các tháng trước.`,
+        );
+      }
+    } catch (e) {
+      setLoi(e?.response?.data?.detail || e?.message || "Không mở được khung để sửa.");
+    } finally {
+      setDangChuanBi(false);
+    }
+  };
+
   const luu = async () => {
     setDangLuu(true);
     setLoi("");
     try {
       const kq = await luuKhungKpi({
+        ...ky,
         groups: nhom.map((g) => ({
           id: typeof g.id === "number" ? g.id : undefined,
           name: g.name, icon: g.icon || "", max_score: Number(g.max_score) || 0,
@@ -222,7 +258,7 @@ export default function KpiFrameBoard({ suaDuoc = false, onNotice }) {
             <button type="button" className="btn primary sm" onClick={napMacDinh} disabled={dangLuu}>
               {dangLuu ? "Đang nạp…" : "Nạp khung mặc định"}
             </button>
-            <button type="button" className="btn ghost sm" onClick={() => { setDangSua(true); themNhom(); }}>
+            <button type="button" className="btn ghost sm" onClick={async () => { await moSua(); themNhom(); }}>
               Tự tạo từ đầu
             </button>
           </div>
@@ -241,7 +277,9 @@ export default function KpiFrameBoard({ suaDuoc = false, onNotice }) {
             {Math.round(tong) !== 100 ? " (khung chuẩn là 100)" : ""}
           </span>
           {suaDuoc && !dangSua ? (
-            <button type="button" className="btn ghost sm" onClick={() => setDangSua(true)}>Sửa khung</button>
+            <button type="button" className="btn ghost sm" disabled={dangChuanBi} onClick={moSua}>
+              {dangChuanBi ? "Đang mở..." : "Sửa khung"}
+            </button>
           ) : null}
           {dangSua ? (
             <>

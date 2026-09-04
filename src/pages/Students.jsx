@@ -1,4 +1,5 @@
 import BulkImportModal from "../components/bulk/BulkImportModal";
+import DanhSachHocVien from "../components/students/DanhSachHocVien";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -688,6 +689,14 @@ function Students() {
                 </div>
               </div>
             </div>
+
+            {/* Danh sách TỪNG học viên. Trước đây màn này chỉ có thống kê theo
+                LỚP, nên không có chỗ nào để sửa hay cho nghỉ một em. */}
+            <DanhSachHocVien
+              lops={classes}
+              coQuyenChoNghi={["superadmin", "admin", "center_manager"].includes(role)}
+              onNotice={setNotice}
+            />
 
             {/* 6. Kết quả học tập (Tổng quan) — theo lớp */}
             <div className="card">
