@@ -1,4 +1,5 @@
 import BulkImportModal from "../components/bulk/BulkImportModal";
+import { VAI_QUAN_TRI } from "../auth/permissions";
 import DanhSachHocVien from "../components/students/DanhSachHocVien";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -166,7 +167,7 @@ function Students() {
       return "";
     }
   })();
-  const canManage = ["superadmin", "admin"].includes(role);
+  const canManage = VAI_QUAN_TRI.includes(role);
   const navigate = useNavigate();
 
   // Aggregates / overview

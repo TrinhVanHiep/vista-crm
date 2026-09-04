@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { VAI_QUAN_TRI } from "../auth/permissions";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import {
@@ -330,7 +331,7 @@ function MonthlyScorecards() {
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth() + 1;
-  const isManager = ["superadmin", "admin"].includes(role);
+  const isManager = VAI_QUAN_TRI.includes(role);
   const canManageScorecards = ["superadmin", "admin", "teacher"].includes(role);
   const isTeacher = role === "teacher";
   // Học viên chỉ xem bảng điểm của chính mình, không có danh sách lớp.

@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { VAI_QUAN_TRI } from "../auth/permissions";
 import { useOutletContext, useSearchParams } from "react-router-dom";
 import { plannerCategories } from "../data/scheduleData";
 import { useAuth } from "../auth/AuthProvider";
@@ -773,9 +774,9 @@ function CalendarDetail() {
   const { role, user } = useAuth();
   const currentUserId = user?.id;
   const isTeacherRole = role === "teacher";
-  const canManageSessions = ["superadmin", "admin"].includes(role);
+  const canManageSessions = VAI_QUAN_TRI.includes(role);
   // Phân quyền duyệt đơn nhân sự (mirror backend staff_requests._can_review).
-  const isAdminRole = ["superadmin", "admin"].includes(role);
+  const isAdminRole = VAI_QUAN_TRI.includes(role);
   const isCenterManagerRole = ["superadmin", "admin", "center_manager"].includes(role);
   const isTrainingManagerRole = ["superadmin", "admin", "training_manager"].includes(role);
   const canReviewStaffType = (requestType) => {
@@ -789,8 +790,8 @@ function CalendarDetail() {
   const canCreateTeachingPlan = ["superadmin", "admin", "teacher", "staff"].includes(role);
   const canSelectTeacherForCreate = ["superadmin", "admin", "staff"].includes(role);
   const canSubmitTeachingPlan = ["teacher", "staff"].includes(role);
-  const canViewFinance = ["superadmin", "admin"].includes(role);
-  const canViewApprovals = ["superadmin", "admin"].includes(role);
+  const canViewFinance = VAI_QUAN_TRI.includes(role);
+  const canViewApprovals = VAI_QUAN_TRI.includes(role);
 
   // Trung tâm + tháng/năm lấy từ header chung (Outlet context).
   const {

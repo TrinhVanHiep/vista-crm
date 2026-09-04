@@ -1,4 +1,5 @@
 import BulkImportModal from "../components/bulk/BulkImportModal";
+import { VAI_QUAN_TRI } from "../auth/permissions";
 import GanLopModal from "../components/teacher/GanLopModal";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -132,7 +133,7 @@ function Teachers() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
   const { role } = useAuth();
-  const canManageTeachers = ["superadmin", "admin"].includes(role);
+  const canManageTeachers = VAI_QUAN_TRI.includes(role);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {

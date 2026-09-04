@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { VAI_QUAN_TRI } from "../auth/permissions";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import apiClient from "../services/apiClient";
@@ -260,7 +261,7 @@ function EmployeeProfile() {
   const location = useLocation();
   const navigate = useNavigate();
   const { role } = useAuth();
-  const isAdmin = ["superadmin", "admin"].includes(role);
+  const isAdmin = VAI_QUAN_TRI.includes(role);
   const { studentId, teacherId } = useParams();
   const [loadedTeacher, setLoadedTeacher] = useState(null);
   const [loadedStudent, setLoadedStudent] = useState(null);

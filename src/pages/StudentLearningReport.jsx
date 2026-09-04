@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { VAI_QUAN_TRI } from "../auth/permissions";
 import { useNavigate } from "react-router-dom";
 import {
   bulkDeleteScorecardPeriod,
@@ -112,7 +113,7 @@ export default function StudentLearningReport() {
   const laNguoiDuyet = ["superadmin", "admin", "center_manager", "training_manager"].includes(role);
   const laNguoiNhap = ["superadmin", "admin", "teacher"].includes(role);
   // Xoá hàng loạt là thao tác không hồi được nên chỉ quản trị, khớp backend.
-  const laQuanTri = ["superadmin", "admin"].includes(role);
+  const laQuanTri = VAI_QUAN_TRI.includes(role);
 
   const [thang, setThang] = useState(homNay.getMonth() + 1);
   const [nam, setNam] = useState(homNay.getFullYear());

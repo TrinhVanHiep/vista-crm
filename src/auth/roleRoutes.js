@@ -1,4 +1,4 @@
-import { ROUTE_PERMISSIONS } from './permissions';
+import { ROUTE_PERMISSIONS, VAI_QUAN_TRI } from './permissions';
 
 const ROUTE_ORDER = [
   { path: '/', allowedRoles: ROUTE_PERMISSIONS.dashboard },
@@ -63,7 +63,10 @@ export function isRoleAllowed(allowedRoles, role) {
   if (!allowedRoles || allowedRoles.length === 0) return true;
   const normalizedRole = normalizeRole(role);
   if (!normalizedRole) return false;
-  if (normalizedRole === 'superadmin') return true;
+  // Tầng quản trị đi thẳng, giống hệt super admin. Nhờ vậy nếu sau này thêm màn
+  // mới mà quên khai vai quản lý trong ROUTE_PERMISSIONS thì họ vẫn vào được,
+  // không rơi vào cảnh "có quyền ở backend mà không có đường vào".
+  if (VAI_QUAN_TRI.includes(normalizedRole)) return true;
   const list = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
   return list.includes(normalizedRole);
 }
@@ -71,8 +74,10 @@ export function isRoleAllowed(allowedRoles, role) {
 const ROLE_DEFAULT_ROUTES = {
   superadmin: '/',
   admin: '/',
-  center_manager: '/report-card',
-  training_manager: '/report-card',
+  // Quản lý nay cùng tầng quản trị nên vào thẳng Tổng quan như admin, thay vì
+  // rơi vào màn Báo cáo như hồi họ chỉ có vài màn.
+  center_manager: '/',
+  training_manager: '/',
   teacher: '/calendar-detail',
   staff: '/calendar-detail',
   student: '/monthly-scorecards',
