@@ -224,6 +224,27 @@ export default function ParentReportSheet({ v }) {
       const e = el.querySelector(sel);
       return e ? e.offsetTop + e.offsetHeight : 0;
     };
+    // Nhận xét dài thì cột hẹp 317px biến thành một dải cao ngoẵng, kéo cả tờ
+    // dài ra; tỉ lệ in phải co xuống (đo thật: 18 ý -> còn 54%, chữ bé đến mức
+    // khó đọc) trong khi hai cột bên cạnh gần như bỏ trống. Trải khối nhận xét
+    // hết bề ngang rồi xếp hai khối kia xuống dưới thì chữ giữ nguyên cỡ.
+    const c6 = el.querySelector(".pr2-c6");
+    const cao6 = c6 ? c6.offsetHeight : 0;
+    const caoKia = Math.max(
+      el.querySelector(".pr2-c7")?.offsetHeight || 0,
+      el.querySelector(".pr2-c8")?.offsetHeight || 0,
+    );
+    const nhanXetDai = cao6 > Math.max(caoKia * 1.6, 300);
+    el.classList.toggle("pr2-sheet--nhan-xet-dai", nhanXetDai);
+
+    if (nhanXetDai && c6) {
+      // Đặt TRƯỚC khi đo đáy hàng: hai khối kia vừa bị đẩy xuống nên đáy hàng
+      // phải tính lại theo vị trí mới.
+      el.style.setProperty("--y-c78", `${c6.offsetTop + c6.offsetHeight + 11}px`);
+    } else {
+      el.style.removeProperty("--y-c78");
+    }
+
     const dayHang = Math.max(doc(".pr2-c6"), doc(".pr2-c7"), doc(".pr2-c8"));
     if (!dayHang) return;
     const KHE = 11;   // khe giữa hai hàng, giữ đúng nhịp của bản thiết kế

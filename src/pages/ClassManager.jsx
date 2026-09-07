@@ -585,6 +585,7 @@ export default function ClassManager() {
             lopId={form.id}
             tenLop={form.class_code || form.name}
             onNotice={(t) => { setFormError(""); setNotice(t); setReloadKey((k) => k + 1); }}
+            onDongHopThoai={() => setIsFormOpen(false)}
           />
         ) : (
           <form id="form-lop" onSubmit={handleSave}>

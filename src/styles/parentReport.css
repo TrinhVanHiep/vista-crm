@@ -500,3 +500,23 @@
 .pr2-sheet--khong-ky-nang .pr2-panel__lb { font-size:9.5px; }
 .pr2-sheet--khong-ky-nang .pr2-panel__note { font-size:10px; line-height:1.45; }
 .pr2-sheet--khong-ky-nang .pr2-cbox__list .pr2-dot span { font-size:10.5px; }
+
+/* ---------- Nhận xét dài: trải ngang thay vì kéo dọc ----------
+   Ba khối cuối vốn xếp 3 cột hẹp (317 / 305 / 323px). Nhận xét của giáo viên
+   dài ngắn tuỳ em; khi nó dài, cột hẹp biến thành dải cao ngoẵng kéo cả tờ dài
+   ra, buộc tỉ lệ in co xuống (đo thật: 18 ý -> 54%, chữ bé khó đọc) trong khi
+   hai cột bên cạnh gần như bỏ trống.
+   Lúc đó cho khối nhận xét trải hết bề ngang, hai khối còn lại xuống hàng dưới
+   chia đôi — chữ giữ nguyên cỡ, tờ ngắn lại. Vị trí hàng dưới do
+   ParentReportSheet.jsx đo và đẩy, nên không cần con số cứng ở đây. */
+.pr2-sheet--nhan-xet-dai .pr2-c6 { width: 973px; }
+/* Hai cột trong khối nhận xét: hộp "điểm mạnh" và "cần cải thiện" đứng cạnh
+   nhau thay vì chồng lên nhau — đây là chỗ tiết kiệm chiều cao nhiều nhất. */
+.pr2-sheet--nhan-xet-dai .pr2-c6 > div:last-child {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start;
+}
+.pr2-sheet--nhan-xet-dai .pr2-cbox.warn { margin-top: 0; }
+/* Hai khối còn lại xuống hàng dưới, chia đôi bề ngang. --y-c78 do JS đo và đặt
+   theo đáy thật của khối nhận xét. */
+.pr2-sheet--nhan-xet-dai .pr2-c7 { left: 41px;  top: var(--y-c78); width: 476px; }
+.pr2-sheet--nhan-xet-dai .pr2-c8 { left: 538px; top: var(--y-c78); width: 476px; }

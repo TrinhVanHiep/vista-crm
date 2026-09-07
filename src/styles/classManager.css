@@ -130,3 +130,10 @@
 }
 /* Dòng lớp đã giải tán: mờ đi để phân biệt ngay với lớp đang chạy. */
 .cls-datan > td { opacity: .62; }
+
+/* Hai nút thao tác trên mỗi dòng học viên. */
+.cls-roster__nut { display: flex; gap: 6px; flex-wrap: nowrap; white-space: nowrap; }
+@media (max-width: 560px) {
+  .cls-roster__nut { grid-column: 1 / -1; }
+  .cls-roster__nut > button { flex: 1 1 0; justify-content: center; }
+}

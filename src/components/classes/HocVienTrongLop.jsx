@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { listStudents, updateStudent } from "../../services/calendarService";
 import { Badge, Button, Field } from "../../ui";
 
@@ -25,7 +26,8 @@ const tenHV = (r) =>
   || r?.user?.username
   || "--";
 
-export default function HocVienTrongLop({ lopId, tenLop, onNotice }) {
+export default function HocVienTrongLop({ lopId, tenLop, onNotice, onDongHopThoai }) {
+  const navigate = useNavigate();
   const [dsTrongLop, setDsTrongLop] = useState([]);
   const [dangTai, setDangTai] = useState(true);
   const [loi, setLoi] = useState("");
@@ -123,14 +125,24 @@ export default function HocVienTrongLop({ lopId, tenLop, onNotice }) {
               <Badge tone={hv.current_status === "withdrawn" ? "gray" : "green"}>
                 {NHAN_TRANG_THAI[hv.current_status] || hv.current_status || "--"}
               </Badge>
-              <Button
-                size="sm"
-                variant="danger"
-                disabled={dangXuLy === hv.id}
-                onClick={() => chuyenLop(hv, null, `Đã bỏ ${tenHV(hv)} khỏi lớp ${tenLop}.`)}
-              >
-                Bỏ khỏi lớp
-              </Button>
+              <div className="cls-roster__nut">
+                {/* Thấy sai số điện thoại hay thiếu tên phụ huynh thì sửa ngay
+                    tại đây, khỏi phải nhớ tên em rồi đi vòng qua màn Học sinh. */}
+                <Button
+                  size="sm"
+                  onClick={() => { onDongHopThoai?.(); navigate(`/students/${hv.id}`); }}
+                >
+                  Sửa thông tin
+                </Button>
+                <Button
+                  size="sm"
+                  variant="danger"
+                  disabled={dangXuLy === hv.id}
+                  onClick={() => chuyenLop(hv, null, `Đã bỏ ${tenHV(hv)} khỏi lớp ${tenLop}.`)}
+                >
+                  Bỏ khỏi lớp
+                </Button>
+              </div>
             </div>
           ))
         )}
