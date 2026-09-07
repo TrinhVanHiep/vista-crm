@@ -654,6 +654,15 @@ export default function ParentReportSheet({ v }) {
       <div className="pr2-card pr2-c6" data-screen-label="06">
         <div className="pr2-card__hd"><span className="pr2-no">{stt()}</span><h2>NHẬN XÉT CỦA GIÁO VIÊN</h2></div>
         <div style={{ padding: "9px 10px 0 11px" }}>
+          {/* Nhận xét chung đứng TRƯỚC hai hộp điểm mạnh / cần cải thiện: đây là
+              phần tổng kết của giáo viên, đọc trước rồi mới tới chi tiết. */}
+          {v.teacherCommentList.length ? (
+            <div className="pr2-cchung">
+              {v.teacherCommentList.map((t, i) => (
+                <div className="pr2-dot" key={i}><i /><span>{t}</span></div>
+              ))}
+            </div>
+          ) : null}
           <div className="pr2-cbox good">
             <img src={A + "ic-thumb.png"} alt="" />
             <div className="pr2-cbox__list">

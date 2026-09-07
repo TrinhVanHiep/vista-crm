@@ -532,6 +532,11 @@ export default function ParentReport() {
         : toList(card.parent_support_note),
       parentNote: rd.parent_note || "",
       teacherComment: (card.teacher_comment || "").trim(),
+      // Cột "Nhận xét chung của giáo viên" trong file nhập ĐÃ được đọc và lưu
+      // từ lâu, nhưng chưa bao giờ được vẽ lên phiếu — giáo viên viết cả đoạn
+      // về chuyên cần / kết quả / lộ trình mà phụ huynh không hề thấy.
+      // Đo trên file thật của lớp 804: 16/16 em đều mất phần này.
+      teacherCommentList: toList(card.teacher_comment),
 
       /* Mục 9, 10 */
       honorOn: honor.enabled !== false && Boolean(honor.title),

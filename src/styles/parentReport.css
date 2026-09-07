@@ -520,3 +520,18 @@
    theo đáy thật của khối nhận xét. */
 .pr2-sheet--nhan-xet-dai .pr2-c7 { left: 41px;  top: var(--y-c78); width: 476px; }
 .pr2-sheet--nhan-xet-dai .pr2-c8 { left: 538px; top: var(--y-c78); width: 476px; }
+
+/* Nhận xét chung của giáo viên — phần tổng kết, đứng trước hai hộp điểm mạnh /
+   cần cải thiện. Cột này có trong file nhập từ đầu nhưng chưa bao giờ được vẽ
+   ra phiếu; đo trên file thật lớp 804 thì 16/16 em đều mất phần này. */
+.pr2-cchung {
+  border: 1px solid #E7DFD4;
+  background: #FCFAF7;
+  border-radius: 10px;
+  padding: 9px 11px;
+  margin-bottom: 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pr2-cchung .pr2-dot i { background: #6E645B; }
