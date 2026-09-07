@@ -234,7 +234,11 @@ export default function ParentReportSheet({ v }) {
       el.querySelector(".pr2-c7")?.offsetHeight || 0,
       el.querySelector(".pr2-c8")?.offsetHeight || 0,
     );
-    const nhanXetDai = cao6 > Math.max(caoKia * 1.6, 300);
+    // Có nhận xét chung thì LUÔN dùng bố cục rộng: khối này chắc chắn cao hơn
+    // hai khối kia, và chủ dự án chốt (07/09/2026) nhận xét chung trải ngang,
+    // điểm mạnh / cần cải thiện chia hai cột bên dưới.
+    const coNhanXetChung = (v.teacherCommentList || []).length > 0;
+    const nhanXetDai = coNhanXetChung || cao6 > Math.max(caoKia * 1.6, 300);
     el.classList.toggle("pr2-sheet--nhan-xet-dai", nhanXetDai);
 
     if (nhanXetDai && c6) {
@@ -587,7 +591,7 @@ export default function ParentReportSheet({ v }) {
       {coCapDoCefr ? (
       <div className="pr2-card pr2-c4" data-screen-label="04">
         <div className="pr2-card__hd"><span className="pr2-no">{stt()}</span><h2>TIẾN ĐỘ HƯỚNG TỚI CẤP ĐỘ TIẾP THEO</h2></div>
-        <div className="pr2-level">
+        <div className={`pr2-level${v.nextLevelReq.length ? "" : " pr2-level--ba-o"}`}>
           <div className="pr2-lvl">
             <div className="pr2-lvl__lb">Cấp độ hiện tại</div>
             <div className="pr2-badge">
@@ -613,6 +617,10 @@ export default function ParentReportSheet({ v }) {
             </div>
             <div className="pr2-cefr">CEFR</div>
           </div>
+          {/* File nhập chưa có cột "điều kiện lên cấp" nên ô này thường rỗng —
+              in ra một khung trống kèm tiêu đề lửng thì phụ huynh tưởng thiếu
+              nội dung. Không có điều kiện nào thì bỏ hẳn ô, ba ô kia giãn ra. */}
+          {v.nextLevelReq.length ? (
           <div className="pr2-req">
             <div className="pr2-req__hd">Để đạt {v.cefrTarget || "cấp độ tiếp theo"}, cần:</div>
             <div className="pr2-req__list">
@@ -621,6 +629,7 @@ export default function ParentReportSheet({ v }) {
               ))}
             </div>
           </div>
+          ) : null}
         </div>
       </div>
       ) : null}

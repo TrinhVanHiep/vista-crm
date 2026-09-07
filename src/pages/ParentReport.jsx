@@ -51,16 +51,22 @@ const fmtDate = (s) => {
 };
 
 /** Ép mọi kiểu (mảng / chuỗi nhiều dòng / null) về mảng chuỗi sạch. */
+// Bỏ ký hiệu đầu dòng người dùng tự gõ trong ô Excel. Phiếu đã tự vẽ chấm tròn,
+// giữ lại nữa thì thành hai dấu chồng nhau: "• • Kết quả học tập: ...".
+const boKyHieuDauDong = (x) => String(x).replace(/^\s*[•·\-–—*]+\s*/, "").trim();
+
 const toList = (v) => {
   if (Array.isArray(v)) {
     return v
-      .map((x) => (typeof x === "string" ? x.trim() : x))
+      .map((x) => (typeof x === "string" ? boKyHieuDauDong(x) : x))
       .filter((x) => x !== null && x !== undefined && x !== "");
   }
   if (typeof v === "string") {
     return v
       .split(/\r?\n|(?:^|\s)[•\-–]\s+/)
-      .map((x) => x.trim())
+      // Tách xong vẫn phải bỏ ký hiệu lần nữa: biểu thức trên chỉ nuốt được dấu
+      // đầu chuỗi, các dòng sau xuống dòng thì dấu "•" còn nguyên.
+      .map(boKyHieuDauDong)
       .filter(Boolean);
   }
   return [];
