@@ -109,6 +109,22 @@ export async function taiFileMau(loai, { coDuLieu = false, thang, nam } = {}) {
   setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
 
+/** Tải phiếu thu thập thông tin — phiếu để trung tâm điền luật vận hành còn
+ *  thiếu (ngưỡng duyệt chi, chính sách lương, danh mục thu khác). */
+export async function taiPhieuKhaoSat() {
+  const res = await apiClient.get("/finances/nhap-lieu/phieu-khao-sat/", {
+    responseType: "blob",
+  });
+  const url = URL.createObjectURL(new Blob([res.data]));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "Phieu-thu-thap-thong-tin-Tai-chinh.xlsx";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
 /** Gửi file lên. KHÔNG tự đặt Content-Type — axios phải tự sinh boundary. */
 export function nhapFileTaiChinh(loai, tep, params = {}) {
   const fd = new FormData();

@@ -7,7 +7,9 @@ import HocPhiCongNo from "../components/finance/HocPhiCongNo";
 import SoGiaoDich from "../components/finance/SoGiaoDich";
 import TongQuanTaiChinh from "../components/finance/TongQuanTaiChinh";
 import "../styles/finance.css";
-import { color as mau } from "../components/finance/v3/theme";
+import { loiApi, taiPhieuKhaoSat } from "../services/financeService";
+import { Button, Card, NoteStrip } from "../components/finance/v3/ui";
+import { color as mau, radius } from "../components/finance/v3/theme";
 import { Page, PageHeader } from "../ui";
 
 /**
@@ -144,7 +146,11 @@ export default function TaiChinh() {
             "Danh mục khoản thu khác, lập phiếu thu theo danh mục.",
             "Phiếu thu vẫn sinh giao dịch trong sổ và đi qua đối soát như thu học phí.",
           ]}
-          tam="Trong lúc chờ, khoản thu ngoài học phí ghi thẳng ở phân hệ “Sổ giao dịch & Đối soát” bằng nút Ghi giao dịch."
+          canThem={[
+            "Trung tâm thu những khoản gì ngoài học phí, mức thu bao nhiêu.",
+            "Khoản nào thu mỗi kỳ, khoản nào thu một lần.",
+          ]}
+          tam="khoản thu ngoài học phí ghi thẳng ở phân hệ “Sổ giao dịch & Đối soát” bằng nút Ghi giao dịch."
         />
       ) : null}
 
@@ -157,7 +163,13 @@ export default function TaiChinh() {
             "Tách rõ chi phí phát sinh / đã thanh toán / còn phải trả.",
             "Nhà cung cấp, tạm ứng và hoàn ứng.",
           ]}
-          tam="Trong lúc chờ, khoản chi ghi thẳng ở phân hệ “Sổ giao dịch & Đối soát” bằng nút Ghi giao dịch."
+          canThem={[
+            "Mức tiền nào thì ai được duyệt — đây là thứ quan trọng nhất.",
+            "Chi gấp có được chi trước duyệt sau không, đến mức nào.",
+            "Người ghi nhận đã thanh toán có được là chính người duyệt không.",
+            "Danh sách nhà cung cấp thường chi.",
+          ]}
+          tam="khoản chi ghi thẳng ở phân hệ “Sổ giao dịch & Đối soát”, hoặc nhập hàng loạt bằng file Excel khoản chi."
         />
       ) : null}
 
@@ -170,7 +182,13 @@ export default function TaiChinh() {
             "Xem ngược về từng buổi dạy, từng khoản phụ cấp, từng điều chỉnh đã duyệt.",
             "Khóa bảng lương trước khi đóng sổ.",
           ]}
-          tam="Hiện lương vẫn xử lý ở mục Bảng lương cũ; phần nối vào sổ giao dịch làm sau."
+          canThem={[
+            "Đơn giá và chính sách lương từng giáo viên — hiện CHƯA giáo viên nào được khai.",
+            "Buổi dạy bị huỷ do giáo viên nghỉ, hoặc do trung tâm, có tính lương không.",
+            "Học phí một buổi và tỉ lệ chia cho giáo viên, theo từng lớp.",
+            "Chốt công đến ngày nào, trả lương ngày nào.",
+          ]}
+          tam="lương vẫn xử lý ở mục Bảng lương cũ; phần nối vào sổ giao dịch làm sau."
         />
       ) : null}
       </div>
@@ -185,13 +203,84 @@ export default function TaiChinh() {
  * màn hình — dữ liệu giả trong màn tài chính là thứ nguy hiểm nhất, vì người
  * xem không có cách nào biết con số nào thật.
  */
-function ChuaDung({ ten, mo, gom, tam }) {
+function ChuaDung({ ten, mo, gom, tam, canThem }) {
+  const [dangTai, setDangTai] = useState(false);
+  const [loi, setLoi] = useState("");
+
+  const tai = async () => {
+    setLoi("");
+    setDangTai(true);
+    try {
+      await taiPhieuKhaoSat();
+    } catch (e) {
+      setLoi(loiApi(e, "Không tải được phiếu."));
+    } finally {
+      setDangTai(false);
+    }
+  };
+
   return (
-    <div className="fin-sau">
-      <h3>{ten} — chưa dựng xong</h3>
-      <p>{mo}</p>
-      <ul>{gom.map((g) => <li key={g}>{g}</li>)}</ul>
-      {tam ? <p style={{ marginTop: 14 }}><b>Hiện tại:</b> {tam}</p> : null}
-    </div>
+    <Card style={{ padding: "28px 30px" }}>
+      <div style={{ maxWidth: 760 }}>
+        <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: "-0.3px" }}>
+          {ten} — chưa dựng xong
+        </div>
+        <p style={{ fontSize: 13.5, color: mau.muted, lineHeight: 1.65, margin: "8px 0 0" }}>
+          {mo}
+        </p>
+
+        <div style={{ fontSize: 13, fontWeight: 700, margin: "22px 0 8px" }}>
+          Khi dựng xong sẽ có
+        </div>
+        <ul style={{
+          margin: 0, paddingLeft: 20, fontSize: 13.5, color: mau.ink70, lineHeight: 1.75,
+        }}>
+          {gom.map((g) => <li key={g}>{g}</li>)}
+        </ul>
+
+        {canThem ? (
+          <>
+            <div style={{ fontSize: 13, fontWeight: 700, margin: "22px 0 8px" }}>
+              Đang chờ trung tâm quyết
+            </div>
+            <ul style={{
+              margin: 0, paddingLeft: 20, fontSize: 13.5, color: mau.ink70, lineHeight: 1.75,
+            }}>
+              {canThem.map((g) => <li key={g}>{g}</li>)}
+            </ul>
+          </>
+        ) : null}
+
+        <div style={{ marginTop: 22 }}>
+          <NoteStrip>
+            Phân hệ này cần <strong>luật vận hành</strong> của trung tâm chứ không chỉ cần số
+            liệu — không ai ngoài trung tâm trả lời được. Tải phiếu dưới đây, ngồi với kế toán
+            điền một lượt là dựng được.
+          </NoteStrip>
+        </div>
+
+        {loi ? (
+          <div style={{
+            background: mau.redSoft, color: mau.red, borderRadius: radius.md,
+            padding: "11px 13px", fontSize: 13, marginTop: 14,
+          }}>{loi}</div>
+        ) : null}
+
+        <div style={{ marginTop: 16, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <Button icon="doc" onClick={tai} disabled={dangTai}>
+            {dangTai ? "Đang tạo phiếu..." : "Tải phiếu thu thập thông tin"}
+          </Button>
+          <span style={{ fontSize: 12, color: mau.faint }}>
+            Excel 8 sheet, đã điền sẵn giáo viên và lớp của trung tâm.
+          </span>
+        </div>
+
+        {tam ? (
+          <p style={{ fontSize: 13, color: mau.muted, lineHeight: 1.65, marginTop: 20 }}>
+            <strong style={{ color: mau.ink }}>Trong lúc chờ:</strong> {tam}
+          </p>
+        ) : null}
+      </div>
+    </Card>
   );
 }
