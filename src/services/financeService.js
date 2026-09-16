@@ -84,6 +84,16 @@ export function rutGonTien(so) {
   return dinhDangTien(n);
 }
 
+/**
+ * Bỏ dấu kỹ thuật [TR#123] ở đầu mô tả khoản phải thu.
+ *
+ * Dấu này để lệnh chuyển đổi nhận ra dòng học phí gốc và không nhân đôi khi
+ * chạy lại — cần cho máy, còn kế toán nhìn vào chỉ thấy rối.
+ */
+export function moTaGon(mo_ta) {
+  return String(mo_ta || "").replace(/^\[TR#\d+\]\s*/, "");
+}
+
 /** Bóc câu lỗi từ phản hồi DRF, vốn có tới bốn dạng khác nhau. */
 export function loiApi(e, macDinh = "Có lỗi xảy ra.") {
   const d = e?.response?.data;

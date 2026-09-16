@@ -7,6 +7,7 @@ import HocPhiCongNo from "../components/finance/HocPhiCongNo";
 import SoGiaoDich from "../components/finance/SoGiaoDich";
 import TongQuanTaiChinh from "../components/finance/TongQuanTaiChinh";
 import "../styles/finance.css";
+import Ico from "../components/finance/Ico";
 import { Page, PageHeader } from "../ui";
 
 /**
@@ -74,7 +75,7 @@ export default function TaiChinh() {
 
       {thongBao ? (
         <div className="alert green" style={{ marginBottom: 12 }}>
-          <span>✅</span><div>{thongBao}</div>
+          <Ico ten="check" co={17} /><div>{thongBao}</div>
         </div>
       ) : null}
 

@@ -4,7 +4,9 @@ import {
   loiApi, taoGiamTru, tongHopCongNo,
 } from "../../services/financeService";
 import { listClassroomsAll } from "../../services/calendarService";
-import { Badge, Button, Card, Field, Kpi, KpiGrid, Modal } from "../../ui";
+import { Badge, Button, Card, Field, Modal } from "../../ui";
+import Ico from "./Ico";
+import TheSo, { HangThe } from "./TheSo";
 import HopThuTien from "./HopThuTien";
 
 /**
@@ -80,22 +82,22 @@ export default function HocPhiCongNo({ thang, nam, onNotice, laQuanTri }) {
     <>
       {loi ? <div className="alert red" style={{ marginBottom: 12 }}><span>⚠️</span><div>{loi}</div></div> : null}
 
-      <KpiGrid cols={4}>
-        <Kpi ico="🧾" icoClass="orange" label="Tổng phải thu"
-             value={`${dinhDangTien(tong?.tong_phai_thu)} đ`}
-             sub={`${tong?.so_khoan || 0} khoản trong kỳ`} />
-        <Kpi ico="✅" icoClass="green" label="Đã thu"
-             value={`${dinhDangTien(tong?.tong_da_thu)} đ`}
-             sub={tong?.tong_phai_thu > 0
-               ? `${Math.round((Number(tong.tong_da_thu) / Number(tong.tong_phai_thu)) * 100)}% khoản phải thu`
-               : "—"} />
-        <Kpi ico="⏳" icoClass="red" label="Còn nợ"
-             value={`${dinhDangTien(tong?.tong_con_no)} đ`}
-             sub={`Quá hạn ${dinhDangTien(tong?.no_qua_han)} đ`} />
-        <Kpi ico="✂️" icoClass="purple" label="Giảm trừ đã duyệt"
-             value={`${dinhDangTien(tong?.tong_giam_tru)} đ`}
-             sub={choDuyet.length ? `${choDuyet.length} khoản chờ duyệt` : "Không có khoản chờ duyệt"} />
-      </KpiGrid>
+      <HangThe>
+        <TheSo ico="receipt" mau="cam" nhan="Tổng phải thu"
+               so={`${dinhDangTien(tong?.tong_phai_thu)} đ`}
+               phu={`${tong?.so_khoan || 0} khoản trong kỳ`} />
+        <TheSo ico="check" mau="xanh" nhan="Đã thu"
+               so={`${dinhDangTien(tong?.tong_da_thu)} đ`}
+               phu={tong?.tong_phai_thu > 0
+                 ? `${Math.round((Number(tong.tong_da_thu) / Number(tong.tong_phai_thu)) * 100)}% khoản phải thu`
+                 : "—"} />
+        <TheSo ico="alert" mau="do" nhan="Còn nợ"
+               so={`${dinhDangTien(tong?.tong_con_no)} đ`}
+               phu={`Quá hạn ${dinhDangTien(tong?.no_qua_han)} đ`} />
+        <TheSo ico="users" mau="tim" nhan="Giảm trừ đã duyệt"
+               so={`${dinhDangTien(tong?.tong_giam_tru)} đ`}
+               phu={choDuyet.length ? `${choDuyet.length} khoản chờ duyệt` : "Không có khoản chờ duyệt"} />
+      </HangThe>
 
       <div className="fin-bar" style={{ marginTop: 16 }}>
         <input
@@ -186,7 +188,7 @@ export default function HocPhiCongNo({ thang, nam, onNotice, laQuanTri }) {
               <div className="fin-viec">
                 {choDuyet.map((dc) => (
                   <div className="fin-viec__d" key={dc.id}>
-                    <div className="fin-viec__ico fin-viec__ico--cho">⏳</div>
+                    <div className="fin-viec__ico fin-viec__ico--cho"><Ico ten="alert" co={15} /></div>
                     <div>
                       <b>{dc.kind_display} — {dinhDangTien(dc.amount)} đ</b>
                       <small>{dc.reason}</small>

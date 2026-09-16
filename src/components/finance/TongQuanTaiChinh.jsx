@@ -3,7 +3,9 @@ import {
   dinhDangTien, kiemTraDongSo, layCongNo, layDanhSachKy, layGiamTru,
   laySoGiaoDich, loiApi, tongHopCongNo, tongHopSo,
 } from "../../services/financeService";
-import { Badge, Button, Card, Kpi, KpiGrid } from "../../ui";
+import { Badge, Button, Card } from "../../ui";
+import Ico from "./Ico";
+import TheSo, { HangThe } from "./TheSo";
 
 /**
  * Phân hệ "Tổng quan".
@@ -52,7 +54,7 @@ export default function TongQuanTaiChinh({ thang, nam, onDoiTab }) {
   const viec = [];
   if (d.choKhop?.length) {
     viec.push({
-      k: "khop", ico: "🏦",
+      k: "khop", ico: "bank",
       ten: `${d.choKhop.length} giao dịch ngân hàng chờ đối soát`,
       mo: "Chưa khớp hết thì không đóng sổ được.",
       tab: "ledger", nut: "Mở sổ giao dịch",
@@ -60,7 +62,7 @@ export default function TongQuanTaiChinh({ thang, nam, onDoiTab }) {
   }
   if (d.choDuyet?.length) {
     viec.push({
-      k: "duyet", ico: "✂️",
+      k: "duyet", ico: "receipt",
       ten: `${d.choDuyet.length} khoản giảm trừ chờ duyệt`,
       mo: d.choDuyet.map((x) => x.reason).slice(0, 2).join("; "),
       tab: "tuition", nut: "Xem và duyệt",
@@ -68,7 +70,7 @@ export default function TongQuanTaiChinh({ thang, nam, onDoiTab }) {
   }
   if (Number(d.congNo?.no_qua_han) > 0) {
     viec.push({
-      k: "quahan", ico: "⏰",
+      k: "quahan", ico: "alert",
       ten: `Nợ quá hạn ${dinhDangTien(d.congNo.no_qua_han)} đ`,
       mo: d.quaHan?.length
         ? `Gồm ${d.quaHan.length}+ khoản, ví dụ ${d.quaHan[0].student_name}.`
@@ -81,22 +83,22 @@ export default function TongQuanTaiChinh({ thang, nam, onDoiTab }) {
     <>
       {loi ? <div className="alert red" style={{ marginBottom: 12 }}><span>⚠️</span><div>{loi}</div></div> : null}
 
-      <KpiGrid cols={4}>
-        <Kpi ico="🧾" icoClass="orange" label="Phải thu trong kỳ"
-             value={dangTai ? "..." : `${dinhDangTien(d.congNo?.tong_phai_thu)} đ`}
-             sub={`${d.congNo?.so_khoan || 0} khoản`} />
-        <Kpi ico="✅" icoClass="green" label="Đã thu"
-             value={dangTai ? "..." : `${dinhDangTien(d.congNo?.tong_da_thu)} đ`}
-             sub={Number(d.congNo?.tong_phai_thu) > 0
-               ? `${Math.round((Number(d.congNo.tong_da_thu) / Number(d.congNo.tong_phai_thu)) * 100)}% khoản phải thu`
-               : "—"} />
-        <Kpi ico="⏳" icoClass="red" label="Còn nợ"
-             value={dangTai ? "..." : `${dinhDangTien(d.congNo?.tong_con_no)} đ`}
-             sub={`Quá hạn ${dinhDangTien(d.congNo?.no_qua_han)} đ`} />
-        <Kpi ico="📤" icoClass="purple" label="Chi trong kỳ"
-             value={dangTai ? "..." : `${dinhDangTien(d.so?.tong_chi)} đ`}
-             sub={`Chênh lệch ${dinhDangTien(d.so?.chenh_lech)} đ`} />
-      </KpiGrid>
+      <HangThe>
+        <TheSo ico="receipt" mau="cam" nhan="Phải thu trong kỳ"
+               so={dangTai ? "..." : `${dinhDangTien(d.congNo?.tong_phai_thu)} đ`}
+               phu={`${d.congNo?.so_khoan || 0} khoản`} />
+        <TheSo ico="check" mau="xanh" nhan="Đã thu"
+               so={dangTai ? "..." : `${dinhDangTien(d.congNo?.tong_da_thu)} đ`}
+               phu={Number(d.congNo?.tong_phai_thu) > 0
+                 ? `${Math.round((Number(d.congNo.tong_da_thu) / Number(d.congNo.tong_phai_thu)) * 100)}% khoản phải thu`
+                 : "—"} />
+        <TheSo ico="alert" mau="do" nhan="Còn nợ"
+               so={dangTai ? "..." : `${dinhDangTien(d.congNo?.tong_con_no)} đ`}
+               phu={`Quá hạn ${dinhDangTien(d.congNo?.no_qua_han)} đ`} />
+        <TheSo ico="wallet" mau="tim" nhan="Chi trong kỳ"
+               so={dangTai ? "..." : `${dinhDangTien(d.so?.tong_chi)} đ`}
+               phu={`Chênh lệch ${dinhDangTien(d.so?.chenh_lech)} đ`} />
+      </HangThe>
 
       <div className="fin-21" style={{ marginTop: 16 }}>
         <Card title={<div><h3>Việc cần làm</h3>
@@ -106,7 +108,7 @@ export default function TongQuanTaiChinh({ thang, nam, onDoiTab }) {
           ) : viec.length === 0 ? (
             <div className="fin-viec">
               <div className="fin-viec__d">
-                <div className="fin-viec__ico fin-viec__ico--ok">✓</div>
+                <div className="fin-viec__ico fin-viec__ico--ok"><Ico ten="check" co={15} /></div>
                 <div>
                   <b>Không còn việc tồn</b>
                   <small>Đã đối soát hết, không có khoản giảm trừ chờ duyệt và không có nợ quá hạn.</small>
@@ -117,7 +119,7 @@ export default function TongQuanTaiChinh({ thang, nam, onDoiTab }) {
             <div className="fin-viec">
               {viec.map((v) => (
                 <div className="fin-viec__d" key={v.k}>
-                  <div className="fin-viec__ico fin-viec__ico--cho">{v.ico}</div>
+                  <div className="fin-viec__ico fin-viec__ico--cho"><Ico ten={v.ico} co={15} /></div>
                   <div>
                     <b>{v.ten}</b>
                     <small>{v.mo}</small>
@@ -140,7 +142,7 @@ export default function TongQuanTaiChinh({ thang, nam, onDoiTab }) {
                 {(d.so?.quy || []).map((q) => (
                   <div className="fin-viec__d" key={q.id}>
                     <div className="fin-viec__ico fin-viec__ico--ok">
-                      {q.kind === "bank" ? "🏦" : "💵"}
+                      <Ico ten={q.kind === "bank" ? "bank" : "wallet"} co={15} />
                     </div>
                     <div>
                       <b>{q.name}</b>

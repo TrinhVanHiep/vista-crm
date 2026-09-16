@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  dinhDangTien, ghiNhanThuTien, layCongNo, layDanhSachQuy, loiApi,
+  dinhDangTien, ghiNhanThuTien, layCongNo, layDanhSachQuy, loiApi, moTaGon,
 } from "../../services/financeService";
-import { Badge, Button, Field, Modal } from "../../ui";
+import { Badge, Button, Field } from "../../ui";
+import NganKeo from "./NganKeo";
 
 /**
  * Hộp ghi nhận thu tiền — đúng vòng nghiệp vụ của spec:
@@ -127,13 +128,12 @@ export default function HopThuTien({ mo, hocVien, onDong, onXong }) {
   };
 
   return (
-    <Modal
-      open={mo}
-      onClose={onDong}
-      title="Ghi nhận thu tiền"
-      subtitle={hocVien?.ten ? `${hocVien.ten}${hocVien.lop ? ` — lớp ${hocVien.lop}` : ""}` : ""}
-      size="lg"
-      footer={(
+    <NganKeo
+      mo={mo}
+      onDong={onDong}
+      tieuDe="Ghi nhận thu tiền"
+      moTa={hocVien?.ten ? `${hocVien.ten}${hocVien.lop ? ` — lớp ${hocVien.lop}` : ""}` : ""}
+      chan={(
         <>
           <Button onClick={onDong}>Hủy</Button>
           <Button variant="primary" onClick={luu} loading={dangLuu}>
@@ -144,7 +144,7 @@ export default function HopThuTien({ mo, hocVien, onDong, onXong }) {
     >
       {loi ? <div className="alert red" style={{ marginBottom: 12 }}><span>⚠️</span><div>{loi}</div></div> : null}
 
-      <div className="cls-form" style={{ marginBottom: 16 }}>
+      <div className="cls-form fin-nk__form" style={{ marginBottom: 16 }}>
         <Field label="Ngày thu" required>
           <input type="date" value={ngay} onChange={(e) => setNgay(e.target.value)} />
         </Field>
@@ -196,7 +196,7 @@ export default function HopThuTien({ mo, hocVien, onDong, onXong }) {
               <div className="fin-pb__row" key={r.id}>
                 <div>
                   <b>{r.kind_display} {String(r.period_month).padStart(2, "0")}/{r.period_year}</b>
-                  <small>{r.description || r.classroom_name || "—"}</small>
+                  <small>{moTaGon(r.description) || r.classroom_name || "—"}</small>
                 </div>
                 <div className="fin-tien" style={{ textAlign: "right" }}>
                   {dinhDangTien(r.balance)}
@@ -229,6 +229,6 @@ export default function HopThuTien({ mo, hocVien, onDong, onXong }) {
           </span>
         </div>
       </div>
-    </Modal>
+    </NganKeo>
   );
 }

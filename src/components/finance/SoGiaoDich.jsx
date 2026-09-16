@@ -3,7 +3,9 @@ import {
   dinhDangTien, ghiSo, layDanhSachQuy, laySoGiaoDich, loiApi, tongHopSo,
   xacNhanKhop,
 } from "../../services/financeService";
-import { Badge, Button, Card, Field, Kpi, KpiGrid, Modal } from "../../ui";
+import { Badge, Button, Card, Field, Modal } from "../../ui";
+import Ico from "./Ico";
+import TheSo, { HangThe } from "./TheSo";
 import HopQuy from "./HopQuy";
 
 /**
@@ -72,17 +74,17 @@ export default function SoGiaoDich({ thang, nam, onNotice }) {
     <>
       {loi ? <div className="alert red" style={{ marginBottom: 12 }}><span>⚠️</span><div>{loi}</div></div> : null}
 
-      <KpiGrid cols={4}>
-        <Kpi ico="📥" icoClass="green" label="Tổng thu trong kỳ"
-             value={`${dinhDangTien(tong?.tong_thu)} đ`} sub={`${tong?.so_giao_dich || 0} giao dịch`} />
-        <Kpi ico="📤" icoClass="red" label="Tổng chi trong kỳ"
-             value={`${dinhDangTien(tong?.tong_chi)} đ`} />
-        <Kpi ico="⚖️" icoClass="orange" label="Chênh lệch thu chi"
-             value={`${dinhDangTien(tong?.chenh_lech)} đ`} />
-        <Kpi ico="🏦" icoClass={tong?.chua_doi_soat ? "yellow" : "green"} label="Chờ đối soát"
-             value={`${tong?.chua_doi_soat || 0} giao dịch`}
-             sub={tong?.chua_doi_soat ? "Phải khớp hết mới đóng sổ được" : "Đã khớp hết"} />
-      </KpiGrid>
+      <HangThe>
+        <TheSo ico="check" mau="xanh" nhan="Tổng thu trong kỳ"
+               so={`${dinhDangTien(tong?.tong_thu)} đ`} phu={`${tong?.so_giao_dich || 0} giao dịch`} />
+        <TheSo ico="wallet" mau="do" nhan="Tổng chi trong kỳ"
+               so={`${dinhDangTien(tong?.tong_chi)} đ`} />
+        <TheSo ico="chart" mau="cam" nhan="Chênh lệch thu chi"
+               so={`${dinhDangTien(tong?.chenh_lech)} đ`} />
+        <TheSo ico="bank" mau={tong?.chua_doi_soat ? "vang" : "xanh"} nhan="Chờ đối soát"
+               so={`${tong?.chua_doi_soat || 0} giao dịch`}
+               phu={tong?.chua_doi_soat ? "Phải khớp hết mới đóng sổ được" : "Đã khớp hết"} />
+      </HangThe>
 
       <div className="fin-bar" style={{ marginTop: 16 }}>
         <select value={loc} onChange={(e) => setLoc(e.target.value)}>
@@ -162,7 +164,7 @@ export default function SoGiaoDich({ thang, nam, onNotice }) {
                 {(tong?.quy || []).map((q) => (
                   <div className="fin-viec__d" key={q.id}>
                     <div className="fin-viec__ico fin-viec__ico--ok">
-                      {q.kind === "bank" ? "🏦" : "💵"}
+                      <Ico ten={q.kind === "bank" ? "bank" : "wallet"} co={15} />
                     </div>
                     <div>
                       <b>{q.name}</b>

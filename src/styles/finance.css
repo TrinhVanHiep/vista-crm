@@ -5,12 +5,11 @@
 .fin-tabs {
   display: flex;
   gap: 4px;
-  padding: 4px;
-  margin-bottom: 16px;
-  background: var(--primary-soft, #FDF1E7);
-  border-radius: 12px;
-  /* 7 phân hệ không đủ chỗ trên laptop 1366: cho cuộn ngang trong thanh tab
-     thay vì để chúng xuống hàng làm thanh cao gấp đôi. */
+  margin-bottom: 14px;
+  /* Bản mẫu dùng tab GẠCH CHÂN trên một đường kẻ ngang, không phải viên thuốc
+     trên nền cam. Kiểu gạch chân đọc được nhiều mục hơn trong cùng bề ngang —
+     7 phân hệ mà làm viên thuốc thì tràn ngay ở laptop 1366. */
+  border-bottom: 1px solid var(--border, #EFE6DA);
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -23,23 +22,79 @@
   flex: 0 0 auto;
   font-family: inherit;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   white-space: nowrap;
-  color: var(--text-2, #6E645B);
+  color: var(--text-2, #6C7487);
   background: transparent;
-  border: 1px solid transparent;
-  border-radius: 9px;
-  padding: 9px 14px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  padding: 11px 13px;
+  margin-bottom: -1px;
   cursor: pointer;
-  transition: background .15s, color .15s;
+  transition: color .15s, border-color .15s;
 }
 .fin-tabs > button:hover { color: var(--primary, #F26522); }
 .fin-tabs > button.is-active {
-  background: var(--card, #fff);
   color: var(--primary, #F26522);
-  border-color: var(--primary-100, #F8D6C0);
-  box-shadow: 0 1px 3px rgba(120, 80, 40, .10);
+  border-bottom-color: var(--primary, #F26522);
 }
+
+/* ---------- Thẻ chỉ số ----------
+   Bản mẫu: nhãn + số lớn + dòng phụ nằm BÊN TRÁI, ô biểu tượng bo góc có nền
+   nhạt nằm BÊN PHẢI. Khác với thẻ Kpi dùng chung của app (icon bên trái). */
+.fin-the-luoi {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+@media (max-width: 1300px) { .fin-the-luoi { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 620px)  { .fin-the-luoi { grid-template-columns: minmax(0, 1fr); } }
+
+.fin-the {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  padding: 14px;
+  background: var(--card, #fff);
+  border: 1px solid var(--border, #EFE6DA);
+  border-radius: 14px;
+  box-shadow: 0 10px 28px rgba(31, 41, 72, .055);
+}
+.fin-the__nhan {
+  display: block;
+  font-size: 11px;
+  font-weight: 650;
+  color: var(--text-2, #687084);
+}
+.fin-the__so {
+  font-size: 22px;
+  font-weight: 850;
+  line-height: 1.05;
+  letter-spacing: -.4px;
+  margin: 7px 0 5px;
+  font-variant-numeric: tabular-nums;
+  /* Số tiền dài (1.245.700.000 đ) không được đẩy ô biểu tượng tràn ra ngoài. */
+  overflow-wrap: anywhere;
+}
+.fin-the__phu { font-size: 10.5px; color: var(--text-2, #8A7C6E); }
+
+.fin-the__ico {
+  flex: 0 0 auto;
+  width: 39px; height: 39px;
+  border-radius: 11px;
+  display: grid; place-items: center;
+}
+.fin-the__ico--cam   { background: #FFF5EF; color: #FF4B0B; }
+.fin-the__ico--xanh  { background: #EDF9F2; color: #18A957; }
+.fin-the__ico--do    { background: #FFF1F1; color: #E5484D; }
+.fin-the__ico--tim   { background: #F5EFFF; color: #7A43E8; }
+.fin-the__ico--vang  { background: #FFF7E6; color: #E99A12; }
+.fin-the__ico--duong { background: #EEF4FF; color: #2F76FF; }
+
+.fin-ico { flex: 0 0 auto; }
 
 /* ---------- Thanh công cụ của mỗi phân hệ ---------- */
 .fin-bar {
@@ -230,3 +285,120 @@
 .fin-bang-no th:nth-child(8), .fin-bang-no td:nth-child(8) { width: 172px; }
 /* Tên dài thì xuống dòng trong ô của nó, thay vì nong rộng cả bảng. */
 .fin-bang-no td:first-child b { overflow-wrap: anywhere; }
+
+/* ---------- Ngăn kéo thu tiền ----------
+   Bản mẫu cho hộp thu tiền trượt từ MÉP PHẢI chứ không phải hộp thoại giữa màn.
+   Hợp với nghiệp vụ hơn: bảng công nợ vẫn nhìn thấy ở nửa trái trong lúc kế
+   toán gõ số, khỏi phải đóng ra đóng vào để đối chiếu. */
+.fin-nk__nen {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(17, 24, 39, .32);
+}
+.fin-nk {
+  position: absolute; right: 0; top: 0; bottom: 0;
+  width: min(560px, 96vw);
+  display: flex; flex-direction: column;
+  background: var(--card, #fff);
+  box-shadow: -18px 0 60px rgba(15, 23, 42, .18);
+}
+.fin-nk__dau {
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+  padding: 18px 18px 13px;
+  border-bottom: 1px solid var(--border, #EFE6DA);
+}
+.fin-nk__dau h3 { margin: 0; font-size: 19px; }
+.fin-nk__dau p { margin: 4px 0 0; font-size: 12px; color: var(--text-2, #6F778C); }
+/* Nhân đôi class để thắng .v4page button{border:none;background:none}. */
+.fin-nk button.fin-nk__dong,
+.fin-nk__dong {
+  flex: 0 0 auto;
+  width: 32px; height: 32px;
+  font-size: 17px; line-height: 1;
+  color: var(--text-2, #6F778C);
+  background: var(--card, #fff);
+  border: 1px solid var(--border, #EFE6DA);
+  border-radius: 9px;
+  cursor: pointer;
+}
+.fin-nk__than { flex: 1 1 auto; overflow: auto; padding: 16px 18px; }
+.fin-nk__chan {
+  display: flex; gap: 8px; justify-content: flex-end;
+  padding: 13px 18px;
+  border-top: 1px solid var(--border, #EFE6DA);
+  background: var(--card, #fff);
+}
+
+/* ---------- Đối soát hai cột ----------
+   Bản mẫu ghép THỦ CÔNG: một bên là dòng sao kê ngân hàng, một bên là giao dịch
+   trong phần mềm, ở giữa là điểm khớp. Máy chỉ gợi ý, kế toán bấm xác nhận. */
+.fin-ds {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 58px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+}
+@media (max-width: 700px) {
+  .fin-ds { grid-template-columns: minmax(0, 1fr); }
+  .fin-ds__giua { flex-direction: row; min-height: 0; padding: 6px 0; }
+}
+.fin-ds__cot {
+  border: 1px solid var(--border, #EFE6DA);
+  border-radius: 11px;
+  overflow: hidden;
+}
+.fin-ds__cot h4 {
+  margin: 0; padding: 10px;
+  font-size: 12.5px;
+  background: var(--bg-soft, #FBFCFD);
+  border-bottom: 1px solid var(--border, #EFE6DA);
+}
+.fin-ds__ds { max-height: 320px; overflow: auto; }
+.fin-ds__d {
+  width: 100%; text-align: left;
+  padding: 10px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border-soft, #F6EFE6);
+  cursor: pointer;
+  font: inherit;
+}
+.fin-ds__d:last-child { border-bottom: none; }
+.fin-ds__d.is-chon { background: var(--primary-soft, #FFF5EF); outline: 1px solid #FFC8AD; }
+.fin-ds__d b { display: block; font-size: 12px; }
+.fin-ds__d .fin-ds__hang {
+  display: flex; justify-content: space-between; gap: 8px; margin-top: 4px;
+}
+.fin-ds__d small { font-size: 11px; color: var(--text-2, #8A7C6E); }
+.fin-ds__giua {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 8px; min-height: 180px;
+}
+.fin-ds__diem {
+  width: 44px; height: 44px; border-radius: 50%;
+  display: grid; place-items: center;
+  font-weight: 900; font-size: 12px;
+}
+.fin-ds__diem--cao { background: #EDF9F2; color: #18A957; }
+.fin-ds__diem--vua { background: #FFF7E6; color: #E99A12; }
+.fin-ds__diem--thap { background: #FFF1F1; color: #E5484D; }
+
+/* Lời nhắc nguyên tắc: máy gợi ý, người phê duyệt. */
+.fin-nhac {
+  border-left: 3px solid var(--primary, #F26522);
+  background: #FFF8F3;
+  border-radius: 7px;
+  padding: 9px 11px;
+  margin-top: 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #7B4A35;
+}
+
+/* Trong ngăn kéo (rộng ~560px) thì khối phân bổ 4 cột bị chật: ô nhập chỉ còn
+   khoảng 70px. Thu hai cột số về hẹp hơn và cho ô nhập rộng ra. */
+.fin-nk .fin-pb__hd,
+.fin-nk .fin-pb__row {
+  grid-template-columns: minmax(0, 1.4fr) 92px 112px 92px;
+  gap: 8px;
+}
+.fin-nk .fin-pb__row b { font-size: 13px; }
