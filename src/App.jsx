@@ -16,6 +16,7 @@ import ComingSoon from './pages/ComingSoon.jsx';
 import Tuition from './pages/Tuition.jsx';
 import MediaPlan from './pages/MediaPlan.jsx';
 import Finance from './pages/Finance.jsx';
+import TaiChinh from './pages/TaiChinh.jsx';
 import CreateAccount from './pages/CreateAccount.jsx';
 import Students from './pages/Students.jsx';
 import ProgramDetail from './pages/ProgramDetail.jsx';
@@ -257,6 +258,16 @@ function App() {
           />
           <Route
             path="finance"
+            element={
+              <RoleGuard allowedRoles={ROUTE_PERMISSIONS.finance}>
+                <TaiChinh />
+              </RoleGuard>
+            }
+          />
+          {/* Bản thống kê thu chi cũ: giữ lại vì phần nhập doanh thu từ Excel
+              vẫn đang dùng, chưa chuyển sang mô hình sổ giao dịch. */}
+          <Route
+            path="finance/thong-ke"
             element={
               <RoleGuard allowedRoles={ROUTE_PERMISSIONS.finance}>
                 <Finance />

@@ -10,6 +10,7 @@ import {
   createMediaReport,
   importSessionReportsFile,
 } from "../services/calendarService";
+import ChiTietBaoCaoNgay from "../components/reports/ChiTietBaoCaoNgay";
 import "../styles/vista4.css";
 
 const WEEKDAYS = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
@@ -61,10 +62,18 @@ const REPORT_META = {
   submitted: { label: "Chờ duyệt", cls: "green" },
   draft: { label: "Bản nháp", cls: "blue" },
   revision_required: { label: "Cần sửa", cls: "red" },
+  // Thiếu key này thì buổi có báo cáo BỊ TỪ CHỐI lại hiện "Chưa báo cáo" —
+  // quản lý tưởng giáo viên chưa nộp, trong khi thực ra chính mình đã trả lại.
+  rejected: { label: "Bị trả lại", cls: "red" },
   __none: { label: "Chưa báo cáo", cls: "orange" },
 };
 const reportMeta = (status) => REPORT_META[status] || REPORT_META.__none;
 const isReported = (status) => ["draft", "submitted", "approved"].includes(status);
+// Có nội dung để ĐỌC — khác với "đã báo cáo" dùng đếm tiến độ. Báo cáo bị trả
+// lại hay cần sửa vẫn còn nguyên nội dung, mà đó chính là thứ quản lý cần mở ra
+// xem để biết vì sao mình đã trả lại.
+const coNoiDungDeXem = (status) =>
+  ["draft", "submitted", "approved", "rejected", "revision_required"].includes(status);
 // Báo cáo còn sửa được (hoặc chưa có) => cho phép nhập/cập nhật; đã khóa => chỉ xem.
 // Backend chỉ cho giáo viên PATCH khi status ∈ {draft, revision_required}
 // (teaching/views.py perform_update); "rejected" là trạng thái khóa, không sửa được.
@@ -247,6 +256,9 @@ function DailyReport() {
       setReportImporting(false);
     }
   };
+
+  // Buổi dạy đang được MỞ RA XEM nội dung (khác với buổi đang chọn để nhập).
+  const [xemChiTiet, setXemChiTiet] = useState(null);
 
   const selectedSession = sessions.find((s) => String(s.id) === String(selectedSessionId)) || null;
   const selectedStatus = selectedSession?.report_status || "";
@@ -494,7 +506,7 @@ function DailyReport() {
                 ) : sessions.length ? (
                   <div className="tbl-wrap">
                     <table className="tbl">
-                      <thead><tr>{!isDay && <th>Ngày</th>}<th>Ca học</th><th>Lớp học</th><th>Giáo viên</th><th>Trạng thái báo cáo</th></tr></thead>
+                      <thead><tr>{!isDay && <th>Ngày</th>}<th>Ca học</th><th>Lớp học</th><th>Giáo viên</th><th>Trạng thái báo cáo</th><th>Nội dung</th></tr></thead>
                       <tbody>
                         {sessions.map((s) => {
                           const meta = reportMeta(s.report_status);
@@ -505,6 +517,23 @@ function DailyReport() {
                               <td className="bold" style={{ color: "var(--primary)" }}>{s.classroom_name || "--"}</td>
                               <td>{s.teacher_name || "--"}</td>
                               <td><span className={`badge ${meta.cls}`}>{meta.label}</span></td>
+                              <td>
+                                {/* Quản lý vào đây để ĐỌC báo cáo. Trước đây bảng
+                                    chỉ có badge trạng thái nên không có đường nào
+                                    xem được giáo viên đã viết gì. */}
+                                {coNoiDungDeXem(s.report_status) ? (
+                                  <button
+                                    type="button"
+                                    className="card-link"
+                                    style={{ cursor: "pointer", background: "none", border: "none", font: "inherit" }}
+                                    onClick={() => setXemChiTiet(s)}
+                                  >
+                                    Xem chi tiết
+                                  </button>
+                                ) : (
+                                  <span className="small muted">--</span>
+                                )}
+                              </td>
                             </tr>
                           );
                         })}
@@ -739,6 +768,8 @@ function DailyReport() {
           </div>
         )}
       </div>
+
+      <ChiTietBaoCaoNgay buoi={xemChiTiet} onDong={() => setXemChiTiet(null)} />
     </div>
   );
 }

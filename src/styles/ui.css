@@ -228,3 +228,7 @@
   /* 40px là mốc chạm tối thiểu thoải mái bằng ngón tay. */
   .ui-btn { min-height: 38px; }
 }
+
+/* Tông vàng cho trạng thái "đang chờ". .ico.yellow có sẵn từ lâu nhưng
+   .badge.yellow thì chưa, nên mọi badge tone="yellow" mất hẳn nền và màu. */
+.badge.yellow { background: #FEF3C7; color: #92400E; }

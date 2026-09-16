@@ -1,0 +1,232 @@
+/* ---------- Tài chính V2 ----------
+   Một tab cấp 1 "Tài chính", bên trong 7 phân hệ cấp 2. Không tách thành nhiều
+   tab lớn vì các nghiệp vụ dùng chung một nguồn sổ giao dịch. */
+
+.fin-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 16px;
+  background: var(--primary-soft, #FDF1E7);
+  border-radius: 12px;
+  /* 7 phân hệ không đủ chỗ trên laptop 1366: cho cuộn ngang trong thanh tab
+     thay vì để chúng xuống hàng làm thanh cao gấp đôi. */
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.fin-tabs::-webkit-scrollbar { display: none; }
+
+/* Nhân đôi class để thắng luật reset .v4page button{border:none;background:none}
+   (0-1-1, nặng hơn mọi luật một class). Đã dính bẫy này ở hộp thoại lớp học. */
+.fin-tabs button.fin-tabs__x,
+.fin-tabs > button {
+  flex: 0 0 auto;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--text-2, #6E645B);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  padding: 9px 14px;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.fin-tabs > button:hover { color: var(--primary, #F26522); }
+.fin-tabs > button.is-active {
+  background: var(--card, #fff);
+  color: var(--primary, #F26522);
+  border-color: var(--primary-100, #F8D6C0);
+  box-shadow: 0 1px 3px rgba(120, 80, 40, .10);
+}
+
+/* ---------- Thanh công cụ của mỗi phân hệ ---------- */
+.fin-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.fin-bar input[type="search"],
+.fin-bar input[type="text"],
+.fin-bar select {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 8px 11px;
+  border: 1px solid var(--border, #EFE6DA);
+  border-radius: 9px;
+  background: var(--card, #fff);
+  color: inherit;
+}
+.fin-bar input[type="search"] { min-width: 220px; flex: 1 1 220px; max-width: 320px; }
+/* Đẩy nhóm nút về cuối hàng, còn ô tìm/lọc bám trái. */
+.fin-bar__cuoi { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ---------- Bố cục 2 cột (bảng chính + cột phụ) ---------- */
+.fin-21 {
+  display: grid;
+  /* 3:1 chứ không phải 2.4:1 — bảng công nợ có 8 cột, ở 1600px tỷ lệ cũ
+     chỉ chừa 901px cho bảng cần 960px nên cột thao tác bị cắt. */
+  grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+@media (max-width: 1100px) {
+  .fin-21 { grid-template-columns: minmax(0, 1fr); }
+}
+
+.fin-cot { display: grid; gap: 16px; align-items: start; }
+
+/* ---------- Ô số tiền trong bảng ---------- */
+.fin-tien { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fin-tien--thu { color: var(--green-700, #15803D); font-weight: 600; }
+.fin-tien--chi { color: var(--red-700, #B91C1C); font-weight: 600; }
+.fin-tien--no  { font-weight: 700; }
+.fin-mo { color: var(--text-2, #8A7C6E); }
+
+/* ---------- Khối phân bổ trong hộp thu tiền ---------- */
+.fin-pb {
+  border: 1px solid var(--border, #EFE6DA);
+  border-radius: 11px;
+  overflow: hidden;
+}
+.fin-pb__hd,
+.fin-pb__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) 110px 130px 110px;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+}
+.fin-pb__hd {
+  background: var(--primary-soft, #FDF1E7);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: .3px;
+  text-transform: uppercase;
+  color: var(--primary, #C2410C);
+}
+.fin-pb__row { border-top: 1px solid var(--border-soft, #F6EFE6); }
+.fin-pb__row b { font-size: 13.5px; }
+.fin-pb__row small { display: block; font-size: 11.5px; color: var(--text-2, #8A7C6E); }
+.fin-pb__row input {
+  width: 100%;
+  font-family: inherit;
+  font-size: 13px;
+  text-align: right;
+  padding: 6px 9px;
+  border: 1px solid var(--border, #EFE6DA);
+  border-radius: 8px;
+}
+.fin-pb__trong {
+  padding: 16px 12px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-2, #8A7C6E);
+}
+@media (max-width: 620px) {
+  /* Bốn cột trên điện thoại thì ô nhập chỉ còn ~40px, gõ số không nổi. */
+  .fin-pb__hd { display: none; }
+  .fin-pb__row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    row-gap: 6px;
+  }
+  .fin-pb__row > *:first-child { grid-column: 1 / -1; }
+}
+
+/* Dòng tổng dưới khối phân bổ. */
+.fin-pb__tong {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--border, #EFE6DA);
+  background: var(--bg-soft, #FCFAF7);
+  font-size: 13px;
+}
+.fin-pb__tong b { font-size: 15px; font-variant-numeric: tabular-nums; }
+
+/* ---------- Danh sách việc còn thiếu khi đóng sổ ---------- */
+.fin-viec { display: grid; gap: 9px; }
+.fin-viec__d {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border, #EFE6DA);
+  border-radius: 10px;
+}
+.fin-viec__ico {
+  width: 26px; height: 26px;
+  display: grid; place-items: center;
+  border-radius: 8px;
+  font-size: 14px;
+}
+.fin-viec__ico--ok { background: #DCFCE7; color: #15803D; }
+.fin-viec__ico--cho { background: #FEF3C7; color: #B45309; }
+.fin-viec__d b { display: block; font-size: 13.5px; }
+/* Mỗi <small> một dòng riêng: một ô việc hay có hai dòng phụ (lý do + người
+   lập), để mặc định inline thì hai dòng dính liền thành "...học kỳ INgười lập". */
+.fin-viec__d small { display: block; font-size: 12px; line-height: 1.5; color: var(--text-2, #8A7C6E); }
+.fin-viec__d small + small { margin-top: 2px; }
+
+/* ---------- Nhật ký thao tác ---------- */
+.fin-log {
+  display: grid;
+  gap: 8px;
+  max-height: 340px;
+  overflow: auto;
+  font-size: 12.5px;
+}
+.fin-log__d { display: grid; gap: 2px; padding-bottom: 8px; border-bottom: 1px solid var(--border-soft, #F6EFE6); }
+.fin-log__d:last-child { border-bottom: none; }
+.fin-log__d b { font-weight: 600; }
+.fin-log__d small { color: var(--text-2, #8A7C6E); }
+
+/* ---------- Phân hệ chưa dựng ---------- */
+.fin-sau {
+  padding: 34px 22px;
+  text-align: center;
+  border: 1px dashed var(--border, #E6D9C9);
+  border-radius: 12px;
+  background: var(--bg-soft, #FCFAF7);
+}
+.fin-sau h3 { margin: 0 0 6px; font-size: 15px; }
+.fin-sau p { margin: 0 auto 4px; max-width: 560px; font-size: 13px; color: var(--text-2, #6E645B); line-height: 1.6; }
+.fin-sau ul {
+  margin: 12px auto 0;
+  max-width: 560px;
+  text-align: left;
+  font-size: 13px;
+  color: var(--text-2, #6E645B);
+  line-height: 1.7;
+}
+
+/* Dòng phụ trong ô bảng: tên lớp nằm dưới tên học viên thay vì chiếm hẳn một
+   cột — hai thông tin này vốn đi cùng nhau, tách ra chỉ tốn chiều ngang. */
+.fin-phu {
+  display: block;
+  margin-top: 1px;
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--text-2, #8A7C6E);
+}
+
+/* ---------- Bảng công nợ: bề rộng cột do CSS quyết, không do nội dung ----------
+   Để bảng tự dàn thì một cái tên dài ("Nguyễn Ngọc Khánh Linh") đẩy cả bảng
+   rộng ra, cột thao tác bị cắt mất nửa nút. Cố định bề rộng các cột có nội dung
+   đoán trước được (tiền, trạng thái, nút), phần còn lại dành cho tên. */
+.fin-bang-no { table-layout: fixed; }
+.fin-bang-no th:nth-child(2), .fin-bang-no td:nth-child(2) { width: 92px; }
+.fin-bang-no th:nth-child(3), .fin-bang-no td:nth-child(3),
+.fin-bang-no th:nth-child(4), .fin-bang-no td:nth-child(4),
+.fin-bang-no th:nth-child(5), .fin-bang-no td:nth-child(5),
+.fin-bang-no th:nth-child(6), .fin-bang-no td:nth-child(6) { width: 92px; }
+.fin-bang-no th:nth-child(7), .fin-bang-no td:nth-child(7) { width: 118px; }
+.fin-bang-no th:nth-child(8), .fin-bang-no td:nth-child(8) { width: 172px; }
+/* Tên dài thì xuống dòng trong ô của nó, thay vì nong rộng cả bảng. */
+.fin-bang-no td:first-child b { overflow-wrap: anywhere; }

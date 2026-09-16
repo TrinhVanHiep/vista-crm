@@ -81,6 +81,10 @@ const ROLE_DEFAULT_ROUTES = {
   teacher: '/calendar-detail',
   staff: '/calendar-detail',
   student: '/monthly-scorecards',
+  // Kế toán chỉ có màn Tài chính. Thiếu dòng này thì getDefaultRouteForRole trả
+  // '/unauthorized' và họ đăng nhập xong là kẹt ở màn "Không đủ quyền" —
+  // có quyền gọi API nhưng không có đường vào.
+  accountant: '/finance',
 };
 
 export function getDefaultRouteForRole(role) {

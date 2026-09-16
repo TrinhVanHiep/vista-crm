@@ -45,7 +45,10 @@ export const ROUTE_PERMISSIONS = {
   // Hồ sơ học viên tách khỏi employeeProfile: đây là hồ sơ NGƯỜI HỌC, không phải
   // hồ sơ nhân sự, nên quyền cũng phải nói đúng điều đó.
   studentProfile: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager'],
-  finance: VAI_QUAN_TRI,
+  // Tài chính: mở thêm cho vai kế toán. Backend đã cho 'accountant' gọi API
+  // (users/permissions.py FINANCE_ROLE_NAMES); để lệch ở đây thì kế toán gọi
+  // được API nhưng RoleGuard chặn ngay ở cửa, không vào nổi màn hình.
+  finance: [...VAI_QUAN_TRI, 'accountant'],
   documents: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager'],
   settings: VAI_QUAN_TRI,
   accounts: VAI_QUAN_TRI,
