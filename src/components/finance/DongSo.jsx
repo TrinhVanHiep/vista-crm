@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-  dinhDangTien, khoaKy, kiemTraDongSo, layDanhSachKy, layNhatKy, loiApi,
+  dinhDangTien, khoaKy, kiemTraDongSo, layDanhSachKy, layNhatKy, loiApi, rutGonM,
   moLaiKy, taoKy, tongHopCongNo, tongHopSo,
 } from "../../services/financeService";
 import { Badge, Button, Card } from "../../ui";
@@ -106,14 +106,14 @@ export default function DongSo({ thang, nam, onNotice, laQuanTri }) {
       {loi ? <div className="alert red" style={{ marginBottom: 12 }}><span>⚠️</span><div>{loi}</div></div> : null}
 
       <div style={{
-        display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 14,
-      }}>
+        display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", gap: 14,
+      }} className="fin-v3-the">
         <StatCard label="Tổng thu trong kỳ" icon="check" tone="green" valueColor="green"
-                  value={`${dinhDangTien(soLieu.so?.tong_thu)} đ`} />
+                  value={`${rutGonM(soLieu.so?.tong_thu)} đ`} />
         <StatCard label="Tổng chi trong kỳ" icon="wallet" tone="red" valueColor="red"
-                  value={`${dinhDangTien(soLieu.so?.tong_chi)} đ`} />
+                  value={`${rutGonM(soLieu.so?.tong_chi)} đ`} />
         <StatCard label="Chênh lệch" icon="chart" tone="orange"
-                  value={`${dinhDangTien(soLieu.so?.chenh_lech)} đ`} />
+                  value={`${rutGonM(soLieu.so?.chenh_lech)} đ`} />
         <StatCard label="Trạng thái kỳ" icon="lock" tone={daKhoa ? "green" : "amber"} small
                   value={dangTai ? "..." : (ky?.status === "closed" ? "Đã khóa" : "Đang mở")}
                   note={daKhoa ? `${ky.closed_by_name || ""} ${thoiDiem(ky.closed_at)}`.trim() : "Chưa đóng sổ"} />

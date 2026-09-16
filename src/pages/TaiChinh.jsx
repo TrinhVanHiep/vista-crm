@@ -54,7 +54,7 @@ export default function TaiChinh() {
   const nam4 = [nam - 1, nam, nam + 1].filter((v, i, a) => a.indexOf(v) === i);
 
   return (
-    <Page>
+    <Page className="fin-v3">
       <PageHeader
         crumbs={[{ label: "Tổng quan", to: "/" }, { label: "Tài chính" }]}
         title="Tài chính"
@@ -85,7 +85,7 @@ export default function TaiChinh() {
       ) : null}
 
       <div style={{
-        display: "flex", gap: 26, marginTop: 4, marginBottom: 20,
+        display: "flex", gap: 26, marginTop: 4, marginBottom: 0,
         borderBottom: "1px solid " + mau.borderStrong, overflowX: "auto",
       }} role="tablist">
         {PHAN_HE.map(([ma, ten]) => {
@@ -111,6 +111,7 @@ export default function TaiChinh() {
         })}
       </div>
 
+      <div className="fin-v3-nen" style={{ marginTop: 18 }}>
       {tab === "overview" ? (
         <TongQuanTaiChinh thang={thang} nam={nam} onDoiTab={setTab} />
       ) : null}
@@ -172,6 +173,7 @@ export default function TaiChinh() {
           tam="Hiện lương vẫn xử lý ở mục Bảng lương cũ; phần nối vào sổ giao dịch làm sau."
         />
       ) : null}
+      </div>
     </Page>
   );
 }

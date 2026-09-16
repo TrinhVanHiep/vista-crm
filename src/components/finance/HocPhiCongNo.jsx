@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-  dinhDangTien, duyetGiamTru, lapPhaiThuHangLoat, layCongNo, layGiamTru,
-  loiApi, taoGiamTru, tongHopCongNo,
+  duyetGiamTru, lapPhaiThuHangLoat, layCongNo, layGiamTru,
+  loiApi, rutGonM, soDayDu, taoGiamTru, tongHopCongNo,
 } from "../../services/financeService";
 import { listClassroomsAll } from "../../services/calendarService";
 import HopThuTien from "./HopThuTien";
@@ -91,12 +91,14 @@ export default function HocPhiCongNo({ thang, nam, onNotice, laQuanTri }) {
   const duyet = async (dc) => {
     try {
       await duyetGiamTru(dc.id);
-      xong(`Đã duyệt ${dc.kind_display.toLowerCase()} ${dinhDangTien(dc.amount)} đ.`);
+      xong(`Đã duyệt ${dc.kind_display.toLowerCase()} ${soDayDu(dc.amount)} đ.`);
     } catch (e) {
       setLoi(loiApi(e, "Không duyệt được khoản giảm trừ."));
     }
   };
 
+  const trongHan = Math.max(
+    Number(tong?.tong_con_no || 0) - Number(tong?.no_qua_han || 0), 0);
   const tyLeThu = Number(tong?.tong_phai_thu) > 0
     ? Math.round((Number(tong.tong_da_thu) / Number(tong.tong_phai_thu)) * 100)
     : 0;
@@ -111,12 +113,12 @@ export default function HocPhiCongNo({ thang, nam, onNotice, laQuanTri }) {
     r.classroom_name || "—",
     r.kind_display,
     `${String(r.period_month).padStart(2, "0")}/${r.period_year}`,
-    <Num bold>{dinhDangTien(r.amount)}</Num>,
+    <Num bold>{soDayDu(r.amount)}</Num>,
     <Num tone={Number(r.adjusted_amount) ? "red" : undefined}>
-      {Number(r.adjusted_amount) ? `-${dinhDangTien(r.adjusted_amount)}` : 0}
+      {Number(r.adjusted_amount) ? `-${soDayDu(r.adjusted_amount)}` : 0}
     </Num>,
-    <Num>{dinhDangTien(r.paid_amount)}</Num>,
-    <Num bold tone={Number(r.balance) > 0 ? "red" : "green"}>{dinhDangTien(r.balance)}</Num>,
+    <Num>{soDayDu(r.paid_amount)}</Num>,
+    <Num bold tone={Number(r.balance) > 0 ? "red" : "green"}>{soDayDu(r.balance)}</Num>,
     r.status === "cancelled" ? (
       <Pill tone="grey">Đã hủy</Pill>
     ) : Number(r.balance) > 0 ? (
@@ -161,70 +163,74 @@ export default function HocPhiCongNo({ thang, nam, onNotice, laQuanTri }) {
       ) : null}
 
       <div style={{
-        display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
+        display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))",
         gap: 14, marginBottom: 14,
-      }}>
-        <StatCard label="Tổng phải thu" icon="doc" tone="orange"
-                  value={`${dinhDangTien(tong?.tong_phai_thu)} đ`}
-                  note={`${tong?.so_khoan || 0} khoản trong kỳ`} />
-        <StatCard label="Đã thu" icon="check" tone="green" valueColor="green"
-                  value={`${dinhDangTien(tong?.tong_da_thu)} đ`}
-                  note={tong?.tong_phai_thu > 0 ? `${tyLeThu}% khoản phải thu` : "—"} />
-        <StatCard label="Còn nợ" icon="warn" tone="red" valueColor="red"
-                  value={`${dinhDangTien(tong?.tong_con_no)} đ`}
-                  note={`Quá hạn ${dinhDangTien(tong?.no_qua_han)} đ`} />
-        <StatCard label="Giảm trừ đã duyệt" icon="people" tone="violet"
-                  value={`${dinhDangTien(tong?.tong_giam_tru)} đ`}
-                  note={choDuyet.length ? `${choDuyet.length} khoản chờ duyệt` : "Không có khoản chờ duyệt"} />
+      }} className="fin-v3-the">
+        <StatCard label="Tổng phát sinh phải thu" icon="doc" tone="orange"
+                  value={`${rutGonM(tong?.tong_phai_thu)} đ`}
+                  note="Học phí + phí khác" />
+        <StatCard label="Đã phân bổ thanh toán" icon="check" tone="green" valueColor="green"
+                  value={`${rutGonM(tong?.tong_da_thu)} đ`}
+                  note={tong?.tong_phai_thu > 0 ? `${tyLeThu}% tổng phải thu` : "—"} />
+        <StatCard label="Còn trong hạn" icon="wallet" tone="blue"
+                  value={`${rutGonM(trongHan)} đ`}
+                  note={`${tong?.so_khoan || 0} khoản phải thu`} />
+        <StatCard label="Quá hạn" icon="warn" tone="red" valueColor="red"
+                  value={`${rutGonM(tong?.no_qua_han)} đ`}
+                  note={choDuyet.length ? `${choDuyet.length} giảm trừ chờ duyệt` : "Chưa có khoản quá hạn"} />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0,3fr) minmax(0,1fr)", gap: 14, alignItems: "start" }}
-           className="fin-v3-21">
-        <Card style={{ paddingBottom: 20 }}>
-          <CardHead
-            title={`Học phí & công nợ học viên — ${String(thang).padStart(2, "0")}/${nam}`}
-            sub="Mỗi dòng là một khoản phải thu; thanh toán được phân bổ, không sửa trực tiếp số gốc."
-          />
-          <div style={{ padding: "16px 22px 0" }}>
-            <div style={{ border: "1px solid " + color.border, borderRadius: radius.md, overflow: "hidden" }}>
-              {dangTai ? (
-                <div style={{ padding: 28, textAlign: "center", fontSize: 13, color: color.muted }}>
-                  Đang tải...
-                </div>
-              ) : hang.length === 0 ? (
-                <div style={{ padding: 28, textAlign: "center", fontSize: 13, color: color.muted, lineHeight: 1.6 }}>
-                  Chưa có khoản phải thu nào trong kỳ này.
-                  <br />Bấm “Lập học phí cho lớp” hoặc dùng “Nhập từ Excel” để tạo.
-                </div>
-              ) : (
-                <Table columns={COT} rows={hang} align={CANH} />
-              )}
-            </div>
-            <div style={{ marginTop: 14 }}>
-              <NoteStrip>
-                <strong>Nguyên tắc kiểm soát:</strong> giảm học phí, học bổng, bảo lưu, chuyển kỳ,
-                hoàn tiền và hủy khoản phải thu phải tạo <strong>Adjustment</strong> riêng, có lý do
-                + người duyệt + audit log.
-              </NoteStrip>
-            </div>
-          </div>
-        </Card>
-
-        <Card style={{ paddingBottom: 18 }}>
-          <CardHead title="Giảm trừ chờ duyệt" sub="Người lập không tự duyệt được khoản của mình." />
-          <div style={{ padding: "14px 22px 0" }}>
-            {choDuyet.length === 0 ? (
-              <div style={{ fontSize: 13, color: color.muted, lineHeight: 1.6 }}>
-                Không có khoản nào chờ duyệt.
+      <Card style={{ paddingBottom: 20 }}>
+        <CardHead
+          title={`Học phí & công nợ học viên — ${String(thang).padStart(2, "0")}/${nam}`}
+          sub="Mỗi dòng là một khoản phải thu; thanh toán được phân bổ, không sửa trực tiếp số gốc."
+        />
+        <div style={{ padding: "16px 22px 0" }}>
+          <div style={{ border: "1px solid " + color.border, borderRadius: radius.md, overflow: "hidden" }}>
+            {dangTai ? (
+              <div style={{ padding: 28, textAlign: "center", fontSize: 13, color: color.muted }}>
+                Đang tải...
               </div>
-            ) : choDuyet.map((dc) => (
+            ) : hang.length === 0 ? (
+              <div style={{ padding: 28, textAlign: "center", fontSize: 13, color: color.muted, lineHeight: 1.6 }}>
+                Chưa có khoản phải thu nào trong kỳ này.
+                <br />Bấm “Lập học phí cho lớp” hoặc “Nhập từ Excel” để tạo.
+              </div>
+            ) : (
+              <Table columns={COT} rows={hang} align={CANH} />
+            )}
+          </div>
+          <div style={{ marginTop: 14 }}>
+            <NoteStrip>
+              <strong>Nguyên tắc kiểm soát:</strong> giảm học phí, học bổng, bảo lưu, chuyển kỳ,
+              hoàn tiền và hủy khoản phải thu phải tạo <strong>Adjustment</strong> riêng, có lý do
+              + người duyệt + audit log.
+            </NoteStrip>
+          </div>
+        </div>
+      </Card>
+
+      {/* Khối duyệt giảm trừ không có trong bản thiết kế nhưng là việc có thật.
+          Đặt DƯỚI bảng để bảng trải hết chiều ngang đúng như thiết kế, thay vì
+          bóp nó lại còn 3/4. */}
+      {choDuyet.length ? (
+        <Card style={{ marginTop: 14, paddingBottom: 18 }}>
+          <CardHead
+            title="Giảm trừ chờ duyệt"
+            sub="Người lập không tự duyệt được khoản của mình."
+            action={`${choDuyet.length} phiếu`}
+          />
+          <div style={{
+            padding: "14px 22px 0", display: "grid",
+            gridTemplateColumns: "repeat(auto-fill,minmax(285px,1fr))", gap: 12,
+          }}>
+            {choDuyet.map((dc) => (
               <div key={dc.id} style={{
-                border: "1px solid " + color.border, borderRadius: radius.md,
-                padding: "12px 14px", marginBottom: 10,
+                border: "1px solid " + color.border, borderRadius: radius.md, padding: "12px 14px",
               }}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" }}>
                   <div style={{ fontSize: 13.5, fontWeight: 700 }}>{dc.kind_display}</div>
-                  <Num bold tone="red">{dinhDangTien(dc.amount)}</Num>
+                  <Num bold tone="red">{soDayDu(dc.amount)}</Num>
                 </div>
                 <div style={{ fontSize: 12, color: color.muted, marginTop: 4, lineHeight: 1.5 }}>{dc.reason}</div>
                 <div style={{ fontSize: 11.5, color: color.faint, marginTop: 4 }}>
@@ -241,7 +247,7 @@ export default function HocPhiCongNo({ thang, nam, onNotice, laQuanTri }) {
             ))}
           </div>
         </Card>
-      </div>
+      ) : null}
 
       <HopThuTien mo={!!dangThu} hocVien={dangThu} onDong={() => setDangThu(null)} onXong={xong} />
       <NganKeoLapHangLoat
@@ -404,7 +410,7 @@ function NganKeoGiamTru({ khoan, onDong, onXong }) {
             {LOAI_GIAM.map(([m, t]) => <option key={m} value={m}>{t}</option>)}
           </select>
         </Field>
-        <Field label={`Số tiền giảm — tối đa ${dinhDangTien(khoan.balance)} đ`}>
+        <Field label={`Số tiền giảm — tối đa ${soDayDu(khoan.balance)} đ`}>
           <Input value={soTien} onChange={(e) => setSoTien(e.target.value.replace(/[^0-9]/g, ""))}
                  style={{ textAlign: "right" }} />
         </Field>

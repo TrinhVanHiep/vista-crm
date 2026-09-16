@@ -408,3 +408,48 @@
 @media (max-width: 1100px) {
   .fin-v3-21 { grid-template-columns: minmax(0, 1fr) !important; }
 }
+
+/* ---------- Phạm vi bản thiết kế Tài chính V2 (vista-export) ----------
+   Bản thiết kế dùng font Plus Jakarta Sans, nền #F5F7FA và bảng màu riêng.
+   Bọc trong .fin-v3 để nó KHÔNG lan sang các màn khác của app — đổi font toàn
+   cục là mọi màn còn lại đổi theo, không ai yêu cầu điều đó. */
+.fin-v3 {
+  font-family: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  color: #1B2430;
+  font-size: 13px;
+}
+.fin-v3 input,
+.fin-v3 select,
+.fin-v3 button,
+.fin-v3 textarea { font-family: inherit; }
+.fin-v3 input::placeholder { color: #A3ADBC; }
+
+/* Nền xám nhạt của bản thiết kế, trải hết vùng nội dung. Dùng ::before để không
+   phải đụng vào khung .v4page dùng chung. */
+.fin-v3-nen {
+  position: relative;
+  background: #F5F7FA;
+  margin: -18px -20px -36px;
+  padding: 18px 20px 36px;
+  min-height: calc(100vh - 120px);
+}
+@media (max-width: 760px) {
+  .fin-v3-nen { margin: -12px -12px -24px; padding: 12px 12px 24px; }
+}
+
+/* Dải 6 bước: ở màn hẹp thì xuống 3 rồi 2 cột, nếu không mỗi ô chỉ còn ~90px
+   và chữ vỡ thành từng chữ một. Thiết kế dùng inline style nên không có sẵn. */
+@media (max-width: 1400px) {
+  .fin-v3-buoc { flex-wrap: wrap; }
+  .fin-v3-buoc > div:not([style*="align-self"]) { flex: 1 1 30% !important; }
+}
+@media (max-width: 760px) {
+  .fin-v3-buoc > div:not([style*="align-self"]) { flex: 1 1 100% !important; }
+  /* Mũi tên giữa các bước vô nghĩa khi chúng xếp dọc. */
+  .fin-v3-buoc > div[style*="align-self"] { display: none !important; }
+}
+
+/* Hàng ô chỉ số: thiết kế cố định 4 cột. Chỉ co lại ở màn hẹp — để auto-fit thì
+   8 ô dàn thành 5+3 lệch hẳn so với 4+4 của thiết kế. */
+@media (max-width: 1250px) { .fin-v3-the { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; } }
+@media (max-width: 620px)  { .fin-v3-the { grid-template-columns: minmax(0, 1fr) !important; } }

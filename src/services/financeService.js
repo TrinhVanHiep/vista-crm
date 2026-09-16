@@ -128,6 +128,26 @@ export function dinhDangTien(so) {
   return Number.isFinite(n) ? n.toLocaleString("vi-VN") : "0";
 }
 
+/** 415000000 -> "415.0M" — cách rút gọn của bản thiết kế, dùng cho ô chỉ số.
+ *  Bảng thì vẫn in đủ số (xem `soDayDu`), vì kế toán đối chiếu từng đồng. */
+export function rutGonM(so) {
+  const n = Number(so || 0);
+  if (!Number.isFinite(n)) return "0";
+  const am = n < 0 ? "-" : "";
+  const t = Math.abs(n);
+  if (t >= 1e9) return `${am}${(t / 1e9).toFixed(2)}B`;
+  if (t >= 1e6) return `${am}${(t / 1e6).toFixed(1)}M`;
+  if (t >= 1e3) return `${am}${Math.round(t / 1e3)}K`;
+  return `${am}${t}`;
+}
+
+/** 1250000 -> "1,250,000" — đúng cách bản thiết kế in số trong bảng. */
+export function soDayDu(so) {
+  if (so === null || so === undefined || so === "") return "—";
+  const n = Number(so);
+  return Number.isFinite(n) ? n.toLocaleString("en-US") : "—";
+}
+
 /** 128600000 -> "128,6 tr" — cho các ô chỉ số, chỗ không đủ rộng ghi đủ số. */
 export function rutGonTien(so) {
   const n = Number(so || 0);
