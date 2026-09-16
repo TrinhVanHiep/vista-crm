@@ -89,13 +89,15 @@ export const LOAI_NHAP = [
 
 /** Tải file mẫu về máy. Trình duyệt không cho tải chéo miền bằng thẻ <a> có
  *  kèm token, nên phải lấy blob qua apiClient rồi tự tạo link tạm. */
-export async function taiFileMau(loai) {
+export async function taiFileMau(loai, { coDuLieu = false, thang, nam } = {}) {
   const res = await apiClient.get(`/finances/nhap-lieu/mau/${loai}/`, {
     responseType: "blob",
+    params: coDuLieu ? { "co-du-lieu": 1, month: thang, year: nam } : undefined,
   });
-  const ten = { "phai-thu": "Mau-khoan-phai-thu.xlsx",
+  const goc = { "phai-thu": "Mau-khoan-phai-thu.xlsx",
                 "phieu-thu": "Mau-phieu-thu.xlsx",
                 "khoan-chi": "Mau-khoan-chi.xlsx" }[loai] || "Mau.xlsx";
+  const ten = coDuLieu ? goc.replace(".xlsx", "-co-du-lieu.xlsx") : goc;
   const url = URL.createObjectURL(new Blob([res.data]));
   const a = document.createElement("a");
   a.href = url;

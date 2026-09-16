@@ -26,11 +26,11 @@ export default function NhapLieu({ mo, loaiBanDau, thang, nam, onDong, onXong })
 
   const chon = LOAI_NHAP.find((x) => x.ma === loai) || LOAI_NHAP[0];
 
-  const taiMau = async (ma) => {
+  const taiMau = async (ma, coDuLieu = false) => {
     setLoi("");
-    setDangTai(ma);
+    setDangTai(coDuLieu ? `${ma}+` : ma);
     try {
-      await taiFileMau(ma);
+      await taiFileMau(ma, { coDuLieu, thang, nam });
     } catch (e) {
       setLoi(loiApi(e, "Không tải được file mẫu."));
     } finally {
@@ -109,14 +109,31 @@ export default function NhapLieu({ mo, loaiBanDau, thang, nam, onDong, onXong })
           Các cột trong mẫu:
           <div style={{ color: color.ink70, marginTop: 4 }}>{chon.cot}</div>
         </div>
-        <Button
-          variant="outline"
-          onClick={() => taiMau(chon.ma)}
-          disabled={dangTai === chon.ma}
-          style={{ padding: "8px 14px", fontSize: 12.5 }}
-        >
-          {dangTai === chon.ma ? "Đang tải..." : `Tải mẫu ${chon.ten}`}
-        </Button>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <Button
+            variant="outline"
+            onClick={() => taiMau(chon.ma)}
+            disabled={!!dangTai}
+            style={{ padding: "8px 14px", fontSize: 12.5 }}
+          >
+            {dangTai === chon.ma ? "Đang tải..." : "Tải mẫu trống"}
+          </Button>
+          {/* Mẫu điền sẵn HỌC VIÊN THẬT của trung tâm: tải về là nhập lên được
+              ngay để nhìn thấy giao diện, khỏi phải tự gõ danh sách. */}
+          <Button
+            variant="ghost"
+            onClick={() => taiMau(chon.ma, true)}
+            disabled={!!dangTai}
+            style={{ padding: "8px 14px", fontSize: 12.5 }}
+          >
+            {dangTai === `${chon.ma}+` ? "Đang tải..." : "Tải mẫu có sẵn dữ liệu"}
+          </Button>
+        </div>
+        <div style={{ fontSize: 11.5, color: color.faint, marginTop: 9, lineHeight: 1.55 }}>
+          “Có sẵn dữ liệu” điền học viên thật của trung tâm vào kỳ đang chọn
+          ({String(thang).padStart(2, "0")}/{nam}), <b>số tiền chỉ là con số gợi ý</b> để
+          xem thử giao diện — sửa lại theo mức thu thật trước khi tải lên.
+        </div>
       </div>
 
       {/* Bước 3 — tải file lên */}
