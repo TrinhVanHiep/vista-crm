@@ -202,9 +202,14 @@ export default function HocPhiCongNo({ thang, nam, onNotice, laQuanTri }) {
           </div>
           <div style={{ marginTop: 14 }}>
             <NoteStrip>
-              <strong>Nguyên tắc kiểm soát:</strong> giảm học phí, học bổng, bảo lưu, chuyển kỳ,
-              hoàn tiền và hủy khoản phải thu phải tạo <strong>Adjustment</strong> riêng, có lý do
-              + người duyệt + audit log.
+              <strong>Nguyên tắc kiểm soát:</strong> giảm học phí, học bổng, bảo lưu, chuyển kỳ
+              và hủy khoản phải thu đều phải tạo <strong>khoản giảm trừ</strong> riêng, có lý do,
+              người lập và người duyệt — không sửa thẳng số gốc.
+              <br />
+              <span style={{ opacity: .85 }}>
+                Hoàn tiền mặt cho phụ huynh <strong>chưa làm được trên phần mềm</strong>: hiện phải
+                ghi thành một khoản chi ở “Sổ giao dịch &amp; Đối soát”.
+              </span>
             </NoteStrip>
           </div>
         </div>

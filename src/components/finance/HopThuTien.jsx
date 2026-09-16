@@ -59,7 +59,15 @@ export default function HopThuTien({ mo, hocVien, onDong, onXong }) {
         if (huy) return;
         setQuy(dsQuy);
         setTaiKhoan((cu) => cu || String(hopVoiPhuongThuc(dsQuy, "cash")?.id || ""));
-        const ds = Array.isArray(no) ? no : no?.results || [];
+        // API trả khoản MỚI nhất trước (Receivable.Meta.ordering). Đảo lại
+        // thành CŨ TRƯỚC để khớp với đường nhập Excel và với cách kế toán vẫn
+        // làm: trả nợ cũ xong mới tính nợ mới. Không đảo thì hai đường nhập
+        // cùng một nghiệp vụ lại cho ra kết quả khác nhau.
+        const ds = (Array.isArray(no) ? no : no?.results || []).slice().sort(
+          (a, b) => (a.period_year - b.period_year)
+            || (a.period_month - b.period_month)
+            || (a.id - b.id),
+        );
         setKhoanNo(ds);
         // Đề xuất trả hết các khoản đang nợ — đúng với thực tế phụ huynh nộp
         // trọn gói; muốn trả một phần thì sửa lại từng ô.
@@ -201,7 +209,7 @@ export default function HopThuTien({ mo, hocVien, onDong, onXong }) {
 
       <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 5 }}>Phân bổ thanh toán</div>
       <div style={{ fontSize: 12.5, color: color.muted, marginBottom: 14 }}>
-        Ưu tiên công nợ cũ trước, có thể chia cho nhiều khoản.
+        Xếp sẵn khoản cũ nhất lên đầu và điền hết số còn nợ — sửa lại từng ô nếu thu một phần.
       </div>
 
       <div style={{
