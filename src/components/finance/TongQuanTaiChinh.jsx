@@ -3,9 +3,9 @@ import {
   dinhDangTien, kiemTraDongSo, layCongNo, layDanhSachKy, layGiamTru,
   laySoGiaoDich, loiApi, tongHopCongNo, tongHopSo,
 } from "../../services/financeService";
-import { Badge, Button, Card } from "../../ui";
-import Ico from "./Ico";
-import TheSo, { HangThe } from "./TheSo";
+import { color, radius } from "./v3/theme";
+import { Button, Card, CardHead, Pill, StatCard } from "./v3/ui";
+import { Icon } from "./v3/icons";
 
 /**
  * Phân hệ "Tổng quan".
@@ -54,7 +54,7 @@ export default function TongQuanTaiChinh({ thang, nam, onDoiTab }) {
   const viec = [];
   if (d.choKhop?.length) {
     viec.push({
-      k: "khop", ico: "bank",
+      k: "khop", ico: "bank", tone: "amber",
       ten: `${d.choKhop.length} giao dịch ngân hàng chờ đối soát`,
       mo: "Chưa khớp hết thì không đóng sổ được.",
       tab: "ledger", nut: "Mở sổ giao dịch",
@@ -62,7 +62,7 @@ export default function TongQuanTaiChinh({ thang, nam, onDoiTab }) {
   }
   if (d.choDuyet?.length) {
     viec.push({
-      k: "duyet", ico: "receipt",
+      k: "duyet", ico: "doc", tone: "violet",
       ten: `${d.choDuyet.length} khoản giảm trừ chờ duyệt`,
       mo: d.choDuyet.map((x) => x.reason).slice(0, 2).join("; "),
       tab: "tuition", nut: "Xem và duyệt",
@@ -70,7 +70,7 @@ export default function TongQuanTaiChinh({ thang, nam, onDoiTab }) {
   }
   if (Number(d.congNo?.no_qua_han) > 0) {
     viec.push({
-      k: "quahan", ico: "alert",
+      k: "quahan", ico: "warn", tone: "red",
       ten: `Nợ quá hạn ${dinhDangTien(d.congNo.no_qua_han)} đ`,
       mo: d.quaHan?.length
         ? `Gồm ${d.quaHan.length}+ khoản, ví dụ ${d.quaHan[0].student_name}.`
@@ -81,91 +81,141 @@ export default function TongQuanTaiChinh({ thang, nam, onDoiTab }) {
 
   return (
     <>
-      {loi ? <div className="alert red" style={{ marginBottom: 12 }}><span>⚠️</span><div>{loi}</div></div> : null}
+      {loi ? (
+        <div style={{
+          background: color.redSoft, color: color.red, borderRadius: radius.md,
+          padding: "12px 14px", fontSize: 13, marginBottom: 14, lineHeight: 1.5,
+        }}>{loi}</div>
+      ) : null}
 
-      <HangThe>
-        <TheSo ico="receipt" mau="cam" nhan="Phải thu trong kỳ"
-               so={dangTai ? "..." : `${dinhDangTien(d.congNo?.tong_phai_thu)} đ`}
-               phu={`${d.congNo?.so_khoan || 0} khoản`} />
-        <TheSo ico="check" mau="xanh" nhan="Đã thu"
-               so={dangTai ? "..." : `${dinhDangTien(d.congNo?.tong_da_thu)} đ`}
-               phu={Number(d.congNo?.tong_phai_thu) > 0
-                 ? `${Math.round((Number(d.congNo.tong_da_thu) / Number(d.congNo.tong_phai_thu)) * 100)}% khoản phải thu`
-                 : "—"} />
-        <TheSo ico="alert" mau="do" nhan="Còn nợ"
-               so={dangTai ? "..." : `${dinhDangTien(d.congNo?.tong_con_no)} đ`}
-               phu={`Quá hạn ${dinhDangTien(d.congNo?.no_qua_han)} đ`} />
-        <TheSo ico="wallet" mau="tim" nhan="Chi trong kỳ"
-               so={dangTai ? "..." : `${dinhDangTien(d.so?.tong_chi)} đ`}
-               phu={`Chênh lệch ${dinhDangTien(d.so?.chenh_lech)} đ`} />
-      </HangThe>
+      <div style={{
+        display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 14,
+      }}>
+        <StatCard label="Phải thu trong kỳ" icon="doc" tone="orange"
+                  value={dangTai ? "..." : `${dinhDangTien(d.congNo?.tong_phai_thu)} đ`}
+                  note={`${d.congNo?.so_khoan || 0} khoản`} />
+        <StatCard label="Đã thu" icon="check" tone="green" valueColor="green"
+                  value={dangTai ? "..." : `${dinhDangTien(d.congNo?.tong_da_thu)} đ`}
+                  note={Number(d.congNo?.tong_phai_thu) > 0
+                    ? `${Math.round((Number(d.congNo.tong_da_thu) / Number(d.congNo.tong_phai_thu)) * 100)}% khoản phải thu`
+                    : "—"} />
+        <StatCard label="Còn nợ" icon="warn" tone="red" valueColor="red"
+                  value={dangTai ? "..." : `${dinhDangTien(d.congNo?.tong_con_no)} đ`}
+                  note={`Quá hạn ${dinhDangTien(d.congNo?.no_qua_han)} đ`} />
+        <StatCard label="Chi trong kỳ" icon="wallet" tone="violet"
+                  value={dangTai ? "..." : `${dinhDangTien(d.so?.tong_chi)} đ`}
+                  note={`Chênh lệch ${dinhDangTien(d.so?.chenh_lech)} đ`} />
+      </div>
 
-      <div className="fin-21" style={{ marginTop: 16 }}>
-        <Card title={<div><h3>Việc cần làm</h3>
-          <div className="sub">Những gì đang chặn kỳ {String(thang).padStart(2, "0")}/{nam} chốt sổ.</div></div>}>
-          {dangTai ? (
-            <div className="fin-pb__trong">Đang tải...</div>
-          ) : viec.length === 0 ? (
-            <div className="fin-viec">
-              <div className="fin-viec__d">
-                <div className="fin-viec__ico fin-viec__ico--ok"><Ico ten="check" co={15} /></div>
+      <div style={{
+        display: "grid", gridTemplateColumns: "minmax(0,2.2fr) minmax(0,1fr)",
+        gap: 14, marginTop: 14, alignItems: "start",
+      }} className="fin-v3-21">
+        <Card style={{ paddingBottom: 20 }}>
+          <CardHead
+            title="Việc cần làm"
+            sub={`Những gì đang chặn kỳ ${String(thang).padStart(2, "0")}/${nam} chốt sổ.`}
+          />
+          <div style={{ padding: "16px 22px 0" }}>
+            {dangTai ? (
+              <div style={{ fontSize: 13, color: color.muted }}>Đang tải...</div>
+            ) : viec.length === 0 ? (
+              <div style={{
+                display: "flex", gap: 12, alignItems: "flex-start",
+                border: "1px solid " + color.border, borderRadius: radius.md, padding: "14px 16px",
+              }}>
+                <div style={{
+                  width: 32, height: 32, borderRadius: radius.md, flex: "0 0 32px",
+                  background: color.greenSoft, color: color.green,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}><Icon.check size={17} /></div>
                 <div>
-                  <b>Không còn việc tồn</b>
-                  <small>Đã đối soát hết, không có khoản giảm trừ chờ duyệt và không có nợ quá hạn.</small>
+                  <div style={{ fontSize: 14, fontWeight: 700 }}>Không còn việc tồn</div>
+                  <div style={{ fontSize: 12.5, color: color.muted, marginTop: 3, lineHeight: 1.5 }}>
+                    Đã đối soát hết, không có khoản giảm trừ chờ duyệt và không có nợ quá hạn.
+                  </div>
                 </div>
               </div>
-            </div>
-          ) : (
-            <div className="fin-viec">
-              {viec.map((v) => (
-                <div className="fin-viec__d" key={v.k}>
-                  <div className="fin-viec__ico fin-viec__ico--cho"><Ico ten={v.ico} co={15} /></div>
-                  <div>
-                    <b>{v.ten}</b>
-                    <small>{v.mo}</small>
-                    <div style={{ marginTop: 7 }}>
-                      <Button size="sm" onClick={() => onDoiTab?.(v.tab)}>{v.nut}</Button>
+            ) : viec.map((v) => {
+              const Hinh = Icon[v.ico] || Icon.doc;
+              const t = { amber: [color.amberSoft, color.amber], violet: [color.violetSoft, color.violet], red: [color.redSoft, color.red] }[v.tone] || [color.orangeSoft, color.orange];
+              return (
+                <div key={v.k} style={{
+                  display: "flex", gap: 12, alignItems: "flex-start",
+                  border: "1px solid " + color.border, borderRadius: radius.md,
+                  padding: "14px 16px", marginBottom: 10,
+                }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: radius.md, flex: "0 0 32px",
+                    background: t[0], color: t[1],
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}><Hinh size={17} /></div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700 }}>{v.ten}</div>
+                    <div style={{ fontSize: 12.5, color: color.muted, marginTop: 3, lineHeight: 1.5 }}>
+                      {v.mo}
                     </div>
                   </div>
+                  <button type="button" onClick={() => onDoiTab?.(v.tab)} style={{
+                    background: "none", border: 0, padding: 0, cursor: "pointer",
+                    color: color.orange, fontSize: 13, fontWeight: 700, whiteSpace: "nowrap",
+                  }}>{v.nut}</button>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+
+        <div style={{ display: "grid", gap: 14 }}>
+          <Card style={{ paddingBottom: 18 }}>
+            <CardHead title="Quỹ & tài khoản" sub="Số dư đầu cộng thu trừ chi." />
+            <div style={{ padding: "12px 22px 0" }}>
+              {(d.so?.quy || []).length === 0 ? (
+                <div style={{ fontSize: 13, color: color.muted }}>Chưa khai báo quỹ nào.</div>
+              ) : (d.so?.quy || []).map((q) => (
+                <div key={q.id} style={{
+                  display: "flex", alignItems: "center", gap: 11, padding: "11px 0",
+                  borderBottom: "1px solid " + color.border,
+                }}>
+                  <div style={{
+                    width: 34, height: 34, borderRadius: radius.md, flex: "0 0 34px",
+                    background: q.kind === "bank" ? color.blueSoft : color.greenSoft,
+                    color: q.kind === "bank" ? color.blue : color.green,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}>
+                    {q.kind === "bank" ? <Icon.bank size={17} /> : <Icon.wallet size={17} />}
+                  </div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 600 }}>{q.name}</div>
+                    {q.bank_name ? (
+                      <div style={{ fontSize: 11.5, color: color.faint }}>{q.bank_name}</div>
+                    ) : null}
+                  </div>
+                  <div style={{
+                    fontSize: 13.5, fontWeight: 700, fontVariantNumeric: "tabular-nums",
+                    whiteSpace: "nowrap",
+                  }}>{dinhDangTien(q.current_balance)} đ</div>
                 </div>
               ))}
             </div>
-          )}
-        </Card>
-
-        <div className="fin-cot">
-          <Card title={<div><h3>Quỹ & tài khoản</h3></div>}>
-            {(d.so?.quy || []).length === 0 ? (
-              <div className="fin-pb__trong">Chưa khai báo quỹ nào.</div>
-            ) : (
-              <div className="fin-viec">
-                {(d.so?.quy || []).map((q) => (
-                  <div className="fin-viec__d" key={q.id}>
-                    <div className="fin-viec__ico fin-viec__ico--ok">
-                      <Ico ten={q.kind === "bank" ? "bank" : "wallet"} co={15} />
-                    </div>
-                    <div>
-                      <b>{q.name}</b>
-                      <small className="fin-tien">{dinhDangTien(q.current_balance)} đ</small>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
           </Card>
 
-          <Card title={<div><h3>Tình trạng kỳ</h3></div>}>
-            <div style={{ display: "grid", gap: 10 }}>
+          <Card style={{ paddingBottom: 18 }}>
+            <CardHead title="Tình trạng kỳ" />
+            <div style={{ padding: "12px 22px 0", display: "grid", gap: 11 }}>
               <div>
-                <Badge tone={d.ky?.status === "closed" ? "green" : "yellow"}>
+                <Pill tone={d.ky?.status === "closed" ? "green" : "amber"}>
                   {d.ky?.status === "closed" ? "Đã khóa sổ" : "Đang mở"}
-                </Badge>
+                </Pill>
               </div>
-              <p className="fin-mo" style={{ fontSize: 13, lineHeight: 1.6, margin: 0 }}>
+              <div style={{ fontSize: 12.5, color: color.muted, lineHeight: 1.6 }}>
                 {d.kiemTra?.detail || "Chưa có giao dịch nào trong kỳ."}
-              </p>
+              </div>
               <div>
-                <Button size="sm" onClick={() => onDoiTab?.("report")}>Sang phần đóng sổ</Button>
+                <Button variant="ghost" onClick={() => onDoiTab?.("report")}
+                        style={{ padding: "8px 14px", fontSize: 12.5 }}>
+                  Sang phần đóng sổ
+                </Button>
               </div>
             </div>
           </Card>

@@ -63,6 +63,57 @@ export const khoaKy = (id) => apiClient.post(`/finances/periods/${id}/khoa/`, {}
 export const moLaiKy = (id, ly_do) =>
   apiClient.post(`/finances/periods/${id}/mo-lai/`, { ly_do }).then(lay);
 
+/* ------------------------------------------------------ nhập liệu */
+
+/** Ba đường nhập: khoản phải thu, phiếu thu, khoản chi. */
+export const LOAI_NHAP = [
+  {
+    ma: "phai-thu",
+    ten: "Khoản phải thu",
+    mo: "Lập công nợ học phí, giáo trình, lệ phí thi cho nhiều em cùng lúc.",
+    cot: "Mã học viên · Họ và tên · Lớp · Loại khoản thu · Tháng · Năm · Số tiền · Hạn thu · Ghi chú",
+  },
+  {
+    ma: "phieu-thu",
+    ten: "Phiếu thu",
+    mo: "Ghi các lần đã thu tiền. Hệ thống tự phân bổ vào khoản đang nợ, cũ trước mới sau.",
+    cot: "Mã học viên · Họ và tên · Lớp · Ngày thu · Số tiền · Phương thức · Quỹ · Nội dung",
+  },
+  {
+    ma: "khoan-chi",
+    ten: "Khoản chi",
+    mo: "Ghi các khoản đã chi thẳng vào sổ giao dịch.",
+    cot: "Ngày chi · Nội dung · Số tiền · Quỹ / Tài khoản · Danh mục",
+  },
+];
+
+/** Tải file mẫu về máy. Trình duyệt không cho tải chéo miền bằng thẻ <a> có
+ *  kèm token, nên phải lấy blob qua apiClient rồi tự tạo link tạm. */
+export async function taiFileMau(loai) {
+  const res = await apiClient.get(`/finances/nhap-lieu/mau/${loai}/`, {
+    responseType: "blob",
+  });
+  const ten = { "phai-thu": "Mau-khoan-phai-thu.xlsx",
+                "phieu-thu": "Mau-phieu-thu.xlsx",
+                "khoan-chi": "Mau-khoan-chi.xlsx" }[loai] || "Mau.xlsx";
+  const url = URL.createObjectURL(new Blob([res.data]));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = ten;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  // Không thu hồi ngay: Safari huỷ lượt tải nếu URL bị gỡ trong cùng nhịp.
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
+/** Gửi file lên. KHÔNG tự đặt Content-Type — axios phải tự sinh boundary. */
+export function nhapFileTaiChinh(loai, tep, params = {}) {
+  const fd = new FormData();
+  fd.append("file", tep);
+  return apiClient.post(`/finances/nhap-lieu/nhap/${loai}/`, fd, { params }).then(lay);
+}
+
 /* --------------------------------------------------------- nhật ký */
 export const layNhatKy = (p = {}) =>
   apiClient.get("/finances/audit-logs/", { params: p }).then((r) => r.data);

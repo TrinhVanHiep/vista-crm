@@ -1,23 +1,29 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   dinhDangTien, duyetGiamTru, lapPhaiThuHangLoat, layCongNo, layGiamTru,
   loiApi, taoGiamTru, tongHopCongNo,
 } from "../../services/financeService";
 import { listClassroomsAll } from "../../services/calendarService";
-import { Badge, Button, Card, Field, Modal } from "../../ui";
-import Ico from "./Ico";
-import TheSo, { HangThe } from "./TheSo";
 import HopThuTien from "./HopThuTien";
+import NhapLieu from "./NhapLieu";
+import { color, radius } from "./v3/theme";
+import {
+  Button, Card, CardHead, Drawer, Field, Input, NoteStrip, Num, Pill,
+  Search, Select, StatCard, Table,
+} from "./v3/ui";
 
 /**
- * Phân hệ "Học phí & Công nợ".
+ * Phân hệ "Học phí & Công nợ", dựng theo bản thiết kế vista-export.
  *
  * Mỗi dòng là MỘT khoản phải thu, không phải một học viên: cùng một em tháng 9
- * có thể nợ học phí và nợ tiền giáo trình, hai khoản đó có hạn thu và lý do
- * giảm trừ khác nhau nên không gộp được vào một dòng.
+ * có thể nợ học phí và nợ tiền giáo trình, hai khoản đó hạn thu và lý do giảm
+ * trừ khác nhau nên không gộp được vào một dòng.
  */
 
-const TONE = { open: "red", partial: "yellow", paid: "green", cancelled: "gray" };
+const COT = ["Học viên", "Lớp", "Khoản thu", "Kỳ", "Phát sinh", "Điều chỉnh", "Đã thu", "Còn nợ", ""];
+const CANH = { 4: "right", 5: "right", 6: "right", 7: "right", 8: "right" };
+
+const TONE = { open: "red", partial: "amber", paid: "green", cancelled: "grey" };
 
 const LOAI_GIAM = [
   ["discount", "Giảm học phí"],
@@ -26,6 +32,18 @@ const LOAI_GIAM = [
   ["transfer", "Chuyển kỳ"],
   ["cancel", "Hủy khoản phải thu"],
 ];
+
+const LOC = [
+  ["con_no", "Trạng thái: Còn nợ"],
+  ["", "Trạng thái: Tất cả"],
+  ["paid", "Đã thu đủ"],
+  ["cancelled", "Đã hủy"],
+];
+
+const nutLink = {
+  background: "none", border: 0, padding: 0, cursor: "pointer",
+  color: color.orange, fontSize: 13, fontWeight: 700, whiteSpace: "nowrap",
+};
 
 export default function HocPhiCongNo({ thang, nam, onNotice, laQuanTri }) {
   const [ds, setDs] = useState([]);
@@ -38,9 +56,10 @@ export default function HocPhiCongNo({ thang, nam, onNotice, laQuanTri }) {
   const [tuKhoa, setTuKhoa] = useState("");
   const [trangThai, setTrangThai] = useState("con_no");
 
-  const [dangThu, setDangThu] = useState(null);      // học viên đang thu tiền
+  const [dangThu, setDangThu] = useState(null);
   const [moLapHangLoat, setMoLapHangLoat] = useState(false);
-  const [dangGiam, setDangGiam] = useState(null);    // khoản đang lập giảm trừ
+  const [dangGiam, setDangGiam] = useState(null);
+  const [moNhap, setMoNhap] = useState(false);
 
   const tai = useCallback(async () => {
     setDangTai(true);
@@ -61,13 +80,13 @@ export default function HocPhiCongNo({ thang, nam, onNotice, laQuanTri }) {
     }
   }, [thang, nam, trangThai, tuKhoa, taiLai]);
 
-  // Gõ tới đâu gọi API tới đó thì mỗi phím một lượt gọi.
+  // Gõ tới đâu gọi API tới đó thì mỗi phím một lượt gọi; chờ người dùng gõ xong.
   useEffect(() => {
     const h = setTimeout(tai, tuKhoa ? 400 : 0);
     return () => clearTimeout(h);
   }, [tai, tuKhoa]);
 
-  const xong = (loiNhan) => { onNotice?.(loiNhan); setTaiLai((v) => v + 1); };
+  const xong = (ln) => { onNotice?.(ln); setTaiLai((v) => v + 1); };
 
   const duyet = async (dc) => {
     try {
@@ -78,147 +97,161 @@ export default function HocPhiCongNo({ thang, nam, onNotice, laQuanTri }) {
     }
   };
 
+  const tyLeThu = Number(tong?.tong_phai_thu) > 0
+    ? Math.round((Number(tong.tong_da_thu) / Number(tong.tong_phai_thu)) * 100)
+    : 0;
+
+  const hang = ds.map((r) => [
+    <div key="hv">
+      <div style={{ fontWeight: 700 }}>{r.student_name}</div>
+      <div style={{ fontSize: 11.5, color: color.faint, marginTop: 2 }}>
+        {r.due_date ? `Hạn ${r.due_date.slice(8)}/${r.due_date.slice(5, 7)}` : "Chưa đặt hạn thu"}
+      </div>
+    </div>,
+    r.classroom_name || "—",
+    r.kind_display,
+    `${String(r.period_month).padStart(2, "0")}/${r.period_year}`,
+    <Num bold>{dinhDangTien(r.amount)}</Num>,
+    <Num tone={Number(r.adjusted_amount) ? "red" : undefined}>
+      {Number(r.adjusted_amount) ? `-${dinhDangTien(r.adjusted_amount)}` : 0}
+    </Num>,
+    <Num>{dinhDangTien(r.paid_amount)}</Num>,
+    <Num bold tone={Number(r.balance) > 0 ? "red" : "green"}>{dinhDangTien(r.balance)}</Num>,
+    r.status === "cancelled" ? (
+      <Pill tone="grey">Đã hủy</Pill>
+    ) : Number(r.balance) > 0 ? (
+      <div style={{ display: "flex", gap: 14, justifyContent: "flex-end" }}>
+        <button type="button" style={nutLink} onClick={() => setDangThu({
+          id: r.student, ten: r.student_name, lop: r.classroom_name,
+        })}>Ghi nhận thu</button>
+        <button type="button" style={{ ...nutLink, color: color.muted }}
+                onClick={() => setDangGiam(r)}>Giảm trừ</button>
+      </div>
+    ) : (
+      <span style={{ fontSize: 12.5, color: color.faint }}>Đã tất toán</span>
+    ),
+  ]);
+
   return (
     <>
-      {loi ? <div className="alert red" style={{ marginBottom: 12 }}><span>⚠️</span><div>{loi}</div></div> : null}
-
-      <HangThe>
-        <TheSo ico="receipt" mau="cam" nhan="Tổng phải thu"
-               so={`${dinhDangTien(tong?.tong_phai_thu)} đ`}
-               phu={`${tong?.so_khoan || 0} khoản trong kỳ`} />
-        <TheSo ico="check" mau="xanh" nhan="Đã thu"
-               so={`${dinhDangTien(tong?.tong_da_thu)} đ`}
-               phu={tong?.tong_phai_thu > 0
-                 ? `${Math.round((Number(tong.tong_da_thu) / Number(tong.tong_phai_thu)) * 100)}% khoản phải thu`
-                 : "—"} />
-        <TheSo ico="alert" mau="do" nhan="Còn nợ"
-               so={`${dinhDangTien(tong?.tong_con_no)} đ`}
-               phu={`Quá hạn ${dinhDangTien(tong?.no_qua_han)} đ`} />
-        <TheSo ico="users" mau="tim" nhan="Giảm trừ đã duyệt"
-               so={`${dinhDangTien(tong?.tong_giam_tru)} đ`}
-               phu={choDuyet.length ? `${choDuyet.length} khoản chờ duyệt` : "Không có khoản chờ duyệt"} />
-      </HangThe>
-
-      <div className="fin-bar" style={{ marginTop: 16 }}>
-        <input
-          type="search" placeholder="Tìm học viên, nội dung khoản thu..."
-          value={tuKhoa} onChange={(e) => setTuKhoa(e.target.value)}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
+        <Search
+          placeholder="Tìm học viên / nội dung khoản thu"
+          width={250}
+          value={tuKhoa}
+          onChange={setTuKhoa}
         />
-        <select value={trangThai} onChange={(e) => setTrangThai(e.target.value)}>
-          <option value="con_no">Đang còn nợ</option>
-          <option value="">Tất cả trạng thái</option>
-          <option value="paid">Đã thu đủ</option>
-          <option value="cancelled">Đã hủy</option>
-        </select>
-        <div className="fin-bar__cuoi">
-          <Button variant="primary" onClick={() => setMoLapHangLoat(true)}>
-            Lập học phí cho lớp
-          </Button>
+        <Select
+          options={LOC.map(([value, label]) => ({ value, label }))}
+          value={trangThai}
+          onChange={setTrangThai}
+          width={190}
+        />
+        <div style={{ marginLeft: "auto", display: "flex", gap: 10 }}>
+          <Button variant="ghost" icon="doc" onClick={() => setMoNhap(true)}>Nhập từ Excel</Button>
+          <Button icon="plus" onClick={() => setMoLapHangLoat(true)}>Lập học phí cho lớp</Button>
         </div>
       </div>
 
-      <div className="fin-21">
-        <Card
-          title={<div><h3>Khoản phải thu {String(thang).padStart(2, "0")}/{nam}</h3>
-            <div className="sub">Số tiền gốc không bị ghi đè: thu tiền sinh phân bổ, giảm tiền sinh khoản giảm trừ có lý do.</div></div>}
-        >
-          <div className="tbl-wrap">
-            <table className="tbl ui-table fin-bang-no" style={{ minWidth: "min(860px, 100%)" }}>
-              <thead>
-                <tr>
-                  <th>Học viên</th><th>Khoản</th>
-                  <th className="t-right">Phát sinh</th>
-                  <th className="t-right">Giảm trừ</th>
-                  <th className="t-right">Đã thu</th>
-                  <th className="t-right">Còn lại</th>
-                  <th>Trạng thái</th><th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {dangTai ? (
-                  <tr><td colSpan={8} className="ui-table__state">Đang tải...</td></tr>
-                ) : ds.length === 0 ? (
-                  <tr><td colSpan={8} className="ui-table__state">
-                    Chưa có khoản phải thu nào trong kỳ này. Bấm “Lập học phí cho lớp” để tạo.
-                  </td></tr>
-                ) : ds.map((r) => (
-                  <tr key={r.id}>
-                    <td>
-                      <b>{r.student_name}</b>
-                      {r.classroom_name ? <small className="fin-phu">Lớp {r.classroom_name}</small> : null}
-                    </td>
-                    <td>{r.kind_display}</td>
-                    <td className="t-right fin-tien">{dinhDangTien(r.amount)}</td>
-                    <td className="t-right fin-tien fin-mo">
-                      {Number(r.adjusted_amount) ? `-${dinhDangTien(r.adjusted_amount)}` : "—"}
-                    </td>
-                    <td className="t-right fin-tien fin-tien--thu">
-                      {Number(r.paid_amount) ? dinhDangTien(r.paid_amount) : "—"}
-                    </td>
-                    <td className="t-right fin-tien fin-tien--no">{dinhDangTien(r.balance)}</td>
-                    <td><Badge tone={TONE[r.status] || "gray"}>{r.status_display}</Badge></td>
-                    <td>
-                      <div className="cls-roster__nut">
-                        {r.status !== "paid" && r.status !== "cancelled" ? (
-                          <>
-                            <Button size="sm" variant="primary"
-                              onClick={() => setDangThu({
-                                id: r.student, ten: r.student_name, lop: r.classroom_name,
-                              })}>
-                              Thu tiền
-                            </Button>
-                            <Button size="sm" onClick={() => setDangGiam(r)}>Giảm trừ</Button>
-                          </>
-                        ) : null}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {loi ? (
+        <div style={{
+          background: color.redSoft, color: color.red, borderRadius: radius.md,
+          padding: "12px 14px", fontSize: 13, marginBottom: 14, lineHeight: 1.5,
+        }}>{loi}</div>
+      ) : null}
+
+      <div style={{
+        display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
+        gap: 14, marginBottom: 14,
+      }}>
+        <StatCard label="Tổng phải thu" icon="doc" tone="orange"
+                  value={`${dinhDangTien(tong?.tong_phai_thu)} đ`}
+                  note={`${tong?.so_khoan || 0} khoản trong kỳ`} />
+        <StatCard label="Đã thu" icon="check" tone="green" valueColor="green"
+                  value={`${dinhDangTien(tong?.tong_da_thu)} đ`}
+                  note={tong?.tong_phai_thu > 0 ? `${tyLeThu}% khoản phải thu` : "—"} />
+        <StatCard label="Còn nợ" icon="warn" tone="red" valueColor="red"
+                  value={`${dinhDangTien(tong?.tong_con_no)} đ`}
+                  note={`Quá hạn ${dinhDangTien(tong?.no_qua_han)} đ`} />
+        <StatCard label="Giảm trừ đã duyệt" icon="people" tone="violet"
+                  value={`${dinhDangTien(tong?.tong_giam_tru)} đ`}
+                  note={choDuyet.length ? `${choDuyet.length} khoản chờ duyệt` : "Không có khoản chờ duyệt"} />
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0,3fr) minmax(0,1fr)", gap: 14, alignItems: "start" }}
+           className="fin-v3-21">
+        <Card style={{ paddingBottom: 20 }}>
+          <CardHead
+            title={`Học phí & công nợ học viên — ${String(thang).padStart(2, "0")}/${nam}`}
+            sub="Mỗi dòng là một khoản phải thu; thanh toán được phân bổ, không sửa trực tiếp số gốc."
+          />
+          <div style={{ padding: "16px 22px 0" }}>
+            <div style={{ border: "1px solid " + color.border, borderRadius: radius.md, overflow: "hidden" }}>
+              {dangTai ? (
+                <div style={{ padding: 28, textAlign: "center", fontSize: 13, color: color.muted }}>
+                  Đang tải...
+                </div>
+              ) : hang.length === 0 ? (
+                <div style={{ padding: 28, textAlign: "center", fontSize: 13, color: color.muted, lineHeight: 1.6 }}>
+                  Chưa có khoản phải thu nào trong kỳ này.
+                  <br />Bấm “Lập học phí cho lớp” hoặc dùng “Nhập từ Excel” để tạo.
+                </div>
+              ) : (
+                <Table columns={COT} rows={hang} align={CANH} />
+              )}
+            </div>
+            <div style={{ marginTop: 14 }}>
+              <NoteStrip>
+                <strong>Nguyên tắc kiểm soát:</strong> giảm học phí, học bổng, bảo lưu, chuyển kỳ,
+                hoàn tiền và hủy khoản phải thu phải tạo <strong>Adjustment</strong> riêng, có lý do
+                + người duyệt + audit log.
+              </NoteStrip>
+            </div>
           </div>
         </Card>
 
-        <div className="fin-cot">
-          <Card title={<div><h3>Giảm trừ chờ duyệt</h3>
-            <div className="sub">Người lập không tự duyệt được khoản của mình.</div></div>}>
+        <Card style={{ paddingBottom: 18 }}>
+          <CardHead title="Giảm trừ chờ duyệt" sub="Người lập không tự duyệt được khoản của mình." />
+          <div style={{ padding: "14px 22px 0" }}>
             {choDuyet.length === 0 ? (
-              <div className="fin-pb__trong">Không có khoản nào chờ duyệt.</div>
-            ) : (
-              <div className="fin-viec">
-                {choDuyet.map((dc) => (
-                  <div className="fin-viec__d" key={dc.id}>
-                    <div className="fin-viec__ico fin-viec__ico--cho"><Ico ten="alert" co={15} /></div>
-                    <div>
-                      <b>{dc.kind_display} — {dinhDangTien(dc.amount)} đ</b>
-                      <small>{dc.reason}</small>
-                      <small className="fin-mo">Người lập: {dc.created_by_name || "—"}</small>
-                      {laQuanTri ? (
-                        <div style={{ marginTop: 7 }}>
-                          <Button size="sm" variant="primary" onClick={() => duyet(dc)}>Duyệt</Button>
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-                ))}
+              <div style={{ fontSize: 13, color: color.muted, lineHeight: 1.6 }}>
+                Không có khoản nào chờ duyệt.
               </div>
-            )}
-          </Card>
-        </div>
+            ) : choDuyet.map((dc) => (
+              <div key={dc.id} style={{
+                border: "1px solid " + color.border, borderRadius: radius.md,
+                padding: "12px 14px", marginBottom: 10,
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 700 }}>{dc.kind_display}</div>
+                  <Num bold tone="red">{dinhDangTien(dc.amount)}</Num>
+                </div>
+                <div style={{ fontSize: 12, color: color.muted, marginTop: 4, lineHeight: 1.5 }}>{dc.reason}</div>
+                <div style={{ fontSize: 11.5, color: color.faint, marginTop: 4 }}>
+                  Người lập: {dc.created_by_name || "—"}
+                </div>
+                {laQuanTri ? (
+                  <div style={{ marginTop: 10 }}>
+                    <Button style={{ padding: "7px 14px", fontSize: 12.5 }} onClick={() => duyet(dc)}>
+                      Duyệt
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </Card>
       </div>
 
-      <HopThuTien
-        mo={!!dangThu} hocVien={dangThu}
-        onDong={() => setDangThu(null)}
-        onXong={xong}
-      />
-      <HopLapHangLoat
+      <HopThuTien mo={!!dangThu} hocVien={dangThu} onDong={() => setDangThu(null)} onXong={xong} />
+      <NganKeoLapHangLoat
         mo={moLapHangLoat} thang={thang} nam={nam}
         onDong={() => setMoLapHangLoat(false)} onXong={xong}
       />
-      <HopGiamTru
-        khoan={dangGiam}
-        onDong={() => setDangGiam(null)} onXong={xong}
+      <NganKeoGiamTru khoan={dangGiam} onDong={() => setDangGiam(null)} onXong={xong} />
+      <NhapLieu
+        mo={moNhap} loaiBanDau="phai-thu" thang={thang} nam={nam}
+        onDong={() => setMoNhap(false)} onXong={xong}
       />
     </>
   );
@@ -226,7 +259,7 @@ export default function HocPhiCongNo({ thang, nam, onNotice, laQuanTri }) {
 
 /* ------------------------------------------------ lập học phí cho cả lớp */
 
-function HopLapHangLoat({ mo, thang, nam, onDong, onXong }) {
+function NganKeoLapHangLoat({ mo, thang, nam, onDong, onXong }) {
   const [lop, setLop] = useState([]);
   const [chonLop, setChonLop] = useState("");
   const [soTien, setSoTien] = useState("");
@@ -260,45 +293,59 @@ function HopLapHangLoat({ mo, thang, nam, onDong, onXong }) {
     }
   };
 
+  if (!mo) return null;
+
   return (
-    <Modal
-      open={mo} onClose={onDong}
+    <Drawer
       title="Lập học phí cho cả lớp"
-      subtitle={`Kỳ ${String(thang).padStart(2, "0")}/${nam}`}
+      sub={`Kỳ ${String(thang).padStart(2, "0")}/${nam}`}
+      onClose={onDong}
       footer={(
         <>
-          <Button onClick={onDong}>Hủy</Button>
-          <Button variant="primary" onClick={luu} loading={dangLuu}>Lập khoản phải thu</Button>
+          <Button variant="ghost" onClick={onDong}>Hủy</Button>
+          <Button onClick={luu} disabled={dangLuu}>
+            {dangLuu ? "Đang lập..." : "Lập khoản phải thu"}
+          </Button>
         </>
       )}
     >
-      {loi ? <div className="alert red" style={{ marginBottom: 12 }}><span>⚠️</span><div>{loi}</div></div> : null}
-      <div className="cls-form">
-        <Field label="Lớp" required>
-          <select value={chonLop} onChange={(e) => setChonLop(e.target.value)}>
+      {loi ? (
+        <div style={{
+          background: color.redSoft, color: color.red, borderRadius: radius.md,
+          padding: "11px 13px", fontSize: 13, marginBottom: 16,
+        }}>{loi}</div>
+      ) : null}
+
+      <div style={{ display: "grid", gap: 16, marginBottom: 20 }}>
+        <Field label="Lớp">
+          <select value={chonLop} onChange={(e) => setChonLop(e.target.value)} style={{
+            width: "100%", background: "#fff", border: "1px solid " + color.borderStrong,
+            borderRadius: radius.md, padding: "11px 12px", fontSize: 13.5, cursor: "pointer",
+          }}>
             <option value="">— Chọn lớp —</option>
             {lop.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
           </select>
         </Field>
-        <Field label="Học phí mỗi em" required>
-          <input type="number" min="0" step="1000" value={soTien}
-                 onChange={(e) => setSoTien(e.target.value)} />
+        <Field label="Học phí mỗi em">
+          <Input value={soTien} onChange={(e) => setSoTien(e.target.value.replace(/[^0-9]/g, ""))}
+                 style={{ textAlign: "right" }} />
         </Field>
-        <Field label="Hạn thu" hint="Quá hạn mà chưa thu đủ sẽ được đếm vào ô “nợ quá hạn”.">
-          <input type="date" value={hanThu} onChange={(e) => setHanThu(e.target.value)} />
+        <Field label="Hạn thu">
+          <Input type="date" value={hanThu} onChange={(e) => setHanThu(e.target.value)} />
         </Field>
       </div>
-      <p className="fin-mo" style={{ fontSize: 13, marginTop: 12, lineHeight: 1.6 }}>
-        Hệ thống bỏ qua em đã nghỉ học và em đã có khoản phải thu cùng loại trong kỳ,
-        nên bấm nhầm hai lần cũng không sinh ra hai khoản nợ.
-      </p>
-    </Modal>
+
+      <NoteStrip>
+        Hệ thống bỏ qua em đã nghỉ học và em đã có khoản phải thu cùng loại trong kỳ, nên bấm
+        nhầm hai lần cũng không sinh ra hai khoản nợ.
+      </NoteStrip>
+    </Drawer>
   );
 }
 
-/* ------------------------------------------------------- lập giảm trừ */
+/* ---------------------------------------------------------- lập giảm trừ */
 
-function HopGiamTru({ khoan, onDong, onXong }) {
+function NganKeoGiamTru({ khoan, onDong, onXong }) {
   const [loai, setLoai] = useState("discount");
   const [soTien, setSoTien] = useState("");
   const [lyDo, setLyDo] = useState("");
@@ -308,8 +355,6 @@ function HopGiamTru({ khoan, onDong, onXong }) {
   useEffect(() => {
     if (khoan) { setLoai("discount"); setSoTien(""); setLyDo(""); setLoi(""); }
   }, [khoan]);
-
-  const toiDa = useMemo(() => Number(khoan?.balance || 0), [khoan]);
 
   const luu = async () => {
     setLoi("");
@@ -329,38 +374,50 @@ function HopGiamTru({ khoan, onDong, onXong }) {
     }
   };
 
+  if (!khoan) return null;
+
   return (
-    <Modal
-      open={!!khoan} onClose={onDong}
+    <Drawer
       title="Lập khoản giảm trừ"
-      subtitle={khoan ? `${khoan.student_name} — ${khoan.kind_display} ${String(khoan.period_month).padStart(2, "0")}/${khoan.period_year}` : ""}
+      sub={`${khoan.student_name} — ${khoan.kind_display} ${String(khoan.period_month).padStart(2, "0")}/${khoan.period_year}`}
+      onClose={onDong}
       footer={(
         <>
-          <Button onClick={onDong}>Hủy</Button>
-          <Button variant="primary" onClick={luu} loading={dangLuu}>Gửi duyệt</Button>
+          <Button variant="ghost" onClick={onDong}>Hủy</Button>
+          <Button onClick={luu} disabled={dangLuu}>{dangLuu ? "Đang gửi..." : "Gửi duyệt"}</Button>
         </>
       )}
     >
-      {loi ? <div className="alert red" style={{ marginBottom: 12 }}><span>⚠️</span><div>{loi}</div></div> : null}
-      <div className="cls-form">
-        <Field label="Loại" required>
-          <select value={loai} onChange={(e) => setLoai(e.target.value)}>
+      {loi ? (
+        <div style={{
+          background: color.redSoft, color: color.red, borderRadius: radius.md,
+          padding: "11px 13px", fontSize: 13, marginBottom: 16,
+        }}>{loi}</div>
+      ) : null}
+
+      <div style={{ display: "grid", gap: 16, marginBottom: 20 }}>
+        <Field label="Loại">
+          <select value={loai} onChange={(e) => setLoai(e.target.value)} style={{
+            width: "100%", background: "#fff", border: "1px solid " + color.borderStrong,
+            borderRadius: radius.md, padding: "11px 12px", fontSize: 13.5, cursor: "pointer",
+          }}>
             {LOAI_GIAM.map(([m, t]) => <option key={m} value={m}>{t}</option>)}
           </select>
         </Field>
-        <Field label="Số tiền giảm" required hint={`Tối đa ${dinhDangTien(toiDa)} đ (phần chưa thu).`}>
-          <input type="number" min="0" max={toiDa} step="1000" value={soTien}
-                 onChange={(e) => setSoTien(e.target.value)} />
+        <Field label={`Số tiền giảm — tối đa ${dinhDangTien(khoan.balance)} đ`}>
+          <Input value={soTien} onChange={(e) => setSoTien(e.target.value.replace(/[^0-9]/g, ""))}
+                 style={{ textAlign: "right" }} />
         </Field>
-        <Field label="Lý do" required hint="Ghi rõ để sau này đối soát còn giải trình được.">
-          <input type="text" value={lyDo} onChange={(e) => setLyDo(e.target.value)}
+        <Field label="Lý do">
+          <Input value={lyDo} onChange={(e) => setLyDo(e.target.value)}
                  placeholder="Ví dụ: giảm 10% cho anh chị em ruột học cùng trung tâm" />
         </Field>
       </div>
-      <p className="fin-mo" style={{ fontSize: 13, marginTop: 12, lineHeight: 1.6 }}>
-        Khoản giảm trừ chỉ trừ vào công nợ sau khi được duyệt. Mọi thao tác đều
+
+      <NoteStrip>
+        Khoản giảm trừ chỉ trừ vào công nợ <strong>sau khi được duyệt</strong>. Mọi thao tác đều
         được ghi vào nhật ký kèm người lập và người duyệt.
-      </p>
-    </Modal>
+      </NoteStrip>
+    </Drawer>
   );
 }

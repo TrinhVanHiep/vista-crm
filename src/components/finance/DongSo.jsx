@@ -4,8 +4,8 @@ import {
   moLaiKy, taoKy, tongHopCongNo, tongHopSo,
 } from "../../services/financeService";
 import { Badge, Button, Card } from "../../ui";
-import Ico from "./Ico";
-import TheSo, { HangThe } from "./TheSo";
+import { StatCard } from "./v3/ui";
+import { Icon } from "./v3/icons";
 
 /**
  * Phân hệ "Báo cáo & Đóng sổ".
@@ -105,17 +105,19 @@ export default function DongSo({ thang, nam, onNotice, laQuanTri }) {
     <>
       {loi ? <div className="alert red" style={{ marginBottom: 12 }}><span>⚠️</span><div>{loi}</div></div> : null}
 
-      <HangThe>
-        <TheSo ico="check" mau="xanh" nhan="Tổng thu trong kỳ"
-               so={`${dinhDangTien(soLieu.so?.tong_thu)} đ`} />
-        <TheSo ico="wallet" mau="do" nhan="Tổng chi trong kỳ"
-               so={`${dinhDangTien(soLieu.so?.tong_chi)} đ`} />
-        <TheSo ico="chart" mau="cam" nhan="Chênh lệch"
-               so={`${dinhDangTien(soLieu.so?.chenh_lech)} đ`} />
-        <TheSo ico="lock" mau={daKhoa ? "xanh" : "vang"} nhan="Trạng thái kỳ"
-               so={dangTai ? "..." : (ky?.status === "closed" ? "Đã khóa" : "Đang mở")}
-               phu={daKhoa ? `${ky.closed_by_name || ""} ${thoiDiem(ky.closed_at)}`.trim() : "Chưa đóng sổ"} />
-      </HangThe>
+      <div style={{
+        display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 14,
+      }}>
+        <StatCard label="Tổng thu trong kỳ" icon="check" tone="green" valueColor="green"
+                  value={`${dinhDangTien(soLieu.so?.tong_thu)} đ`} />
+        <StatCard label="Tổng chi trong kỳ" icon="wallet" tone="red" valueColor="red"
+                  value={`${dinhDangTien(soLieu.so?.tong_chi)} đ`} />
+        <StatCard label="Chênh lệch" icon="chart" tone="orange"
+                  value={`${dinhDangTien(soLieu.so?.chenh_lech)} đ`} />
+        <StatCard label="Trạng thái kỳ" icon="lock" tone={daKhoa ? "green" : "amber"} small
+                  value={dangTai ? "..." : (ky?.status === "closed" ? "Đã khóa" : "Đang mở")}
+                  note={daKhoa ? `${ky.closed_by_name || ""} ${thoiDiem(ky.closed_at)}`.trim() : "Chưa đóng sổ"} />
+      </div>
 
       <div className="fin-21" style={{ marginTop: 16 }}>
         <Card title={<div><h3>Điều kiện đóng sổ {String(thang).padStart(2, "0")}/{nam}</h3>
@@ -127,7 +129,7 @@ export default function DongSo({ thang, nam, onNotice, laQuanTri }) {
               <div className="fin-viec">
                 {(kiemTra?.con_thieu || []).length === 0 ? (
                   <div className="fin-viec__d">
-                    <div className="fin-viec__ico fin-viec__ico--ok"><Ico ten="check" co={15} /></div>
+                    <div className="fin-viec__ico fin-viec__ico--ok"><Icon.check size={15} /></div>
                     <div>
                       <b>Đủ điều kiện đóng sổ</b>
                       <small>Đã đối soát hết giao dịch ngân hàng, không còn tiền chưa phân bổ
@@ -137,7 +139,7 @@ export default function DongSo({ thang, nam, onNotice, laQuanTri }) {
                 ) : (
                   kiemTra.con_thieu.map((v) => (
                     <div className="fin-viec__d" key={v}>
-                      <div className="fin-viec__ico fin-viec__ico--cho"><Ico ten="alert" co={15} /></div>
+                      <div className="fin-viec__ico fin-viec__ico--cho"><Icon.warn size={15} /></div>
                       <div>
                         <b>{v}</b>
                         <small>Xử lý xong mục này rồi quay lại đóng sổ.</small>
@@ -174,14 +176,14 @@ export default function DongSo({ thang, nam, onNotice, laQuanTri }) {
             <div className="sub">Hai số cùng tính theo NGÀY NỘP TIỀN nên bắt buộc phải khớp.</div></div>}>
             <div className="fin-viec">
               <div className="fin-viec__d">
-                <div className="fin-viec__ico fin-viec__ico--ok"><Ico ten="receipt" co={15} /></div>
+                <div className="fin-viec__ico fin-viec__ico--ok"><Icon.doc size={15} /></div>
                 <div>
                   <b>Tổng thu trên sổ giao dịch</b>
                   <small className="fin-tien">{dinhDangTien(soLieu.so?.tong_thu)} đ</small>
                 </div>
               </div>
               <div className="fin-viec__d">
-                <div className="fin-viec__ico fin-viec__ico--ok"><Ico ten="receipt" co={15} /></div>
+                <div className="fin-viec__ico fin-viec__ico--ok"><Icon.doc size={15} /></div>
                 <div>
                   <b>Tổng các phiếu thu trong kỳ</b>
                   <small className="fin-tien">{dinhDangTien(soLieu.so?.tong_phieu_thu)} đ</small>
@@ -189,7 +191,7 @@ export default function DongSo({ thang, nam, onNotice, laQuanTri }) {
               </div>
               <div className="fin-viec__d">
                 <div className={`fin-viec__ico fin-viec__ico--${khopSo ? "ok" : "cho"}`}>
-                  <Ico ten={khopSo ? "check" : "alert"} co={15} />
+                  {khopSo ? <Icon.check size={15} /> : <Icon.warn size={15} />}
                 </div>
                 <div>
                   <b>{khopSo ? "Sổ khớp phiếu thu" : "Sổ chưa khớp phiếu thu"}</b>
@@ -207,7 +209,7 @@ export default function DongSo({ thang, nam, onNotice, laQuanTri }) {
             <div className="sub">Tính theo kỳ của khoản phải thu, KHÔNG theo ngày nộp tiền.</div></div>}>
             <div className="fin-viec">
               <div className="fin-viec__d">
-                <div className="fin-viec__ico fin-viec__ico--ok"><Ico ten="chart" co={15} /></div>
+                <div className="fin-viec__ico fin-viec__ico--ok"><Icon.chart size={15} /></div>
                 <div>
                   <b>Đã thu cho các khoản của kỳ này</b>
                   <small className="fin-tien">{dinhDangTien(soLieu.congNo?.tong_da_thu)} đ</small>
@@ -220,7 +222,7 @@ export default function DongSo({ thang, nam, onNotice, laQuanTri }) {
                 </div>
               </div>
               <div className="fin-viec__d">
-                <div className="fin-viec__ico fin-viec__ico--cho"><Ico ten="alert" co={15} /></div>
+                <div className="fin-viec__ico fin-viec__ico--cho"><Icon.warn size={15} /></div>
                 <div>
                   <b>Còn phải thu cuối kỳ</b>
                   <small className="fin-tien">{dinhDangTien(soLieu.congNo?.tong_con_no)} đ</small>

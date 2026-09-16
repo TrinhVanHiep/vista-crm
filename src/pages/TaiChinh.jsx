@@ -7,7 +7,7 @@ import HocPhiCongNo from "../components/finance/HocPhiCongNo";
 import SoGiaoDich from "../components/finance/SoGiaoDich";
 import TongQuanTaiChinh from "../components/finance/TongQuanTaiChinh";
 import "../styles/finance.css";
-import Ico from "../components/finance/Ico";
+import { color as mau } from "../components/finance/v3/theme";
 import { Page, PageHeader } from "../ui";
 
 /**
@@ -74,24 +74,41 @@ export default function TaiChinh() {
       />
 
       {thongBao ? (
-        <div className="alert green" style={{ marginBottom: 12 }}>
-          <Ico ten="check" co={17} /><div>{thongBao}</div>
-        </div>
+        /* Toast góc phải dưới theo bản thiết kế — không chiếm chỗ trong luồng
+           nội dung nên bảng không bị nhảy lên xuống mỗi lần thao tác xong. */
+        <div style={{
+          position: "fixed", right: 24, bottom: 24, zIndex: 300,
+          background: mau.navy, color: "#fff", borderRadius: 10,
+          padding: "13px 20px", fontSize: 13.5, fontWeight: 600,
+          boxShadow: "0 8px 24px rgba(27,36,48,0.10)", maxWidth: "min(420px, 90vw)",
+        }}>{thongBao}</div>
       ) : null}
 
-      <div className="fin-tabs" role="tablist">
-        {PHAN_HE.map(([ma, ten]) => (
-          <button
-            key={ma}
-            type="button"
-            role="tab"
-            aria-selected={tab === ma}
-            className={tab === ma ? "is-active" : ""}
-            onClick={() => setTab(ma)}
-          >
-            {ten}
-          </button>
-        ))}
+      <div style={{
+        display: "flex", gap: 26, marginTop: 4, marginBottom: 20,
+        borderBottom: "1px solid " + mau.borderStrong, overflowX: "auto",
+      }} role="tablist">
+        {PHAN_HE.map(([ma, ten]) => {
+          const dang = tab === ma;
+          return (
+            <button
+              key={ma}
+              type="button"
+              role="tab"
+              aria-selected={dang}
+              onClick={() => setTab(ma)}
+              style={{
+                background: "none", border: 0, cursor: "pointer", padding: "0 2px 12px",
+                fontSize: 14, whiteSpace: "nowrap", flex: "0 0 auto",
+                borderBottom: "2.5px solid " + (dang ? mau.orange : "transparent"),
+                color: dang ? mau.orange : mau.muted,
+                fontWeight: dang ? 700 : 500,
+              }}
+            >
+              {ten}
+            </button>
+          );
+        })}
       </div>
 
       {tab === "overview" ? (

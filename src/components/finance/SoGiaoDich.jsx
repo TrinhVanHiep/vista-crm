@@ -4,9 +4,10 @@ import {
   xacNhanKhop,
 } from "../../services/financeService";
 import { Badge, Button, Card, Field, Modal } from "../../ui";
-import Ico from "./Ico";
-import TheSo, { HangThe } from "./TheSo";
+import { StatCard } from "./v3/ui";
+import { Icon } from "./v3/icons";
 import HopQuy from "./HopQuy";
+import NhapLieu from "./NhapLieu";
 
 /**
  * Phân hệ "Sổ giao dịch & Đối soát".
@@ -36,6 +37,7 @@ export default function SoGiaoDich({ thang, nam, onNotice }) {
   const [locKhop, setLocKhop] = useState("");  // trạng thái đối soát
   const [moGhiSo, setMoGhiSo] = useState(false);
   const [suaQuyNao, setSuaQuyNao] = useState(null); // {} = thêm mới, {id..} = sửa
+  const [moNhap, setMoNhap] = useState(false);
 
   const tai = useCallback(async () => {
     setDangTai(true);
@@ -74,17 +76,20 @@ export default function SoGiaoDich({ thang, nam, onNotice }) {
     <>
       {loi ? <div className="alert red" style={{ marginBottom: 12 }}><span>⚠️</span><div>{loi}</div></div> : null}
 
-      <HangThe>
-        <TheSo ico="check" mau="xanh" nhan="Tổng thu trong kỳ"
-               so={`${dinhDangTien(tong?.tong_thu)} đ`} phu={`${tong?.so_giao_dich || 0} giao dịch`} />
-        <TheSo ico="wallet" mau="do" nhan="Tổng chi trong kỳ"
-               so={`${dinhDangTien(tong?.tong_chi)} đ`} />
-        <TheSo ico="chart" mau="cam" nhan="Chênh lệch thu chi"
-               so={`${dinhDangTien(tong?.chenh_lech)} đ`} />
-        <TheSo ico="bank" mau={tong?.chua_doi_soat ? "vang" : "xanh"} nhan="Chờ đối soát"
-               so={`${tong?.chua_doi_soat || 0} giao dịch`}
-               phu={tong?.chua_doi_soat ? "Phải khớp hết mới đóng sổ được" : "Đã khớp hết"} />
-      </HangThe>
+      <div style={{
+        display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 14,
+      }}>
+        <StatCard label="Tổng thu trong kỳ" icon="check" tone="green" valueColor="green"
+                  value={`${dinhDangTien(tong?.tong_thu)} đ`}
+                  note={`${tong?.so_giao_dich || 0} giao dịch`} />
+        <StatCard label="Tổng chi trong kỳ" icon="wallet" tone="red" valueColor="red"
+                  value={`${dinhDangTien(tong?.tong_chi)} đ`} />
+        <StatCard label="Chênh lệch thu chi" icon="chart" tone="orange"
+                  value={`${dinhDangTien(tong?.chenh_lech)} đ`} />
+        <StatCard label="Chờ đối soát" icon="bank" tone={tong?.chua_doi_soat ? "amber" : "green"}
+                  value={`${tong?.chua_doi_soat || 0} giao dịch`}
+                  note={tong?.chua_doi_soat ? "Phải khớp hết mới đóng sổ được" : "Đã khớp hết"} />
+      </div>
 
       <div className="fin-bar" style={{ marginTop: 16 }}>
         <select value={loc} onChange={(e) => setLoc(e.target.value)}>
@@ -99,6 +104,7 @@ export default function SoGiaoDich({ thang, nam, onNotice }) {
           <option value="not_required">Không cần đối soát</option>
         </select>
         <div className="fin-bar__cuoi">
+          <Button onClick={() => setMoNhap(true)}>Nhập khoản chi từ Excel</Button>
           <Button variant="primary" onClick={() => setMoGhiSo(true)}>Ghi giao dịch</Button>
         </div>
       </div>
@@ -164,7 +170,7 @@ export default function SoGiaoDich({ thang, nam, onNotice }) {
                 {(tong?.quy || []).map((q) => (
                   <div className="fin-viec__d" key={q.id}>
                     <div className="fin-viec__ico fin-viec__ico--ok">
-                      <Ico ten={q.kind === "bank" ? "bank" : "wallet"} co={15} />
+                      {q.kind === "bank" ? <Icon.bank size={15} /> : <Icon.wallet size={15} />}
                     </div>
                     <div>
                       <b>{q.name}</b>
@@ -198,6 +204,10 @@ export default function SoGiaoDich({ thang, nam, onNotice }) {
       <HopQuy
         mo={!!suaQuyNao} quy={suaQuyNao?.id ? suaQuyNao : null}
         onDong={() => setSuaQuyNao(null)} onXong={xong}
+      />
+      <NhapLieu
+        mo={moNhap} loaiBanDau="khoan-chi" thang={thang} nam={nam}
+        onDong={() => setMoNhap(false)} onXong={xong}
       />
     </>
   );

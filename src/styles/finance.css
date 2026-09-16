@@ -402,3 +402,9 @@
   gap: 8px;
 }
 .fin-nk .fin-pb__row b { font-size: 13px; }
+
+/* Bố cục 2 cột của các màn Tài chính dựng theo bản thiết kế mới. Thiết kế dùng
+   inline style nên không có media query; khai ở đây để màn hẹp còn co lại được. */
+@media (max-width: 1100px) {
+  .fin-v3-21 { grid-template-columns: minmax(0, 1fr) !important; }
+}

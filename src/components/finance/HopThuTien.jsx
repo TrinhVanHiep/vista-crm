@@ -2,22 +2,25 @@ import { useEffect, useMemo, useState } from "react";
 import {
   dinhDangTien, ghiNhanThuTien, layCongNo, layDanhSachQuy, loiApi, moTaGon,
 } from "../../services/financeService";
-import { Badge, Button, Field } from "../../ui";
-import NganKeo from "./NganKeo";
+import { Button, Drawer, Field, Input, NoteStrip, Num } from "./v3/ui";
+import { color, radius } from "./v3/theme";
 
 /**
- * Hộp ghi nhận thu tiền — đúng vòng nghiệp vụ của spec:
- *   Thu tiền -> Phân bổ vào từng khoản phải thu -> Sổ giao dịch.
+ * Ngăn kéo ghi nhận thu tiền — dựng theo bản thiết kế vista-export.
  *
- * Điểm khác biệt so với bản cũ: KHÔNG có ô "còn thiếu" để gõ đè. Người dùng
- * nhập số tiền thực nhận rồi chia vào các khoản đang nợ; số gốc không ai sửa
- * được. Muốn bớt tiền phải lập khoản giảm trừ có lý do.
+ * Đúng vòng nghiệp vụ của tài liệu: Thu tiền -> Phân bổ vào từng khoản phải thu
+ * -> Sổ giao dịch. KHÔNG có ô "còn thiếu" để gõ đè: người dùng nhập số tiền
+ * thực nhận rồi chia vào các khoản đang nợ, số gốc không ai sửa được.
+ *
+ * Khác bản thiết kế một điểm: thiết kế chỉ phân bổ cho MỘT khoản đang chọn, ở
+ * đây liệt kê MỌI khoản em đó đang nợ và tự đề xuất chia — phụ huynh thường nộp
+ * trọn gói cho cả học phí lẫn tiền giáo trình trong một lần.
  */
 
 const PHUONG_THUC = [
   ["cash", "Tiền mặt"],
   ["transfer", "Chuyển khoản"],
-  ["card", "Thẻ"],
+  ["card", "Thẻ / POS"],
   ["other", "Khác"],
 ];
 
@@ -41,10 +44,10 @@ export default function HopThuTien({ mo, hocVien, onDong, onXong }) {
   const [taiKhoan, setTaiKhoan] = useState("");
   const [soTien, setSoTien] = useState("");
   const [ghiChu, setGhiChu] = useState("");
-  const [phanBo, setPhanBo] = useState({}); // { [receivableId]: "số tiền" }
+  const [phanBo, setPhanBo] = useState({});
 
   useEffect(() => {
-    if (!mo || !hocVien?.id) return;
+    if (!mo || !hocVien?.id) return undefined;
     let huy = false;
     setDangTai(true);
     setLoi("");
@@ -58,8 +61,8 @@ export default function HopThuTien({ mo, hocVien, onDong, onXong }) {
         setTaiKhoan((cu) => cu || String(hopVoiPhuongThuc(dsQuy, "cash")?.id || ""));
         const ds = Array.isArray(no) ? no : no?.results || [];
         setKhoanNo(ds);
-        // Mặc định đề xuất trả hết các khoản đang nợ — đúng với thực tế phụ
-        // huynh nộp trọn gói; muốn trả một phần thì sửa lại từng ô.
+        // Đề xuất trả hết các khoản đang nợ — đúng với thực tế phụ huynh nộp
+        // trọn gói; muốn trả một phần thì sửa lại từng ô.
         const goiY = {};
         let tong = 0;
         ds.forEach((r) => {
@@ -74,23 +77,19 @@ export default function HopThuTien({ mo, hocVien, onDong, onXong }) {
     return () => { huy = true; };
   }, [mo, hocVien?.id]);
 
-  /* Chọn "Tiền mặt" mà quỹ vẫn là tài khoản ngân hàng thì giao dịch bị xếp
-     nhầm vào danh sách chờ đối soát, rồi cuối tháng không bao giờ khớp được với
-     sao kê. Đổi phương thức là gợi ý luôn quỹ tương ứng; người dùng vẫn đổi lại
-     được nếu trung tâm có cách làm khác. */
-  const doiPhuongThuc = (m) => {
-    setPhuongThuc(m);
-    const hop = hopVoiPhuongThuc(quy, m);
-    if (hop) setTaiKhoan(String(hop.id));
-  };
-
   const tongPhanBo = useMemo(
     () => Object.values(phanBo).reduce((t, v) => t + (Number(v) || 0), 0),
     [phanBo],
   );
   const conThua = (Number(soTien) || 0) - tongPhanBo;
 
-  const datPhanBo = (id, gt) => setPhanBo((cu) => ({ ...cu, [id]: gt }));
+  // Chọn "Tiền mặt" mà quỹ vẫn là tài khoản ngân hàng thì giao dịch bị xếp nhầm
+  // vào hàng chờ đối soát, rồi cuối tháng không bao giờ khớp được sao kê.
+  const doiPhuongThuc = (m) => {
+    setPhuongThuc(m);
+    const hop = hopVoiPhuongThuc(quy, m);
+    if (hop) setTaiKhoan(String(hop.id));
+  };
 
   const luu = async () => {
     setLoi("");
@@ -127,54 +126,93 @@ export default function HopThuTien({ mo, hocVien, onDong, onXong }) {
     }
   };
 
+  if (!mo) return null;
+
+  const oTien = { padding: "8px 10px", fontSize: 13, textAlign: "right" };
+
   return (
-    <NganKeo
-      mo={mo}
-      onDong={onDong}
-      tieuDe="Ghi nhận thu tiền"
-      moTa={hocVien?.ten ? `${hocVien.ten}${hocVien.lop ? ` — lớp ${hocVien.lop}` : ""}` : ""}
-      chan={(
+    <Drawer
+      title="Ghi nhận thu tiền"
+      sub={hocVien?.ten ? `${hocVien.ten}${hocVien.lop ? ` — ${hocVien.lop}` : ""}` : ""}
+      width={620}
+      onClose={onDong}
+      footer={(
         <>
-          <Button onClick={onDong}>Hủy</Button>
-          <Button variant="primary" onClick={luu} loading={dangLuu}>
-            Ghi nhận thu tiền
+          <Button variant="ghost" onClick={onDong}>Hủy</Button>
+          <Button onClick={luu} disabled={dangLuu}>
+            {dangLuu ? "Đang ghi..." : "Ghi nhận thu tiền"}
           </Button>
         </>
       )}
     >
-      {loi ? <div className="alert red" style={{ marginBottom: 12 }}><span>⚠️</span><div>{loi}</div></div> : null}
+      {loi ? (
+        <div style={{
+          background: color.redSoft, color: color.red, borderRadius: radius.md,
+          padding: "11px 13px", fontSize: 13, marginBottom: 16, lineHeight: 1.5,
+        }}>{loi}</div>
+      ) : null}
 
-      <div className="cls-form fin-nk__form" style={{ marginBottom: 16 }}>
-        <Field label="Ngày thu" required>
-          <input type="date" value={ngay} onChange={(e) => setNgay(e.target.value)} />
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+        <Field label="Ngày thu">
+          <Input type="date" value={ngay} onChange={(e) => setNgay(e.target.value)} />
         </Field>
-        <Field label="Phương thức" required>
-          <select value={phuongThuc} onChange={(e) => doiPhuongThuc(e.target.value)}>
+        <Field label="Phương thức">
+          <select
+            value={phuongThuc}
+            onChange={(e) => doiPhuongThuc(e.target.value)}
+            style={{
+              width: "100%", background: "#fff", border: "1px solid " + color.borderStrong,
+              borderRadius: radius.md, padding: "11px 12px", fontSize: 13.5, cursor: "pointer",
+            }}
+          >
             {PHUONG_THUC.map(([m, t]) => <option key={m} value={m}>{t}</option>)}
           </select>
         </Field>
-        <Field
-          label="Quỹ / tài khoản nhận"
-          required
-          hint="Chuyển khoản vào tài khoản ngân hàng sẽ được đưa vào danh sách chờ đối soát."
-        >
-          <select value={taiKhoan} onChange={(e) => setTaiKhoan(e.target.value)}>
+        <Field label="Tài khoản nhận">
+          <select
+            value={taiKhoan}
+            onChange={(e) => setTaiKhoan(e.target.value)}
+            style={{
+              width: "100%", background: "#fff", border: "1px solid " + color.borderStrong,
+              borderRadius: radius.md, padding: "11px 12px", fontSize: 13.5, cursor: "pointer",
+            }}
+          >
             {quy.map((q) => <option key={q.id} value={q.id}>{q.name}</option>)}
           </select>
         </Field>
-        <Field label="Số tiền thực nhận" required>
-          <input
-            type="number" min="0" step="1000" value={soTien}
-            onChange={(e) => setSoTien(e.target.value)}
+        <Field label="Số tiền thu">
+          <Input
+            value={soTien}
+            onChange={(e) => setSoTien(e.target.value.replace(/[^0-9]/g, ""))}
+            style={{ textAlign: "right" }}
           />
-        </Field>
-        <Field label="Nội dung / mã tham chiếu" hint="Ví dụ mã giao dịch trên sao kê, để đối soát cho nhanh.">
-          <input type="text" value={ghiChu} onChange={(e) => setGhiChu(e.target.value)} />
         </Field>
       </div>
 
-      <div className="fin-pb">
-        <div className="fin-pb__hd">
+      <div style={{ marginBottom: 24 }}>
+        <Field label="Nội dung / mã tham chiếu">
+          <Input
+            value={ghiChu}
+            onChange={(e) => setGhiChu(e.target.value)}
+            placeholder="Mã giao dịch trên sao kê, để đối soát cho nhanh"
+          />
+        </Field>
+      </div>
+
+      <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 5 }}>Phân bổ thanh toán</div>
+      <div style={{ fontSize: 12.5, color: color.muted, marginBottom: 14 }}>
+        Ưu tiên công nợ cũ trước, có thể chia cho nhiều khoản.
+      </div>
+
+      <div style={{
+        border: "1px solid " + color.border, borderRadius: radius.md,
+        overflow: "hidden", marginBottom: 16,
+      }}>
+        <div style={{
+          display: "grid", gridTemplateColumns: "1.6fr 1fr 1fr 0.9fr", gap: 12,
+          background: color.subtle, padding: "10px 14px", fontSize: 12, color: color.muted,
+          borderBottom: "1px solid " + color.border,
+        }}>
           <div>Khoản phải thu</div>
           <div style={{ textAlign: "right" }}>Còn nợ</div>
           <div style={{ textAlign: "right" }}>Phân bổ</div>
@@ -182,53 +220,73 @@ export default function HopThuTien({ mo, hocVien, onDong, onXong }) {
         </div>
 
         {dangTai ? (
-          <div className="fin-pb__trong">Đang tải công nợ...</div>
-        ) : khoanNo.length === 0 ? (
-          <div className="fin-pb__trong">
-            Học viên này không còn khoản nào đang nợ. Tiền thu vào sẽ được ghi nhận
-            là nộp trước, phân bổ sau khi lập khoản phải thu.
+          <div style={{ padding: "18px 14px", fontSize: 13, color: color.muted, textAlign: "center" }}>
+            Đang tải công nợ...
           </div>
-        ) : (
-          khoanNo.map((r) => {
-            const gan = Number(phanBo[r.id]) || 0;
-            const sau = Number(r.balance || 0) - gan;
-            return (
-              <div className="fin-pb__row" key={r.id}>
-                <div>
-                  <b>{r.kind_display} {String(r.period_month).padStart(2, "0")}/{r.period_year}</b>
-                  <small>{moTaGon(r.description) || r.classroom_name || "—"}</small>
+        ) : khoanNo.length === 0 ? (
+          <div style={{ padding: "18px 14px", fontSize: 13, color: color.muted, lineHeight: 1.6 }}>
+            Học viên này không còn khoản nào đang nợ. Tiền thu vào sẽ được ghi nhận là nộp trước,
+            phân bổ sau khi lập khoản phải thu.
+          </div>
+        ) : khoanNo.map((r) => {
+          const gan = Number(phanBo[r.id]) || 0;
+          const sau = Math.max(Number(r.balance || 0) - gan, 0);
+          return (
+            <div key={r.id} style={{
+              display: "grid", gridTemplateColumns: "1.6fr 1fr 1fr 0.9fr", gap: 12,
+              padding: "12px 14px", alignItems: "center",
+              borderTop: "1px solid " + color.border,
+            }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 600 }}>
+                  {r.kind_display} / {String(r.period_month).padStart(2, "0")}/{r.period_year}
                 </div>
-                <div className="fin-tien" style={{ textAlign: "right" }}>
-                  {dinhDangTien(r.balance)}
-                </div>
-                <div>
-                  <input
-                    type="number" min="0" max={r.balance} step="1000"
-                    value={phanBo[r.id] ?? ""}
-                    onChange={(e) => datPhanBo(r.id, e.target.value)}
-                  />
-                </div>
-                <div className="fin-tien" style={{ textAlign: "right" }}>
-                  {sau <= 0
-                    ? <Badge tone="green">Hết nợ</Badge>
-                    : dinhDangTien(sau)}
+                <div style={{
+                  fontSize: 11.5, color: color.faint, marginTop: 2,
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                }}>
+                  {moTaGon(r.description) || r.classroom_name || "—"}
                 </div>
               </div>
-            );
-          })
-        )}
+              <div style={{ textAlign: "right" }}><Num>{dinhDangTien(r.balance)}</Num></div>
+              <Input
+                value={phanBo[r.id] ?? ""}
+                onChange={(e) => setPhanBo((cu) => ({
+                  ...cu, [r.id]: e.target.value.replace(/[^0-9]/g, ""),
+                }))}
+                style={oTien}
+              />
+              <div style={{ textAlign: "right" }}>
+                <Num bold tone={sau === 0 ? "green" : "red"}>{dinhDangTien(sau)}</Num>
+              </div>
+            </div>
+          );
+        })}
 
-        <div className="fin-pb__tong">
-          <span>Đã phân bổ <b>{dinhDangTien(tongPhanBo)}</b> / {dinhDangTien(soTien || 0)} đ</span>
-          <span className={conThua < 0 ? "fin-tien--chi" : conThua > 0 ? "fin-mo" : "fin-tien--thu"}>
+        <div style={{
+          display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12,
+          padding: "11px 14px", background: color.subtle,
+          borderTop: "1px solid " + color.border, fontSize: 12.5,
+        }}>
+          <span>Đã phân bổ <Num bold>{dinhDangTien(tongPhanBo)}</Num> / {dinhDangTien(soTien || 0)} đ</span>
+          <span style={{
+            fontWeight: 700,
+            color: conThua < 0 ? color.red : conThua > 0 ? color.amber : color.green,
+          }}>
             {conThua < 0
               ? `Vượt ${dinhDangTien(-conThua)} đ`
               : conThua > 0
-                ? `Còn ${dinhDangTien(conThua)} đ chưa phân bổ (ghi nhận nộp trước)`
+                ? `Còn ${dinhDangTien(conThua)} đ chưa phân bổ`
                 : "Khớp"}
           </span>
         </div>
       </div>
-    </NganKeo>
+
+      <NoteStrip>
+        Sau khi ghi nhận: tạo <strong>Payment → Payment Allocation → Financial Transaction</strong> rồi
+        cập nhật công nợ. Giao dịch chuyển khoản sẽ ở trạng thái <strong>Chờ đối soát</strong> cho tới
+        khi khớp sao kê.
+      </NoteStrip>
+    </Drawer>
   );
 }
