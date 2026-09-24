@@ -293,7 +293,7 @@ export default function KpiScoreBoard({
       await apiClient.post("/kpi-frame/seed-default/");
       setTaiLai((v) => v + 1);
     } catch (error) {
-      setLoi(getErrorMessage(error, "Không tạo được khung chấm mặc định."));
+      setLoi(thongDiepLoi(error, "Không tạo được khung chấm mặc định."));
     } finally {
       setDangTaoKhung(false);
     }
