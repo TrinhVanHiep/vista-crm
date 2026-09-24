@@ -10,7 +10,7 @@ const ROUTE_ORDER = [
   { path: '/bao-cao-hoc-tap', allowedRoles: ROUTE_PERMISSIONS.studentLearningReport },
   { path: '/phieu-bao-cao/:scorecardId', allowedRoles: ROUTE_PERMISSIONS.parentReport },
   { path: '/quan-ly-lop', allowedRoles: ROUTE_PERMISSIONS.classManager },
-  { path: '/report-card', allowedRoles: ROUTE_PERMISSIONS.reportCard },
+  { path: '/bao-cao-ngay', allowedRoles: ROUTE_PERMISSIONS.dailyReport },
   { path: '/monthly-reports', allowedRoles: ROUTE_PERMISSIONS.monthlyReports },
   { path: '/truyen-thong', allowedRoles: ROUTE_PERMISSIONS.media },
   { path: '/hoc-phi', allowedRoles: ROUTE_PERMISSIONS.tuition },

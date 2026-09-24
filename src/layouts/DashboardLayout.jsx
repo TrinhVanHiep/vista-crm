@@ -174,8 +174,8 @@ const navItems = [
   },
   {
     label: "Báo cáo",
-    to: "/report-card",
-    allowedRoles: ROUTE_PERMISSIONS.reportCard,
+    to: "/bao-cao-ngay",
+    allowedRoles: ROUTE_PERMISSIONS.dailyReport,
     icon: navIcon(<path d="M4 20V10M10 20V4M16 20v-7M21 20H3" />),
   },
   {

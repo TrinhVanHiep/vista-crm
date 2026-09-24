@@ -3,6 +3,7 @@ import {
   dinhDangTien, ghiNhanThuTien, layCongNo, layDanhSachQuy, loiApi, moTaGon,
 } from "../../services/financeService";
 import { Button, Drawer, Field, Input, NoteStrip, Num } from "./v3/ui";
+import { khoaNgay } from "../../utils/khoangThoiGian";
 import { color, radius } from "./v3/theme";
 
 /**
@@ -24,7 +25,10 @@ const PHUONG_THUC = [
   ["other", "Khác"],
 ];
 
-const hom_nay = () => new Date().toISOString().slice(0, 10);
+// KHÔNG dùng toISOString(): nó quy về UTC, nên từ 00:00 đến 07:00 giờ Việt Nam
+// nó trả về NGÀY HÔM QUA. Kế toán ghi thu tiền sáng sớm sẽ bị ghi lùi một ngày,
+// và nếu hôm qua đã đóng sổ thì khoản thu bị chặn mà không hiểu vì sao.
+const hom_nay = () => khoaNgay(new Date());
 
 /** Tiền mặt -> quỹ tiền mặt; còn lại -> tài khoản ngân hàng. */
 function hopVoiPhuongThuc(dsQuy, phuongThuc) {
@@ -44,6 +48,7 @@ export default function HopThuTien({ mo, hocVien, onDong, onXong }) {
   const [taiKhoan, setTaiKhoan] = useState("");
   const [soTien, setSoTien] = useState("");
   const [ghiChu, setGhiChu] = useState("");
+  const [chungTu, setChungTu] = useState(null);
   const [phanBo, setPhanBo] = useState({});
 
   useEffect(() => {
@@ -51,6 +56,16 @@ export default function HopThuTien({ mo, hocVien, onDong, onXong }) {
     let huy = false;
     setDangTai(true);
     setLoi("");
+    // DỌN SẠCH form mỗi lần mở. Ngăn kéo này được mount một lần rồi dùng lại cho
+    // mọi học viên, nên không dọn thì số tiền, ghi chú, phân bổ và nhất là FILE
+    // CHỨNG TỪ của em mở trước còn nguyên khi mở cho em sau — kế toán bấm Lưu là
+    // biên lai của em A nằm trong khoản thu của em B, sai cả sổ lẫn hồ sơ.
+    setChungTu(null);
+    setSoTien("");
+    setGhiChu("");
+    setPhanBo({});
+    setNgay(hom_nay());
+    setPhuongThuc("cash");
     Promise.all([
       layDanhSachQuy(),
       layCongNo({ student: hocVien.id, status: "con_no", page_size: 100 }),
@@ -58,7 +73,7 @@ export default function HopThuTien({ mo, hocVien, onDong, onXong }) {
       .then(([dsQuy, no]) => {
         if (huy) return;
         setQuy(dsQuy);
-        setTaiKhoan((cu) => cu || String(hopVoiPhuongThuc(dsQuy, "cash")?.id || ""));
+        setTaiKhoan(String(hopVoiPhuongThuc(dsQuy, "cash")?.id || ""));
         // API trả khoản MỚI nhất trước (Receivable.Meta.ordering). Đảo lại
         // thành CŨ TRƯỚC để khớp với đường nhập Excel và với cách kế toán vẫn
         // làm: trả nợ cũ xong mới tính nợ mới. Không đảo thì hai đường nhập
@@ -121,6 +136,7 @@ export default function HopThuTien({ mo, hocVien, onDong, onXong }) {
         account: Number(taiKhoan),
         reference: ghiChu,
         allocations,
+        chung_tu: chungTu,
       });
       onXong?.(
         `Đã thu ${dinhDangTien(soTien)} đ của ${hocVien.ten}`
@@ -197,13 +213,35 @@ export default function HopThuTien({ mo, hocVien, onDong, onXong }) {
         </Field>
       </div>
 
-      <div style={{ marginBottom: 24 }}>
+      <div style={{ marginBottom: 16 }}>
         <Field label="Nội dung / mã tham chiếu">
           <Input
             value={ghiChu}
             onChange={(e) => setGhiChu(e.target.value)}
             placeholder="Mã giao dịch trên sao kê, để đối soát cho nhanh"
           />
+        </Field>
+      </div>
+
+      <div style={{ marginBottom: 24 }}>
+        <Field label="Chứng từ đính kèm">
+          <input
+            type="file"
+            accept="image/*,application/pdf"
+            onChange={(e) => setChungTu(e.target.files?.[0] || null)}
+            style={{
+              width: "100%", background: "#fff",
+              border: "1px solid " + color.borderStrong,
+              borderRadius: radius.md, padding: "9px 11px", fontSize: 13,
+            }}
+          />
+          <div style={{ marginTop: 6, fontSize: 12, color: color.muted, lineHeight: 1.55 }}>
+            {chungTu
+              ? `Đã chọn: ${chungTu.name} (${Math.ceil(chungTu.size / 1024)} KB)`
+              : phuongThuc === "cash"
+                ? "Tiền mặt: nên chụp phiếu thu có ký nhận."
+                : "Chuyển khoản: ảnh biên lai hoặc dòng sao kê. Không có cũng lưu được, nhưng màn Đối soát sẽ đánh dấu là còn thiếu."}
+          </div>
         </Field>
       </div>
 

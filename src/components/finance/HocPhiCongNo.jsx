@@ -5,6 +5,7 @@ import {
 } from "../../services/financeService";
 import { listClassroomsAll } from "../../services/calendarService";
 import HopThuTien from "./HopThuTien";
+import NganKeoDangKyHoc from "./NganKeoDangKyHoc";
 import NhapLieu from "./NhapLieu";
 import { color, radius } from "./v3/theme";
 import {
@@ -60,6 +61,7 @@ export default function HocPhiCongNo({ thang, nam, onNotice, laQuanTri }) {
   const [moLapHangLoat, setMoLapHangLoat] = useState(false);
   const [dangGiam, setDangGiam] = useState(null);
   const [moNhap, setMoNhap] = useState(false);
+  const [moDangKy, setMoDangKy] = useState(false);
 
   const tai = useCallback(async () => {
     setDangTai(true);
@@ -151,6 +153,7 @@ export default function HocPhiCongNo({ thang, nam, onNotice, laQuanTri }) {
         />
         <div style={{ marginLeft: "auto", display: "flex", gap: 10 }}>
           <Button variant="ghost" icon="doc" onClick={() => setMoNhap(true)}>Nhập từ Excel</Button>
+          <Button variant="ghost" icon="plus" onClick={() => setMoDangKy(true)}>Đăng ký học</Button>
           <Button icon="plus" onClick={() => setMoLapHangLoat(true)}>Lập học phí cho lớp</Button>
         </div>
       </div>
@@ -255,6 +258,7 @@ export default function HocPhiCongNo({ thang, nam, onNotice, laQuanTri }) {
       ) : null}
 
       <HopThuTien mo={!!dangThu} hocVien={dangThu} onDong={() => setDangThu(null)} onXong={xong} />
+      <NganKeoDangKyHoc mo={moDangKy} onDong={() => setMoDangKy(false)} onXong={xong} />
       <NganKeoLapHangLoat
         mo={moLapHangLoat} thang={thang} nam={nam}
         onDong={() => setMoLapHangLoat(false)} onXong={xong}

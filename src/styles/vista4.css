@@ -826,3 +826,78 @@ input.dshv-o[type=search]{min-width:230px;flex:1 1 230px}
   padding: 26px 14px; text-align: center;
   font-size: 13.5px; line-height: 1.6; color: var(--text-2, #8A7C6E);
 }
+
+/* ---------- Khối duyệt trong hộp thoại chi tiết báo cáo ca dạy ---------- */
+/* .ui-modal__foot là flex/justify-end, nên khối nhập lý do phải tự chiếm
+   trọn hàng, không thì nó co lại bám mép phải và ô nhập chỉ còn một mẩu. */
+.bcn-duyet { flex: 1 1 100%; }
+.bcn-duyet__nhan {
+  display: block; margin-bottom: 6px;
+  font-size: 12.5px; font-weight: 600; color: var(--text, #3E3226);
+}
+.bcn-duyet__o {
+  width: 100%; box-sizing: border-box; resize: vertical;
+  padding: 9px 11px; font: inherit; font-size: 13.5px; line-height: 1.6;
+  border: 1px solid var(--border, #E6DED4); border-radius: 10px;
+  background: var(--card, #fff); color: var(--text, #3E3226);
+}
+.bcn-duyet__o:focus {
+  outline: none;
+  border-color: var(--primary, #F26522);
+  box-shadow: 0 0 0 3px var(--primary-soft, rgba(242, 101, 34, .12));
+}
+.bcn-duyet__nut { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.bcn-duyet .bcn-duyet__nut { margin-top: 10px; }
+.bcn-duyet__nhac {
+  margin-top: 6px; text-align: right;
+  font-size: 12px; color: var(--text-2, #8A7C6E);
+}
+
+/* ---------- Mốc xem ngày/tuần/tháng trên Dashboard ---------- */
+.dash-moc {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; margin: 2px 0 14px;
+}
+.dash-moc__tabs { margin: 0; }
+.dash-moc__dieu-huong { display: flex; align-items: center; gap: 8px; }
+/* Selector nhân đôi (0-2-0) để thắng reset `.v4page button{border:none;background:none}`
+   (0-1-1) — cùng lý do với .ui-btn.ui-btn trong ui.css. Một lớp là mất viền. */
+.dash-moc__mui.dash-moc__mui {
+  width: 26px; height: 26px; display: inline-flex;
+  align-items: center; justify-content: center;
+  font-size: 17px; line-height: 1; color: var(--text-2, #8A7C6E);
+  background: var(--card, #fff);
+  border: 1px solid var(--border, #E6DED4); border-radius: 8px;
+}
+.dash-moc__mui.dash-moc__mui:hover {
+  color: var(--primary, #F26522); border-color: var(--primary-100, #F8C9AE);
+}
+.dash-moc__nhan {
+  min-width: 168px; text-align: center;
+  font-size: 12.5px; font-weight: 700; color: var(--text, #3E3226);
+}
+.dash-moc__tai { font-size: 11.5px; color: var(--text-2, #8A7C6E); }
+.dash-moc__rong {
+  margin: 0 0 14px; padding: 10px 12px;
+  font-size: 12.5px; color: var(--text-2, #8A7C6E);
+  background: var(--bg-soft, #FAF7F3);
+  border: 1px dashed var(--border, #E6DED4); border-radius: 10px;
+}
+
+.dash-ky-hang {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px; margin-bottom: 16px;
+}
+.dash-ky-o {
+  padding: 10px 12px; border-radius: 10px;
+  background: var(--bg-soft, #FAF7F3); border: 1px solid var(--border-soft, #F0E9E1);
+}
+.dash-ky-o__nhan { font-size: 11.5px; font-weight: 600; color: var(--text-2, #8A7C6E); }
+.dash-ky-o__so {
+  margin-top: 4px; font-size: 20px; font-weight: 800;
+  color: var(--text, #3E3226); line-height: 1.2;
+}
+@media (max-width: 900px) {
+  .dash-ky-hang { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dash-moc__nhan { min-width: 0; }
+}

@@ -5,7 +5,17 @@ import {
   listClassroomsAll,
   getStaffRequestPendingSummary,
   listTeachingSessions,
+  getDashboardPeriodSummary,
 } from "../services/calendarService";
+import {
+  BA_MOC,
+  dauTuanThuHai as startOfWeekMonday,
+  dichKy,
+  khoaNgay as toLocalDateKey,
+  khoangCho,
+  nhanKy,
+  TU_MOC,
+} from "../utils/khoangThoiGian";
 import "../styles/vista4.css";
 
 const defaultDistrictSplit = [
@@ -366,18 +376,55 @@ function DashHbar({ label, val, pct, color }) {
 const WEEKDAY_SHORT = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 const MINI_LES_TINTS = ["#FDEEE4", "#E8F6EE", "#EAF2FE", "#FEF6E7", "#F3EEFB"];
 
-function startOfWeekMonday(date) {
-  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  const day = d.getDay(); // 0=CN .. 6=T7
-  const diff = day === 0 ? -6 : 1 - day;
-  d.setDate(d.getDate() + diff);
-  return d;
-}
-
-function toLocalDateKey(date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
-    date.getDate()
-  ).padStart(2, "0")}`;
+/**
+ * Dải tab Ngày / Tuần / Tháng kèm mũi tên lùi-tiến và nhãn kỳ đang xem.
+ *
+ * Nhãn kỳ là phần bắt buộc, không phải trang trí: chỉ ba chữ "Ngày/Tuần/Tháng"
+ * thì người xem không biết đang là tuần nào, và sau khi bấm mũi tên vài lần thì
+ * không còn biết mình đứng ở đâu.
+ */
+function MocXemTab({ moc, onDoiMoc, ngay, onDoiNgay, dangTai }) {
+  return (
+    <div className="dash-moc">
+      <div className="tabs dash-moc__tabs" role="tablist">
+        {BA_MOC.map(([key, nhan]) => (
+          <span
+            key={key}
+            className={`tab${moc === key ? " active" : ""}`}
+            role="tab"
+            tabIndex={0}
+            aria-selected={moc === key}
+            onClick={() => onDoiMoc(key)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onDoiMoc(key); }
+            }}
+          >
+            {nhan}
+          </span>
+        ))}
+      </div>
+      <div className="dash-moc__dieu-huong">
+        <button
+          type="button"
+          className="dash-moc__mui"
+          aria-label={`Lùi một ${TU_MOC[moc]}`}
+          onClick={() => onDoiNgay(dichKy(ngay, moc, -1))}
+        >
+          ‹
+        </button>
+        <span className="dash-moc__nhan">{nhanKy(ngay, moc)}</span>
+        <button
+          type="button"
+          className="dash-moc__mui"
+          aria-label={`Tiến một ${TU_MOC[moc]}`}
+          onClick={() => onDoiNgay(dichKy(ngay, moc, 1))}
+        >
+          ›
+        </button>
+        {dangTai ? <span className="dash-moc__tai">đang tải…</span> : null}
+      </div>
+    </div>
+  );
 }
 
 function sessionTimeLabel(startAt) {
@@ -458,6 +505,39 @@ function Dashboard() {
   const [classroomCount, setClassroomCount] = useState(null);
   const [staffPending, setStaffPending] = useState({ leave_shift: 0, proposal: 0, total: 0 });
   const [weekSessions, setWeekSessions] = useState([]);
+
+  // --- Mốc xem ngày / tuần / tháng cho 2 khối "Vận hành" và "snapshot" --------
+  // Một mốc dùng chung cho cả hai khối: hai khối nằm cạnh nhau trên cùng màn, để
+  // chúng lệch mốc thì người xem đọc số của hai kỳ khác nhau mà không nhận ra.
+  const [moc, setMoc] = useState("day");
+  const [mocNgay, setMocNgay] = useState(() => new Date());
+  const [soLieuKy, setSoLieuKy] = useState(null);
+  const [dangTaiKy, setDangTaiKy] = useState(true);
+  const khoang = useMemo(() => khoangCho(mocNgay, moc), [mocNgay, moc]);
+
+  useEffect(() => {
+    let con = true;
+    setDangTaiKy(true);
+    getDashboardPeriodSummary({ from: khoang.from, to: khoang.to })
+      .then((d) => con && setSoLieuKy(d))
+      .catch(() => con && setSoLieuKy(null))
+      .finally(() => con && setDangTaiKy(false));
+    return () => { con = false; };
+  }, [khoang.from, khoang.to]);
+
+  // Đang tải thì hiện "…" chứ không hiện 0: người xem không phân biệt được
+  // "kỳ này không có gì" với "số chưa về", và 0 là một khẳng định sai.
+  const soKy = (v) =>
+    dangTaiKy || v == null ? "…" : Number(v).toLocaleString("vi-VN");
+
+  const tk = soLieuKy?.trong_ky || {};
+  const ht = soLieuKy?.hien_tai || {};
+  // Kỳ rỗng thật sự khác với "chưa tải xong" — phải phân biệt, không thì ngày
+  // không có hoạt động nào trông y như lúc API lỗi.
+  const kyRong =
+    !dangTaiKy && soLieuKy
+    && !["buoi_day", "bao_cao_da_nop", "hoc_vien_moi", "bai_truyen_thong", "so_lan_thu"]
+      .some((k) => Number(tk[k] || 0) > 0);
   const weekStart = startOfWeekMonday(now);
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekStart.getDate() + 6);
@@ -775,16 +855,28 @@ function Dashboard() {
       <div className="stack">
         <div className="card">
           <div className="card-head">
-            <h3>Vận hành trọng tâm hôm nay</h3>
+            <h3>Vận hành trọng tâm</h3>
           </div>
+          <MocXemTab
+            moc={moc}
+            onDoiMoc={setMoc}
+            ngay={mocNgay}
+            onDoiNgay={setMocNgay}
+            dangTai={dangTaiKy}
+          />
+          {kyRong ? (
+            <div className="dash-moc__rong">
+              Không có hoạt động nào được ghi nhận trong {TU_MOC[moc]} này.
+            </div>
+          ) : null}
           <div className="grid c4">
             <DashOpsCard
               icon="users"
               title="Học sinh – Lớp học"
               rows={[
-                ["Tổng học viên", totalStudents.toLocaleString("vi-VN")],
-                ["Số lớp học", classroomCount ?? "—"],
-                ["Xem chi tiết", "→"],
+                [`Học viên mới trong ${TU_MOC[moc]}`, soKy(tk.hoc_vien_moi)],
+                ["Tổng học viên hiện tại", (ht.tong_hoc_vien ?? totalStudents).toLocaleString("vi-VN")],
+                ["Lớp đang chạy hiện tại", ht.lop_dang_chay ?? classroomCount ?? "—"],
               ]}
               to="/students"
               onNavigate={navigate}
@@ -793,9 +885,9 @@ function Dashboard() {
               icon="cal"
               title="Lịch dạy & báo giảng"
               rows={[
-                ["Đơn chờ duyệt", staffPending.total],
-                ["Nghỉ / đổi ca", staffPending.leave_shift],
-                ["Mở lịch làm việc", "→"],
+                [`Buổi dạy trong ${TU_MOC[moc]}`, soKy(tk.buoi_day)],
+                [`Báo cáo đã nộp / ${TU_MOC[moc]}`, soKy(tk.bao_cao_da_nop)],
+                ["Báo cáo chờ duyệt hiện tại", ht.bao_cao_cho_duyet ?? "—"],
               ]}
               to="/calendar-detail"
               onNavigate={navigate}
@@ -804,20 +896,28 @@ function Dashboard() {
               icon="mega"
               title="Truyền thông"
               rows={[
-                ["Chiến dịch đang chạy", "—"],
-                ["Nội dung chờ duyệt", "—"],
-                ["Bài đăng hôm nay", "—"],
+                [`Bài trong ${TU_MOC[moc]}`, soKy(tk.bai_truyen_thong)],
+                [`Đơn đã duyệt / ${TU_MOC[moc]}`, soKy(tk.don_da_duyet)],
+                ["Đơn chờ duyệt hiện tại", ht.don_cho_duyet ?? staffPending.total],
               ]}
-              to="/calendar-detail"
+              to="/truyen-thong"
               onNavigate={navigate}
             />
             <DashOpsCard
               icon="dollar"
               title="Tài chính & hành chính"
               rows={[
-                ["Doanh thu tháng", `${formatCompact(monthIncome)}₫`],
-                ["Đề xuất chờ duyệt", staffPending.proposal],
-                ["Mở tài chính", "→"],
+                [
+                  `Tiền thu trong ${TU_MOC[moc]}`,
+                  // Cũng phải theo luật của soKy(): đang tải thì "…", không phải
+                  // "0₫". Riêng ô này là tiền, nên hiện 0₫ lúc số chưa về là nói
+                  // với người xem một điều sai về doanh thu.
+                  dangTaiKy || tk.tien_thu == null
+                    ? "…"
+                    : `${formatCompact(Number(tk.tien_thu))}₫`,
+                ],
+                [`Số lần thu / ${TU_MOC[moc]}`, soKy(tk.so_lan_thu)],
+                ["Doanh thu tháng này", `${formatCompact(monthIncome)}₫`],
               ]}
               to="/finance"
               onNavigate={navigate}
@@ -864,9 +964,33 @@ function Dashboard() {
               Xem chi tiết <DashIcon name="arrowR" />
             </button>
           </div>
+          <MocXemTab
+            moc={moc}
+            onDoiMoc={setMoc}
+            ngay={mocNgay}
+            onDoiNgay={setMocNgay}
+            dangTai={dangTaiKy}
+          />
+          {/* Hàng theo kỳ, tách khỏi 4 khối bên dưới. Bốn khối đó là ẢNH CHỤP
+              (sĩ số, phân bổ khu vực, chuyên cần) — không có khái niệm "trong
+              tuần", nên không được để tab ngầm hứa là chúng đổi theo kỳ. Nhãn
+              "hiện tại" ở dưới nói rõ điều đó. */}
+          <div className="dash-ky-hang">
+            {[
+              [`Học viên mới trong ${TU_MOC[moc]}`, soKy(tk.hoc_vien_moi)],
+              [`Buổi dạy trong ${TU_MOC[moc]}`, soKy(tk.buoi_day)],
+              [`Buổi đã hoàn thành`, soKy(tk.buoi_day_hoan_thanh)],
+              [`Báo cáo cần sửa`, soKy(tk.bao_cao_can_sua)],
+            ].map(([nhan, gt]) => (
+              <div className="dash-ky-o" key={nhan}>
+                <div className="dash-ky-o__nhan">{nhan}</div>
+                <div className="dash-ky-o__so">{gt}</div>
+              </div>
+            ))}
+          </div>
           <div className="grid c4">
             <div>
-              <div className="small muted bold">Tổng sĩ số cơ sở</div>
+              <div className="small muted bold">Tổng sĩ số cơ sở hiện tại</div>
               <div className="big-num mt8">
                 {totalStudents.toLocaleString("vi-VN")}{" "}
                 <span style={{ display: "inline-flex", width: 26, height: 26, color: "var(--primary)" }}>

@@ -40,7 +40,9 @@ export const ROUTE_PERMISSIONS = {
   // ca dạy (quản lý đào tạo duyệt) -> cả 2 vai quản lý đều cần vào.
   // staff không có nhiệm vụ duyệt và bị backend 403 nên không đưa vào menu.
   monthlyReports: ['superadmin', 'admin', 'teacher', 'center_manager', 'training_manager'],
-  reportCard: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager'],
+  // Báo cáo ngày (giảng dạy + truyền thông). Tên cũ là 'reportCard' nhưng màn
+  // này không phải phiếu báo cáo gửi phụ huynh — phiếu đó ở /phieu-bao-cao/:id.
+  dailyReport: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager'],
   employeeProfile: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager'],
   // Hồ sơ học viên tách khỏi employeeProfile: đây là hồ sơ NGƯỜI HỌC, không phải
   // hồ sơ nhân sự, nên quyền cũng phải nói đúng điều đó.

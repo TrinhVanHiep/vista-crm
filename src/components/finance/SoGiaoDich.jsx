@@ -98,14 +98,33 @@ export default function SoGiaoDich({ thang, nam, onNotice }) {
       {g.direction === "out" ? soDayDu(g.amount) : "—"}
     </Num>,
     g.account_name,
-    g.reconcile_status === "pending" ? (
-      <button key="k" type="button" onClick={() => khop(g)} style={{
-        background: "none", border: 0, padding: 0, cursor: "pointer",
-        color: color.orange, fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap",
-      }}>Xác nhận khớp</button>
-    ) : (
-      <Pill key="p" tone={TONE_KHOP[g.reconcile_status] || "grey"}>{g.reconcile_display}</Pill>
-    ),
+    /* Chứng từ nằm CHUNG ô với đối soát, không thêm cột: bảng đã 9 cột và thêm
+       cột thứ 10 là buộc phải cuộn ngang ở 1600px. Hai thứ này cùng một việc —
+       muốn khớp sổ thì phải có chứng từ — nên đọc chung một ô là đúng mạch. */
+    <div key="k" style={{ display: "flex", flexDirection: "column", gap: 3, alignItems: "flex-start" }}>
+      {g.reconcile_status === "pending" ? (
+        <button type="button" onClick={() => khop(g)} style={{
+          background: "none", border: 0, padding: 0, cursor: "pointer",
+          color: color.orange, fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap",
+        }}>Xác nhận khớp</button>
+      ) : (
+        <Pill tone={TONE_KHOP[g.reconcile_status] || "grey"}>{g.reconcile_display}</Pill>
+      )}
+      {g.chung_tu ? (
+        <a
+          href={g.chung_tu}
+          target="_blank"
+          rel="noreferrer"
+          style={{ fontSize: 11.5, color: color.ink70, textDecoration: "none", whiteSpace: "nowrap" }}
+        >
+          📎 Xem chứng từ
+        </a>
+      ) : g.thieu_chung_tu ? (
+        <span style={{ fontSize: 11.5, color: color.red, whiteSpace: "nowrap" }}>
+          ⚠ Thiếu chứng từ
+        </span>
+      ) : null}
+    </div>,
     <span key="ai" style={{ fontSize: 12.5, color: color.muted }}>
       {g.created_by ? "Kế toán" : "Hệ thống"}
     </span>,

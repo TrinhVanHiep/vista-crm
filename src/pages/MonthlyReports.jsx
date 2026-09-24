@@ -133,9 +133,17 @@ const getErrorMessage = (error, fallback) =>
 
 function MonthlyReports() {
   const { role } = useAuth();
-  // Quản lý đào tạo duyệt báo cáo ca dạy; quản lý cơ sở duyệt báo cáo tháng.
-  const canReviewSession = ["superadmin", "admin", "training_manager"].includes(role);
-  const canReviewMonthly = ["superadmin", "admin", "center_manager"].includes(role);
+  // Trước đây chia đôi: quản lý đào tạo chỉ duyệt báo cáo ca dạy, quản lý cơ sở
+  // chỉ duyệt báo cáo tháng. Nay cả hai vai duyệt được cả hai loại — backend vốn
+  // đã cho phép (ADMIN_ROLE_NAMES gồm cả hai), chỉ giao diện đang chặn.
+  const canReviewReports = [
+    "superadmin",
+    "admin",
+    "center_manager",
+    "training_manager",
+  ].includes(role);
+  const canReviewSession = canReviewReports;
+  const canReviewMonthly = canReviewReports;
   // Người duyệt (quản lý/admin) không nhập báo cáo — chỉ giáo viên/nhân viên nhập.
   const isReportManager = [
     "superadmin",

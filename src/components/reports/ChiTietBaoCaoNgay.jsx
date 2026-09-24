@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { listSessionReports } from "../../services/calendarService";
-import { Badge, Modal } from "../../ui";
+import { listSessionReports, reviewApprovalEntity } from "../../services/calendarService";
+import { Badge, Button, Modal } from "../../ui";
 
 /**
- * Xem ĐẦY ĐỦ nội dung một báo cáo ca dạy — chỉ đọc.
+ * Xem ĐẦY ĐỦ nội dung một báo cáo ca dạy, và duyệt ngay tại đây.
  *
  * Màn "Báo cáo ngày" trước nay được dựng cho GIÁO VIÊN NHẬP: bảng chỉ có 5 cột
  * trạng thái, và nội dung báo cáo chỉ được nạp khi báo cáo còn sửa được. Nghĩa
@@ -12,6 +12,11 @@ import { Badge, Modal } from "../../ui";
  *
  * Ở đây in hết, kể cả trường rỗng, và nói rõ "giáo viên chưa nhập" thay vì bỏ
  * trắng — người duyệt cần phân biệt "không có gì để nói" với "chưa ai điền".
+ *
+ * Nút duyệt nằm ở ĐÂY chứ không phải một màn riêng: trước đây quản lý mở được
+ * nội dung báo cáo ở màn Báo cáo ngày nhưng muốn duyệt thì phải nhớ lớp/giáo
+ * viên rồi sang /monthly-reports tìm lại đúng dòng đó. Đọc và quyết ở hai màn
+ * khác nhau thì người duyệt hoặc bỏ qua bước đọc, hoặc duyệt nhầm dòng.
  */
 
 const NHAN_MUC_TIEU = {
@@ -48,10 +53,17 @@ function Muc({ nhan, giaTri, rong = false }) {
   );
 }
 
-export default function ChiTietBaoCaoNgay({ buoi, onDong }) {
+export default function ChiTietBaoCaoNgay({ buoi, onDong, coQuyenDuyet = false, onDaDuyet }) {
   const [bc, setBc] = useState(null);
   const [dangTai, setDangTai] = useState(false);
   const [loi, setLoi] = useState("");
+  // Quyết định đang chờ nhập lý do. Từ chối / cần sửa lại BẮT BUỘC có lý do —
+  // giáo viên nhận thông báo "bị trả lại" mà không kèm lý do thì không biết
+  // phải sửa gì, lại nộp y nguyên.
+  const [quyetDinh, setQuyetDinh] = useState("");
+  const [lyDo, setLyDo] = useState("");
+  const [dangDuyet, setDangDuyet] = useState(false);
+  const [loiDuyet, setLoiDuyet] = useState("");
 
   useEffect(() => {
     if (!buoi?.id) return undefined;
@@ -59,6 +71,9 @@ export default function ChiTietBaoCaoNgay({ buoi, onDong }) {
     setDangTai(true);
     setLoi("");
     setBc(null);
+    setQuyetDinh("");
+    setLyDo("");
+    setLoiDuyet("");
     listSessionReports({ session: Number(buoi.id) })
       .then((res) => {
         if (!con) return;
@@ -70,9 +85,96 @@ export default function ChiTietBaoCaoNgay({ buoi, onDong }) {
     return () => { con = false; };
   }, [buoi?.id]);
 
+  const guiQuyetDinh = async (qd, ghiChu) => {
+    setDangDuyet(true);
+    setLoiDuyet("");
+    try {
+      const kq = await reviewApprovalEntity("session_report", bc.id, qd, {
+        comment: ghiChu.trim() || "Quản lý duyệt báo cáo ca dạy.",
+        payroll_eligible: qd === "approve",
+      });
+      // Cập nhật tại chỗ để người duyệt thấy ngay kết quả, không phải đóng
+      // hộp thoại rồi mở lại mới biết đã ăn.
+      setBc((truoc) => ({
+        ...truoc,
+        report_status: kq.entity_status || truoc.report_status,
+        rejected_reason: qd === "approve" ? "" : ghiChu.trim(),
+      }));
+      setQuyetDinh("");
+      setLyDo("");
+      onDaDuyet?.();
+    } catch (e) {
+      setLoiDuyet(
+        e?.response?.data?.detail
+          || "Không gửi được quyết định duyệt. Kiểm tra lại báo cáo đã được nộp chưa.",
+      );
+    } finally {
+      setDangDuyet(false);
+    }
+  };
+
   const [nhanTt, toneTt] = NHAN_TRANG_THAI[bc?.report_status] || ["Chưa báo cáo", "orange"];
   const [nhanMt, toneMt] = NHAN_MUC_TIEU[bc?.objective_status] || ["Chưa đánh giá", "gray"];
   const checklist = Array.isArray(bc?.completion_checklist) ? bc.completion_checklist : [];
+
+  // Chỉ báo cáo ĐÃ NỘP mới duyệt được: bản nháp thì giáo viên còn đang sửa, còn
+  // báo cáo đã duyệt/đã trả lại thì backend không còn Approval nào đang chờ nên
+  // bấm vào chỉ nhận lỗi 400. Hiện nút trong hai trường hợp đó là bẫy người dùng.
+  const duyetDuoc = coQuyenDuyet && bc?.report_status === "submitted";
+
+  const chanTrang = !duyetDuoc ? null : quyetDinh ? (
+    <div className="bcn-duyet">
+      <label className="bcn-duyet__nhan" htmlFor="bcn-ly-do">
+        {quyetDinh === "reject" ? "Lý do từ chối" : "Nêu rõ cần sửa những gì"}
+      </label>
+      <textarea
+        id="bcn-ly-do"
+        className="bcn-duyet__o"
+        rows={3}
+        value={lyDo}
+        onChange={(e) => setLyDo(e.target.value)}
+        placeholder="Giáo viên sẽ nhận đúng nội dung này trong thông báo."
+      />
+      <div className="bcn-duyet__nut">
+        <Button
+          variant="ghost"
+          onClick={() => { setQuyetDinh(""); setLyDo(""); }}
+          disabled={dangDuyet}
+        >
+          Quay lại
+        </Button>
+        <Button
+          variant={quyetDinh === "reject" ? "danger" : "primary"}
+          loading={dangDuyet}
+          loadingText="Đang gửi..."
+          disabled={!lyDo.trim()}
+          onClick={() => guiQuyetDinh(quyetDinh, lyDo)}
+        >
+          {quyetDinh === "reject" ? "Từ chối báo cáo" : "Yêu cầu sửa lại"}
+        </Button>
+      </div>
+      {!lyDo.trim() ? (
+        <div className="bcn-duyet__nhac">Phải nhập lý do trước khi gửi.</div>
+      ) : null}
+    </div>
+  ) : (
+    <div className="bcn-duyet__nut">
+      <Button variant="danger" disabled={dangDuyet} onClick={() => setQuyetDinh("reject")}>
+        Từ chối
+      </Button>
+      <Button variant="ghost" disabled={dangDuyet} onClick={() => setQuyetDinh("request-revision")}>
+        Cần sửa lại
+      </Button>
+      <Button
+        variant="primary"
+        loading={dangDuyet}
+        loadingText="Đang duyệt..."
+        onClick={() => guiQuyetDinh("approve", "")}
+      >
+        ✓ Duyệt báo cáo
+      </Button>
+    </div>
+  );
 
   return (
     <Modal
@@ -81,7 +183,11 @@ export default function ChiTietBaoCaoNgay({ buoi, onDong }) {
       title="Nội dung báo cáo ca dạy"
       subtitle={buoi ? `${buoi.classroom_name || "--"} — ${buoi.teacher_name || "--"}` : ""}
       size="lg"
+      footer={chanTrang}
     >
+      {loiDuyet ? (
+        <div className="alert red" style={{ marginBottom: 12 }}><span>⚠️</span><div>{loiDuyet}</div></div>
+      ) : null}
       {loi ? <div className="alert red" style={{ marginBottom: 12 }}><span>⚠️</span><div>{loi}</div></div> : null}
 
       {dangTai ? (

@@ -10,45 +10,16 @@ import {
   createMediaReport,
   importSessionReportsFile,
 } from "../services/calendarService";
+import {
+  hai2 as pad2,
+  khoaNgay as dateKey,
+  khoangCho as rangeFor,
+  nhanKy as periodLabel,
+  TU_MOC as RANGE_WORD,
+} from "../utils/khoangThoiGian";
 import ChiTietBaoCaoNgay from "../components/reports/ChiTietBaoCaoNgay";
 import "../styles/vista4.css";
 
-const WEEKDAYS = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
-const pad2 = (v) => String(v).padStart(2, "0");
-const dateKey = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
-const longDate = (d) => `${WEEKDAYS[d.getDay()]}, ${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}/${d.getFullYear()}`;
-const shortDate = (d) => `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}`;
-
-function startOfWeekMonday(date) {
-  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  const day = d.getDay();
-  d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day));
-  return d;
-}
-
-// Khoảng ngày [from, to] theo chế độ ngày / tuần / tháng.
-function rangeFor(date, tab) {
-  if (tab === "week") {
-    const start = startOfWeekMonday(date);
-    const end = new Date(start);
-    end.setDate(start.getDate() + 6);
-    return { from: dateKey(start), to: dateKey(end), start, end };
-  }
-  if (tab === "month") {
-    const start = new Date(date.getFullYear(), date.getMonth(), 1);
-    const end = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-    return { from: dateKey(start), to: dateKey(end), start, end };
-  }
-  return { from: dateKey(date), to: dateKey(date), start: date, end: date };
-}
-
-function periodLabel(date, tab) {
-  const r = rangeFor(date, tab);
-  if (tab === "week") return `Tuần ${shortDate(r.start)} – ${shortDate(r.end)}/${r.end.getFullYear()}`;
-  if (tab === "month") return `Tháng ${pad2(date.getMonth() + 1)}/${date.getFullYear()}`;
-  return longDate(date);
-}
-const RANGE_WORD = { day: "ngày", week: "tuần", month: "tháng" };
 
 function timeLabel(iso) {
   if (!iso) return "";
@@ -453,7 +424,7 @@ function DailyReport() {
               <button type="button" className="btn ghost" onClick={() => navigate("/kho-tai-lieu")}>❔ Hướng dẫn</button>
               <button type="button" className="btn ghost" onClick={() => navigate("/calendar-detail")}>📅 Xem lịch dạy</button>
               {canReviewReports ? (
-                <button type="button" className="btn ghost" onClick={() => navigate("/monthly-reports")}>✓ Duyệt báo cáo</button>
+                <button type="button" className="btn ghost" onClick={() => navigate("/monthly-reports")}>🗂 Hàng chờ duyệt</button>
               ) : null}
               <button type="button" className="btn primary" onClick={handleSubmitReports} disabled={submittingReports}>
                 {submittingReports ? "Đang gửi..." : `➤ Gửi báo cáo ${RANGE_WORD[rangeTab]}`}
@@ -769,7 +740,12 @@ function DailyReport() {
         )}
       </div>
 
-      <ChiTietBaoCaoNgay buoi={xemChiTiet} onDong={() => setXemChiTiet(null)} />
+      <ChiTietBaoCaoNgay
+        buoi={xemChiTiet}
+        onDong={() => setXemChiTiet(null)}
+        coQuyenDuyet={canReviewReports}
+        onDaDuyet={() => setReloadKey((v) => v + 1)}
+      />
     </div>
   );
 }

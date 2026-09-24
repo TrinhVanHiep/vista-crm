@@ -33,6 +33,18 @@ export async function getScheduleSummary(params = {}) {
   return data || {};
 }
 
+/**
+ * Số liệu của một khoảng ngày bất kỳ, cho tab ngày / tuần / tháng.
+ * Trả { ky, trong_ky, hien_tai } — "trong_ky" đổi theo khoảng, "hien_tai" là ảnh
+ * chụp tại thời điểm hỏi nên KHÔNG đổi theo tab.
+ */
+export async function getDashboardPeriodSummary({ from, to } = {}) {
+  const { data } = await apiClient.get("/dashboard/period-summary/", {
+    params: { date_from: from, date_to: to },
+  });
+  return data || {};
+}
+
 // Đơn nhân sự: nghỉ / đổi ca / đề xuất - yêu cầu.
 export async function listStaffRequests(params = {}) {
   const { data } = await apiClient.get("/staff-requests/", { params });

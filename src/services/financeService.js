@@ -40,10 +40,39 @@ export const xoaGiamTru = (id) => apiClient.delete(`/finances/adjustments/${id}/
 /* --------------------------------------------------------- thu tiền */
 export const layPhieuThu = (p = {}) =>
   apiClient.get("/finances/payments/", { params: p }).then((r) => r.data);
-export const ghiNhanThuTien = (d) =>
-  apiClient.post("/finances/payments/thu-tien/", d).then(lay);
+/**
+ * Ghi nhận thu tiền. Có chứng từ thì gửi multipart, không thì gửi JSON.
+ *
+ * Không gửi multipart cho mọi trường hợp: dạng đó biến mọi giá trị thành chuỗi,
+ * nên `allocations` phải tự đóng gói JSON rồi backend gỡ ra — thêm một chỗ có
+ * thể sai cho những lần thu chẳng có file nào.
+ */
+export const ghiNhanThuTien = (d) => {
+  const { chung_tu: file, ...phanConLai } = d || {};
+  if (!file) {
+    return apiClient.post("/finances/payments/thu-tien/", phanConLai).then(lay);
+  }
+  const fd = new FormData();
+  Object.entries(phanConLai).forEach(([k, v]) => {
+    if (v === undefined || v === null) return;
+    // Mảng/đối tượng phải thành chuỗi JSON; FormData tự gọi String() lên object
+    // và cho ra "[object Object]" mà không báo lỗi gì.
+    fd.append(k, typeof v === "object" ? JSON.stringify(v) : v);
+  });
+  fd.append("chung_tu", file);
+  return apiClient.post("/finances/payments/thu-tien/", fd).then(lay);
+};
 export const phanBoThem = (id, d) =>
   apiClient.post(`/finances/payments/${id}/phan-bo/`, d).then(lay);
+
+/* ----------------------------------------------------- ghi danh / đăng ký học */
+export const layGhiDanh = (p = {}) =>
+  apiClient.get("/students/enrollments/", { params: p }).then((r) => r.data);
+/** Một lần gọi lập cả bản ghi ghi danh, khoản cọc và các đợt học phí. */
+export const dangKyHoc = (d) =>
+  apiClient.post("/students/enrollments/dang-ky/", d).then(lay);
+export const ketThucGhiDanh = (id, d = {}) =>
+  apiClient.post(`/students/enrollments/${id}/ket-thuc/`, d).then(lay);
 
 /* ----------------------------------------------------- sổ giao dịch */
 export const laySoGiaoDich = (p = {}) =>

@@ -176,6 +176,10 @@ function App() {
               nội dung đổi theo vai. Giữ đường dẫn cũ để link/bookmark đã gửi đi
               không chết, chỉ dẫn về đúng chỗ mới. */}
           <Route path="cham-thi-dua" element={<Navigate to="/thi-dua-thang" replace />} />
+          {/* Đường cũ: URL ghi "report-card" (phiếu gửi phụ huynh) nhưng lại mở
+              màn Báo cáo ngày — hai thứ khác hẳn nhau. Đổi sang /bao-cao-ngay và
+              giữ lối cũ chuyển hướng, để link đã gửi cho ai rồi không gãy. */}
+          <Route path="report-card" element={<Navigate to="/bao-cao-ngay" replace />} />
           <Route
             path="quan-ly-lop"
             element={
@@ -209,9 +213,9 @@ function App() {
             }
           />
           <Route
-            path="report-card"
+            path="bao-cao-ngay"
             element={
-              <RoleGuard allowedRoles={ROUTE_PERMISSIONS.reportCard}>
+              <RoleGuard allowedRoles={ROUTE_PERMISSIONS.dailyReport}>
                 <DailyReport />
               </RoleGuard>
             }
