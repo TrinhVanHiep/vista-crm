@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { useAuth } from "../../auth/AuthProvider";
+import { TEN_CAP, capDangCho, quyenKy } from "../../utils/duyetBaoCao";
 import { listSessionReports, reviewApprovalEntity } from "../../services/calendarService";
 import { Badge, Button, Modal } from "../../ui";
 
@@ -54,6 +56,7 @@ function Muc({ nhan, giaTri, rong = false }) {
 }
 
 export default function ChiTietBaoCaoNgay({ buoi, onDong, coQuyenDuyet = false, onDaDuyet }) {
+  const { role, user } = useAuth();
   const [bc, setBc] = useState(null);
   const [dangTai, setDangTai] = useState(false);
   const [loi, setLoi] = useState("");
@@ -90,15 +93,19 @@ export default function ChiTietBaoCaoNgay({ buoi, onDong, coQuyenDuyet = false, 
     setLoiDuyet("");
     try {
       const kq = await reviewApprovalEntity("session_report", bc.id, qd, {
-        comment: ghiChu.trim() || "Quản lý duyệt báo cáo ca dạy.",
+        comment: ghiChu.trim(),
         payroll_eligible: qd === "approve",
       });
       // Cập nhật tại chỗ để người duyệt thấy ngay kết quả, không phải đóng
       // hộp thoại rồi mở lại mới biết đã ăn.
+      const quaCap1 = qd === "approve" && kq.entity_status === "submitted";
       setBc((truoc) => ({
         ...truoc,
         report_status: kq.entity_status || truoc.report_status,
         rejected_reason: qd === "approve" ? "" : ghiChu.trim(),
+        ...(quaCap1
+          ? { pending_level: 2, level1_reviewed_at: new Date().toISOString(), level1_reviewed_by: user?.id }
+          : {}),
       }));
       setQuyetDinh("");
       setLyDo("");
@@ -113,14 +120,19 @@ export default function ChiTietBaoCaoNgay({ buoi, onDong, coQuyenDuyet = false, 
     }
   };
 
-  const [nhanTt, toneTt] = NHAN_TRANG_THAI[bc?.report_status] || ["Chưa báo cáo", "orange"];
+  const [nhanTt, toneTt] = (bc?.report_status === "submitted"
+    ? [`Chờ duyệt cấp ${bc.level1_reviewed_at ? 2 : 1}`, "yellow"]
+    : NHAN_TRANG_THAI[bc?.report_status]) || ["Chưa báo cáo", "orange"];
   const [nhanMt, toneMt] = NHAN_MUC_TIEU[bc?.objective_status] || ["Chưa đánh giá", "gray"];
   const checklist = Array.isArray(bc?.completion_checklist) ? bc.completion_checklist : [];
 
   // Chỉ báo cáo ĐÃ NỘP mới duyệt được: bản nháp thì giáo viên còn đang sửa, còn
   // báo cáo đã duyệt/đã trả lại thì backend không còn Approval nào đang chờ nên
   // bấm vào chỉ nhận lỗi 400. Hiện nút trong hai trường hợp đó là bẫy người dùng.
-  const duyetDuoc = coQuyenDuyet && bc?.report_status === "submitted";
+  // Duyệt 2 cấp: chỉ hiện nút khi người đang xem ký được đúng cấp đang chờ.
+  const cap = capDangCho(bc);
+  const ky = quyenKy(bc, role, user?.id);
+  const duyetDuoc = coQuyenDuyet && ky.duoc;
 
   const chanTrang = !duyetDuoc ? null : quyetDinh ? (
     <div className="bcn-duyet">
@@ -171,7 +183,7 @@ export default function ChiTietBaoCaoNgay({ buoi, onDong, coQuyenDuyet = false, 
         loadingText="Đang duyệt..."
         onClick={() => guiQuyetDinh("approve", "")}
       >
-        ✓ Duyệt báo cáo
+        ✓ Duyệt cấp {ky.cap}
       </Button>
     </div>
   );
@@ -240,6 +252,25 @@ export default function ChiTietBaoCaoNgay({ buoi, onDong, coQuyenDuyet = false, 
             <div className="bcn-muc bcn-muc--rong" style={{ marginTop: 12 }}>
               <div className="bcn-muc__nhan">Ghi chú của người duyệt</div>
               <div className="bcn-muc__noi">{bc.payroll_decision_note}</div>
+            </div>
+          ) : null}
+
+          {cap || bc.report_status === "approved" ? (
+            <div className="bcn-muc bcn-muc--rong" style={{ marginTop: 12 }}>
+              <div className="bcn-muc__nhan">Hai cấp duyệt</div>
+              <div className="bcn-muc__noi">
+                Cấp 1 · {TEN_CAP[1]}:{" "}
+                {bc.level1_reviewed_at
+                  ? `${bc.level1_reviewed_by_name || "đã ký"} — ${gioPhut(bc.level1_reviewed_at)}`
+                  : bc.report_status === "approved" ? "đã ký" : "đang chờ ký"}
+                {bc.level1_note ? ` (“${bc.level1_note}”)` : ""}
+                <br />
+                Cấp 2 · {TEN_CAP[2]}:{" "}
+                {bc.report_status === "approved"
+                  ? `${bc.approved_by_name || "đã ký"}${bc.approved_at ? ` — ${gioPhut(bc.approved_at)}` : ""}`
+                  : cap === 2 ? "đang chờ ký" : "chưa tới lượt"}
+                {coQuyenDuyet && !ky.duoc && ky.lyDo ? <><br /><i>{ky.lyDo}</i></> : null}
+              </div>
             </div>
           ) : null}
 

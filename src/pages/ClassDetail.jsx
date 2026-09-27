@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useLocation, useNavigate, Link } from "react-router-dom";
-import { listStudents, listClassroomsAll, listStudentScores, listEvaluationItems, getTuitionSummary, listAttendanceSummary } from "../services/calendarService";
+import { useParams, useLocation, useNavigate, useOutletContext, Link } from "react-router-dom";
+import { listStudents, listClassroomsAll, listStudentScores, listMonthlyScorecards, listEvaluationItems, getTuitionSummary, listAttendanceSummary } from "../services/calendarService";
 import { useAuth } from "../auth/AuthProvider";
 import { skillsFor } from "../utils/skills";
 import { tuitionByNormCode, normCode } from "../utils/classCode";
@@ -29,11 +29,15 @@ const STUDENT_STATUS = {
 
 const GENDER = { male: "Nam", female: "Nữ" };
 
-// Ba nhóm năng lực — echo màn hình tham chiếu (Giỏi ≥ 80 / Khá 65–79 / TB < 65).
+// Nhóm năng lực — CÙNG ngưỡng với xếp loại trên phiếu điểm (teaching/services.py
+// _grade_cefr, thang 10): Giỏi ≥ 8.5, Khá ≥ 7, Trung bình ≥ 5.5, dưới nữa là Yếu.
+// Trước đây trang này tự đặt ngưỡng 80/65, nên cùng một em có thể "Giỏi" ở màn
+// Kết quả học tập mà "Khá" ở đây. Nhóm Yếu chỉ hiện khi lớp có em rơi vào đó.
 const BANDS = [
   { key: "gioi", label: "Giỏi", tag: "🏆 Top đầu", cls: "green", bar: "var(--success)" },
   { key: "kha", label: "Khá", tag: "🎖 Nhóm Khá", cls: "blue", bar: "var(--info)" },
   { key: "tb", label: "Trung bình", tag: "👥 Nhóm Trung bình", cls: "orange", bar: "var(--warn)" },
+  { key: "yeu", label: "Yếu", tag: "🆘 Cần hỗ trợ", cls: "red", bar: "var(--danger)" },
 ];
 
 // Trạng thái theo dõi suy ra TỪ điểm thật (không phải demo).
@@ -41,9 +45,24 @@ const FOLLOW = {
   gioi: { label: "Ổn định", cls: "green" },
   kha: { label: "Theo dõi", cls: "blue" },
   tb: { label: "Cần hỗ trợ", cls: "orange" },
+  yeu: { label: "Cần hỗ trợ gấp", cls: "red" },
 };
 
-const bandOf = (pct) => (pct >= 80 ? "gioi" : pct >= 65 ? "kha" : "tb");
+const BAND_THEO_XEP_LOAI = { "Giỏi": "gioi", "Khá": "kha", "Trung bình": "tb", "Yếu": "yeu" };
+
+// Có xếp loại trên phiếu thì theo xếp loại (đó là thứ quản lý đã duyệt);
+// không có thì suy từ phần trăm theo cùng ngưỡng.
+const bandOf = (pct, gradeLabel) =>
+  BAND_THEO_XEP_LOAI[gradeLabel]
+  || (pct >= 85 ? "gioi" : pct >= 70 ? "kha" : pct >= 55 ? "tb" : "yeu");
+
+// Nhãn kỹ năng trên màn (skillsFor) -> khoá điểm trong score_components của phiếu.
+const KHOA_KY_NANG = {
+  Listening: "listening", Speaking: "speaking", Reading: "reading", Writing: "writing",
+  Grammar: "grammar", Vocabulary: "vocabulary", Nghe: "listening",
+};
+
+const kyLabel = (m, y) => `Tháng ${String(m).padStart(2, "0")}/${y}`;
 
 const fmtDate = (value) => {
   if (!value) return "—";
@@ -132,6 +151,8 @@ export default function ClassDetail() {
   const navigate = useNavigate();
   const { role } = useAuth();
   const isTeacher = role === "teacher";
+  // Tháng/năm đang chọn trên header — dùng làm kỳ mặc định của bảng điểm.
+  const scope = useOutletContext() || {};
 
   // Lớp truyền qua state từ ProgramDetail (ưu tiên) — nếu không có sẽ tự tra cứu.
   const [cls, setCls] = useState(location.state?.classroom || null);
@@ -143,6 +164,12 @@ export default function ClassDetail() {
 
   const [scores, setScores] = useState([]);
   const [scoresLoading, setScoresLoading] = useState(true);
+  // Bảng điểm tháng (MonthlyStudentScorecard) — nơi giáo viên nhập điểm ở màn
+  // Kết quả học tập. Trước đây trang này chỉ đọc StudentScore (điểm kiểu cũ),
+  // nên lớp đã nhập và duyệt đủ bảng điểm vẫn báo "chưa có dữ liệu điểm".
+  const [phieuDiem, setPhieuDiem] = useState([]);
+  const [phieuLoading, setPhieuLoading] = useState(true);
+  const [kyChon, setKyChon] = useState("");
 
   const [evalItems, setEvalItems] = useState([]);
 
@@ -204,6 +231,42 @@ export default function ClassDetail() {
       .finally(() => { if (active) setScoresLoading(false); });
     return () => { active = false; };
   }, [classroomId]);
+
+  useEffect(() => {
+    let active = true;
+    setPhieuLoading(true);
+    listMonthlyScorecards({ classroom: classroomId, page_size: 1000 })
+      .then((res) => { if (active) setPhieuDiem(Array.isArray(res?.results) ? res.results : []); })
+      .catch(() => { if (active) setPhieuDiem([]); })
+      .finally(() => { if (active) setPhieuLoading(false); });
+    return () => { active = false; };
+  }, [classroomId]);
+
+  // Các kỳ có bảng điểm của lớp, mới nhất trước. Chỉ tính phiếu CÓ kết quả.
+  const cacKy = useMemo(() => {
+    const m = new Map();
+    phieuDiem.forEach((p) => {
+      if (!p.period_month || !p.period_year || !Number.isFinite(Number(p.total_percent))) return;
+      if (p.total_percent === null || p.total_percent === "") return;
+      const khoa = `${p.period_year}-${String(p.period_month).padStart(2, "0")}`;
+      m.set(khoa, { khoa, month: p.period_month, year: p.period_year });
+    });
+    return [...m.values()].sort((a, b) => (a.khoa < b.khoa ? 1 : -1));
+  }, [phieuDiem]);
+
+  // Kỳ mặc định: tháng trên header nếu lớp có điểm tháng đó, không thì kỳ gần nhất.
+  // Mặc định cứng theo header thì sang tháng mới là cả trang trống trơn dù tháng
+  // trước đã nhập đủ.
+  const kyDangXem = useMemo(() => {
+    if (kyChon && cacKy.some((k) => k.khoa === kyChon)) return kyChon;
+    const theoHeader = scope.month && scope.year
+      ? `${scope.year}-${String(scope.month).padStart(2, "0")}` : "";
+    if (cacKy.some((k) => k.khoa === theoHeader)) return theoHeader;
+    return cacKy[0]?.khoa || "";
+  }, [kyChon, cacKy, scope.month, scope.year]);
+  const dangTaiDiem = scoresLoading || phieuLoading;
+
+  const dungPhieuDiem = cacKy.length > 0;
 
   // Đầu mục đánh giá / kỹ năng THẬT từ API (fallback hardcode nếu chưa tải được).
   useEffect(() => {
@@ -297,6 +360,31 @@ export default function ClassDetail() {
   // ---- Phân nhóm năng lực (THẬT từ listStudentScores) ----
   // Gom điểm theo học sinh: pct trung bình = numeric_score / assessment_max_score * 100.
   const scoreAgg = useMemo(() => {
+    if (dungPhieuDiem) {
+      const map = new Map();
+      phieuDiem.forEach((p) => {
+        const khoa = `${p.period_year}-${String(p.period_month).padStart(2, "0")}`;
+        if (khoa !== kyDangXem || p.student == null) return;
+        const pct = Number(p.total_percent);
+        if (p.total_percent === null || p.total_percent === "" || !Number.isFinite(pct)) return;
+        const tp = p.score_components && typeof p.score_components === "object" ? p.score_components : {};
+        const skillsAvg = {};
+        skills.forEach((label) => {
+          const v = Number(tp[KHOA_KY_NANG[label]]);
+          // score_components lưu thang 10; bảng hiển thị thang 100.
+          if (Number.isFinite(v)) skillsAvg[label] = v * 10;
+        });
+        map.set(p.student, {
+          avg: pct,
+          name: p.student_name || "",
+          grade_label: p.grade_label || "",
+          comment: p.teacher_comment || "",
+          status: p.status || "",
+          skills: skillsAvg,
+        });
+      });
+      return map;
+    }
     const acc = new Map();
     scores.forEach((r) => {
       const id = r?.student;
@@ -343,7 +431,7 @@ export default function ClassDetail() {
       if (e.n > 0) map.set(id, { ...e, avg: e.sum / e.n, skills: skillsAvg });
     });
     return map;
-  }, [scores]);
+  }, [scores, dungPhieuDiem, phieuDiem, kyDangXem, skills]);
 
   const scoredCount = scoreAgg.size;
 
@@ -355,8 +443,8 @@ export default function ClassDetail() {
   }, [students]);
 
   const groups = useMemo(() => {
-    const g = { gioi: [], kha: [], tb: [] };
-    scoreAgg.forEach((e, id) => { g[bandOf(e.avg)].push({ id, ...e, name: nameById.get(id) || e.name || `HS #${id}` }); });
+    const g = { gioi: [], kha: [], tb: [], yeu: [] };
+    scoreAgg.forEach((e, id) => { g[bandOf(e.avg, e.grade_label)].push({ id, ...e, name: nameById.get(id) || e.name || `HS #${id}` }); });
     Object.values(g).forEach((arr) => arr.sort((a, b) => b.avg - a.avg));
     return g;
   }, [scoreAgg, nameById]);
@@ -515,15 +603,33 @@ export default function ClassDetail() {
           <div className="card">
             <div className="card-head">
               <h3>Phân nhóm năng lực học sinh</h3>
-              <span className="small muted">Giỏi ≥ 80% · Khá 65–79% · TB &lt; 65%</span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                <span className="small muted">Giỏi ≥ 85% · Khá 70–84% · TB 55–69% · Yếu &lt; 55%</span>
+                {cacKy.length ? (
+                  <select
+                    className="no-print"
+                    value={kyDangXem}
+                    onChange={(e) => setKyChon(e.target.value)}
+                    aria-label="Kỳ bảng điểm"
+                    style={{ padding: "5px 10px", borderRadius: 8 }}
+                  >
+                    {cacKy.map((k) => (
+                      <option key={k.khoa} value={k.khoa}>Bảng điểm {kyLabel(k.month, k.year)}</option>
+                    ))}
+                  </select>
+                ) : null}
+              </span>
             </div>
-            {scoresLoading ? (
+            {dangTaiDiem ? (
               <div className="muted small" style={{ padding: 12 }}>Đang tải điểm…</div>
             ) : scoredCount === 0 ? (
-              <div className="muted small" style={{ padding: 12 }}>Chưa có dữ liệu điểm để phân nhóm.</div>
+              <div className="muted small" style={{ padding: 12 }}>
+                Chưa có dữ liệu điểm để phân nhóm. Điểm nhập ở màn{" "}
+                <Link to="/bao-cao-hoc-tap">Kết quả học tập</Link> sẽ tự hiện ở đây.
+              </div>
             ) : (
-              <div className="grid c3">
-                {BANDS.map((b) => {
+              <div className={`grid ${groups.yeu.length ? "c4" : "c3"}`}>
+                {BANDS.filter((b) => b.key !== "yeu" || groups.yeu.length).map((b) => {
                   const arr = groups[b.key];
                   return (
                     <div
@@ -561,7 +667,7 @@ export default function ClassDetail() {
           <div className="card">
             <div className="card-head">
               <h3>Kết quả học tập chi tiết</h3>
-              {!scoresLoading && !anySkillScores ? (
+              {!dangTaiDiem && !anySkillScores ? (
                 <span className="small muted">Chưa nhập điểm kỹ năng</span>
               ) : null}
             </div>
@@ -579,7 +685,7 @@ export default function ClassDetail() {
                   </tr>
                 </thead>
                 <tbody>
-                  {scoresLoading || loading ? (
+                  {dangTaiDiem || loading ? (
                     <tr>
                       <td colSpan={skills.length + 4} className="t-center muted" style={{ padding: 22 }}>Đang tải kết quả học tập…</td>
                     </tr>
@@ -590,7 +696,7 @@ export default function ClassDetail() {
                   ) : (
                     detailRows.map((row) => {
                       const agg = row.agg;
-                      const band = agg ? bandOf(agg.avg) : null;
+                      const band = agg ? bandOf(agg.avg, agg.grade_label) : null;
                       const follow = band ? FOLLOW[band] : null;
                       return (
                         <tr key={row.id}>

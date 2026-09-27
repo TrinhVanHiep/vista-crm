@@ -25,6 +25,7 @@ import {
   Kpi,
   Field,
 } from "../ui";
+import { TEN_CAP, capDangCho, quyenKy } from "../utils/duyetBaoCao";
 
 const monthOptions = Array.from({ length: 12 }, (_, index) => ({
   value: index + 1,
@@ -131,8 +132,140 @@ const getErrorMessage = (error, fallback) =>
   error?.response?.data?.message ||
   fallback;
 
+/* Báo cáo ca dạy hiển thị dạng THẺ chứ không phải bảng.
+   Bảng cũ có 9 cột, trong đó cột "Nội dung" chứa cả ba đoạn văn dài (nội dung
+   dạy + nhận xét + kế hoạch buổi sau). Hệ quả: một dòng cao gần hết màn hình,
+   bảng phải đặt minWidth 1180 nên tràn ngang và nuốt mất cột "Hành động" —
+   đúng thứ người duyệt cần bấm. Dạng thẻ cho phép nội dung dài xuống dòng tự
+   nhiên, và mỗi báo cáo gọn trong một khối đọc từ trên xuống.
+
+   Thẻ phải là component ở NGOÀI MonthlyReports. Trước đây nó được khai báo
+   bên trong hàm render, nên mỗi lần màn tự tải lại (5 giây một lần) React coi
+   nó là một component mới và dựng lại từ đầu: nội dung đang bung bị thu gọn,
+   người duyệt không bao giờ đọc hết được báo cáo dài. Nay cũng không cắt nội
+   dung nữa — người duyệt phải đọc hết mới ký được. */
+function TheBaoCaoCaDay({
+  report, session, role, userId, dangDuyet, laQuanLy, onDuyet, onSua,
+}) {
+  const daTick = getChecklistFlag(report.completion_checklist, "manual_reported");
+  const cap = capDangCho(report);
+  const ky = quyenKy(report, role, userId);
+  const tt = cap
+    ? { label: `Chờ duyệt cấp ${cap}`, tone: cap === 1 ? "blue" : "orange" }
+    : statusMeta[report.report_status] || {};
+
+  const doanVan = [
+    report.content_taught ? { nhan: "Nội dung dạy", chu: report.content_taught } : null,
+    report.session_evaluation ? { nhan: "Nhận xét buổi học", chu: report.session_evaluation } : null,
+    report.next_session_plan ? { nhan: "Kế hoạch buổi sau", chu: report.next_session_plan } : null,
+  ].filter(Boolean);
+
+  const daDuyet = report.report_status === "approved";
+  const buoc = [
+    {
+      cap: 1,
+      xong: Boolean(report.level1_reviewed_at) || daDuyet,
+      ai: report.level1_reviewed_by_name,
+      luc: report.level1_reviewed_at,
+    },
+    { cap: 2, xong: daDuyet, ai: report.approved_by_name, luc: report.approved_at },
+  ];
+
+  return (
+    <article className="sr-card">
+      <header className="sr-card__head">
+        <div className="sr-card__who">
+          <strong>{session.classroom_name || "--"}</strong>
+          <span className="small muted">
+            {formatDate(session.session_date)} • {formatTimeRange(session.start_at, session.end_at)}
+          </span>
+        </div>
+        <div className="sr-card__meta">
+          {/* Tài khoản chưa khai họ tên thì tên hiển thị là email — chuỗi liền
+              rất dài, phải cho xuống dòng giữa chuỗi kẻo tràn khỏi thẻ. */}
+          <span className="sr-card__teacher" title={report.teacher_name || session.teacher_name || ""}>
+            {report.teacher_name || session.teacher_name || "--"}
+          </span>
+          <Badge tone={tt.tone || "gray"}>{tt.label || report.report_status}</Badge>
+        </div>
+      </header>
+
+      <div className="sr-card__facts">
+        <span><em>Sĩ số</em><b>{report.student_count ?? "--"}</b></span>
+        <span><em>Đã báo cáo</em><b className={daTick ? "sr-ok" : "sr-no"}>{daTick ? "Rồi" : "Chưa tick"}</b></span>
+        <span><em>Zalo</em><b className={report.reported_on_zalo ? "sr-ok" : "sr-no"}>
+          {report.reported_on_zalo ? "Đã gửi" : "Chưa"}
+        </b></span>
+      </div>
+
+      {doanVan.length ? (
+        <div className="sr-card__body">
+          {doanVan.map((d) => (
+            <p key={d.nhan}><em>{d.nhan}:</em> {d.chu}</p>
+          ))}
+        </div>
+      ) : (
+        <p className="small muted">Chưa nhập nội dung buổi dạy.</p>
+      )}
+
+      {cap || daDuyet ? (
+        <ol className="sr-cap" aria-label="Các cấp duyệt">
+          {buoc.map((b) => (
+            <li key={b.cap} className={`sr-cap__b${b.xong ? " is-xong" : cap === b.cap ? " is-cho" : ""}`}>
+              <span className="sr-cap__so">{b.xong ? "✓" : b.cap}</span>
+              <span>
+                <b>Cấp {b.cap} · {TEN_CAP[b.cap]}</b>
+                <small>
+                  {b.xong
+                    ? `${b.ai || "Đã ký"}${b.luc ? ` — ${formatDateTime(b.luc)}` : ""}`
+                    : cap === b.cap ? "Đang chờ ký" : "Chưa tới lượt"}
+                </small>
+              </span>
+            </li>
+          ))}
+        </ol>
+      ) : null}
+
+      {report.level1_note && cap === 2 ? (
+        <div className="sr-card__fb">
+          <em>Ghi chú cấp 1:</em> {report.level1_note}
+        </div>
+      ) : null}
+
+      {report.rejected_reason ? (
+        <div className="sr-card__fb">
+          <em>Phản hồi quản lý:</em> {report.rejected_reason}
+        </div>
+      ) : null}
+
+      {ky.duoc ? (
+        <div className="sr-card__act">
+          <Button variant="primary" size="sm" disabled={dangDuyet}
+                  onClick={() => onDuyet(report.id, "approve")}>Duyệt cấp {ky.cap}</Button>
+          <Button size="sm" disabled={dangDuyet}
+                  onClick={() => onDuyet(report.id, "request-revision")}>Yêu cầu sửa</Button>
+          <Button variant="danger" size="sm" disabled={dangDuyet}
+                  onClick={() => onDuyet(report.id, "reject")}>Từ chối</Button>
+        </div>
+      ) : laQuanLy && ky.lyDo ? (
+        <p className="small muted" style={{ margin: 0, textAlign: "right" }}>{ky.lyDo}</p>
+      ) : !laQuanLy && report.report_status === "revision_required" ? (
+        <div className="sr-card__act">
+          <Button size="sm" onClick={() => onSua(report)}>Chỉnh sửa</Button>
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
+const formatDateTime = (value) => {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  return `${pad2(d.getHours())}:${pad2(d.getMinutes())} ${d.toLocaleDateString("vi-VN")}`;
+};
+
 function MonthlyReports() {
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   // Trước đây chia đôi: quản lý đào tạo chỉ duyệt báo cáo ca dạy, quản lý cơ sở
   // chỉ duyệt báo cáo tháng. Nay cả hai vai duyệt được cả hai loại — backend vốn
   // đã cho phép (ADMIN_ROLE_NAMES gồm cả hai), chỉ giao diện đang chặn.
@@ -338,9 +471,13 @@ function MonthlyReports() {
     const submitted = manualReports.filter((item) => item.report_status === "submitted").length;
     const approved = manualReports.filter((item) => item.report_status === "approved").length;
     const revision = manualReports.filter((item) => item.report_status === "revision_required").length;
+    const choCap1 = manualReports.filter((item) => capDangCho(item) === 1).length;
+    const choCap2 = manualReports.filter((item) => capDangCho(item) === 2).length;
     return {
       total: manualReports.length,
       submitted,
+      choCap1,
+      choCap2,
       approved,
       revision,
     };
@@ -527,7 +664,9 @@ function MonthlyReports() {
     setManualError("");
     try {
       const reviewed = await reviewApprovalEntity("session_report", reportId, decision, {
-        comment: comment.trim() || "Quản lý duyệt báo cáo buổi học.",
+        // Duyệt không kèm ghi chú thì gửi rỗng: câu mặc định điền thay sẽ hiện
+        // lên thẻ như thể quản lý đã viết "Ghi chú cấp 1" thật.
+        comment: comment.trim(),
         payroll_eligible: decision === "approve",
       });
       setManualReports((prev) =>
@@ -537,11 +676,22 @@ function MonthlyReports() {
                 ...report,
                 report_status: reviewed.entity_status,
                 rejected_reason: decision === "approve" ? "" : comment.trim(),
+                // Ký cấp 1 thì báo cáo vẫn "submitted"; đánh dấu ngay để thẻ
+                // chuyển sang chờ cấp 2 mà không đợi lần tải lại.
+                ...(decision === "approve" && reviewed.entity_status === "submitted"
+                  ? { pending_level: 2, level1_reviewed_at: new Date().toISOString(), level1_reviewed_by: user?.id }
+                  : {}),
               }
             : report,
         ),
       );
-      setNotice(`Đã ${decisionLabels[decision].toLowerCase()} báo cáo nhập tay.`);
+      setNotice(
+        decision === "approve" && reviewed.entity_status === "submitted"
+          ? "Đã ký duyệt cấp 1. Báo cáo chuyển sang chờ quản lý cơ sở duyệt cấp 2."
+          : decision === "approve"
+            ? "Đã duyệt cấp 2 — báo cáo được chốt và tính công."
+            : `Đã ${decisionLabels[decision].toLowerCase()} báo cáo nhập tay.`,
+      );
       setManualReloadKey((prev) => prev + 1);
     } catch (reviewError) {
       setManualError(
@@ -592,104 +742,6 @@ function MonthlyReports() {
     report.session_detail ||
     manualSessions.find((item) => item.id === report.session) ||
     {};
-
-  /* Báo cáo ca dạy hiển thị dạng THẺ chứ không phải bảng.
-     Bảng cũ có 9 cột, trong đó cột "Nội dung" chứa cả ba đoạn văn dài (nội dung
-     dạy + nhận xét + kế hoạch buổi sau). Hệ quả: một dòng cao gần hết màn hình,
-     bảng phải đặt minWidth 1180 nên tràn ngang và nuốt mất cột "Hành động" —
-     đúng thứ người duyệt cần bấm. Dạng thẻ cho phép nội dung dài xuống dòng tự
-     nhiên, và mỗi báo cáo gọn trong một khối đọc từ trên xuống. */
-  const TheBaoCaoCaDay = ({ report }) => {
-    const session = resolveManualSession(report);
-    const daTick = getChecklistFlag(report.completion_checklist, "manual_reported");
-    const tt = statusMeta[report.report_status] || {};
-    const [moRong, setMoRong] = useState(false);
-    // Chỉ hiện nút "Xem đầy đủ" khi nội dung THẬT SỰ bị cắt. Báo cáo ngắn mà vẫn
-    // bày nút thì bấm vào không thấy gì đổi. Đo lại khi đổi bề rộng vì cùng một
-    // đoạn văn có thể vừa khung ở màn rộng nhưng tràn ở màn hẹp.
-    const [biCat, setBiCat] = useState(false);
-    const oNoiDung = useRef(null);
-    useEffect(() => {
-      const el = oNoiDung.current;
-      if (!el) return undefined;
-      const do1 = () => setBiCat(el.scrollHeight > el.clientHeight + 4);
-      do1();
-      const ro = new ResizeObserver(do1);
-      ro.observe(el);
-      return () => ro.disconnect();
-    }, [moRong]);
-
-    const doanVan = [
-      report.content_taught ? { nhan: "Nội dung dạy", chu: report.content_taught } : null,
-      report.session_evaluation ? { nhan: "Nhận xét buổi học", chu: report.session_evaluation } : null,
-      report.next_session_plan ? { nhan: "Kế hoạch buổi sau", chu: report.next_session_plan } : null,
-    ].filter(Boolean);
-
-    return (
-      <article className="sr-card">
-        <header className="sr-card__head">
-          <div className="sr-card__who">
-            <strong>{session.classroom_name || "--"}</strong>
-            <span className="small muted">
-              {formatDate(session.session_date)} • {formatTimeRange(session.start_at, session.end_at)}
-            </span>
-          </div>
-          <div className="sr-card__meta">
-            {/* Tài khoản chưa khai họ tên thì tên hiển thị là email — chuỗi liền
-                rất dài, phải cho xuống dòng giữa chuỗi kẻo tràn khỏi thẻ. */}
-            <span className="sr-card__teacher" title={report.teacher_name || session.teacher_name || ""}>
-              {report.teacher_name || session.teacher_name || "--"}
-            </span>
-            <Badge tone={tt.tone || "gray"}>{tt.label || report.report_status}</Badge>
-          </div>
-        </header>
-
-        <div className="sr-card__facts">
-          <span><em>Sĩ số</em><b>{report.student_count ?? "--"}</b></span>
-          <span><em>Đã báo cáo</em><b className={daTick ? "sr-ok" : "sr-no"}>{daTick ? "Rồi" : "Chưa tick"}</b></span>
-          <span><em>Zalo</em><b className={report.reported_on_zalo ? "sr-ok" : "sr-no"}>
-            {report.reported_on_zalo ? "Đã gửi" : "Chưa"}
-          </b></span>
-        </div>
-
-        {doanVan.length ? (
-          <div ref={oNoiDung} className={`sr-card__body${moRong ? " is-open" : ""}`}>
-            {doanVan.map((d) => (
-              <p key={d.nhan}><em>{d.nhan}:</em> {d.chu}</p>
-            ))}
-          </div>
-        ) : (
-          <p className="small muted">Chưa nhập nội dung buổi dạy.</p>
-        )}
-        {doanVan.length && (biCat || moRong) ? (
-          <button type="button" className="sr-more" onClick={() => setMoRong((v) => !v)}>
-            {moRong ? "Thu gọn" : "Xem đầy đủ"}
-          </button>
-        ) : null}
-
-        {report.rejected_reason ? (
-          <div className="sr-card__fb">
-            <em>Phản hồi quản lý:</em> {report.rejected_reason}
-          </div>
-        ) : null}
-
-        {canReviewSession && report.report_status === "submitted" ? (
-          <div className="sr-card__act">
-            <Button variant="primary" size="sm" disabled={manualReviewLoadingId === report.id}
-                    onClick={() => handleManualReportReview(report.id, "approve")}>Duyệt</Button>
-            <Button size="sm" disabled={manualReviewLoadingId === report.id}
-                    onClick={() => handleManualReportReview(report.id, "request-revision")}>Yêu cầu sửa</Button>
-            <Button variant="danger" size="sm" disabled={manualReviewLoadingId === report.id}
-                    onClick={() => handleManualReportReview(report.id, "reject")}>Từ chối</Button>
-          </div>
-        ) : !isReportManager && report.report_status === "revision_required" ? (
-          <div className="sr-card__act">
-            <Button size="sm" onClick={() => handleEditManualReport(report)}>Chỉnh sửa</Button>
-          </div>
-        ) : null}
-      </article>
-    );
-  };
 
   const monthlyColumns = [
     { key: "teacher_name", header: "Giáo viên" },
@@ -803,11 +855,16 @@ function MonthlyReports() {
 
       <Card
         title="Báo cáo ngày"
-        action={<Badge tone="blue">{manualSummary.submitted} chờ duyệt</Badge>}
+        action={(
+          <span style={{ display: "inline-flex", gap: 6, flexWrap: "wrap" }}>
+            <Badge tone="blue">{manualSummary.choCap1} chờ cấp 1</Badge>
+            <Badge tone="orange">{manualSummary.choCap2} chờ cấp 2</Badge>
+          </span>
+        )}
       >
         <p className="small muted" style={{ marginBottom: 12 }}>
           {canReviewSession
-            ? "Quản lý đào tạo duyệt hoặc yêu cầu sửa các báo cáo giáo viên nhập tay theo từng ca dạy."
+            ? "Báo cáo ca dạy duyệt 2 cấp: cấp 1 quản lý đào tạo, cấp 2 quản lý cơ sở. Báo cáo chỉ được tính công sau khi cấp 2 ký."
             : isReportManager
             ? "Theo dõi báo cáo ngày của giáo viên (quản lý đào tạo phụ trách duyệt)."
             : "Nhập báo cáo sau buổi học, tick trạng thái đã báo cáo và gửi quản lý duyệt."}
@@ -1047,7 +1104,19 @@ function MonthlyReports() {
           ) : !manualReports.length ? (
             <p className="small muted">Chưa có báo cáo nhập tay trong tháng này.</p>
           ) : (
-            manualReports.map((report) => <TheBaoCaoCaDay key={report.id} report={report} />)
+            manualReports.map((report) => (
+              <TheBaoCaoCaDay
+                key={report.id}
+                report={report}
+                session={resolveManualSession(report)}
+                role={role}
+                userId={user?.id}
+                dangDuyet={manualReviewLoadingId === report.id}
+                laQuanLy={isReportManager}
+                onDuyet={handleManualReportReview}
+                onSua={handleEditManualReport}
+              />
+            ))
           )}
         </div>
       </Card>

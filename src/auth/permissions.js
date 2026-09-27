@@ -56,4 +56,7 @@ export const ROUTE_PERMISSIONS = {
   accounts: VAI_QUAN_TRI,
   media: ['superadmin', 'admin', 'staff', 'teacher', 'center_manager', 'training_manager'],
   tuition: ['superadmin', 'admin', 'staff', 'center_manager', 'training_manager'],
+  // Cửa vào /finance: ai có quyền tài chính HOẶC quyền học phí. Học phí 2026 nằm
+  // trong Tài chính, nên chặn staff ở cửa là staff mất luôn màn học phí.
+  financeMenu: ['superadmin', 'admin', 'staff', 'center_manager', 'training_manager', 'accountant'],
 };

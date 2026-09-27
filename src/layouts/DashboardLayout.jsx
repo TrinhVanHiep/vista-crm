@@ -91,9 +91,11 @@ const navItems = [
     ),
   },
   {
+    // Học phí 2026 đã gộp vào đây thành một phân hệ; vai chỉ có quyền học phí
+    // (staff) vẫn thấy mục này nhưng bên trong chỉ mở được phân hệ đó.
     label: "Tài chính",
     to: "/finance",
-    allowedRoles: ROUTE_PERMISSIONS.finance,
+    allowedRoles: ROUTE_PERMISSIONS.financeMenu,
     icon: navIcon(
       <>
         <circle cx="12" cy="12" r="9" />
@@ -133,17 +135,6 @@ const navItems = [
       <>
         <circle cx="12" cy="12" r="9" />
         <path d="m8 12.5 2.7 2.7L16.5 9" />
-      </>
-    ),
-  },
-  {
-    label: "Học phí 2026",
-    to: "/hoc-phi",
-    allowedRoles: ROUTE_PERMISSIONS.tuition,
-    icon: navIcon(
-      <>
-        <rect x="3" y="6" width="18" height="14" rx="2.5" />
-        <path d="M3 10h18M16.5 15h.1" />
       </>
     ),
   },

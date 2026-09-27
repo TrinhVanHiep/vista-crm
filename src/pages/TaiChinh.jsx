@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
-import { VAI_QUAN_TRI } from "../auth/permissions";
+import { ROUTE_PERMISSIONS, VAI_QUAN_TRI } from "../auth/permissions";
+import Tuition from "./Tuition";
 import DongSo from "../components/finance/DongSo";
 import HocPhiCongNo from "../components/finance/HocPhiCongNo";
 import SoGiaoDich from "../components/finance/SoGiaoDich";
@@ -24,6 +25,7 @@ import { Page, PageHeader } from "../ui";
 const PHAN_HE = [
   ["overview", "Tổng quan"],
   ["tuition", "Học phí & Công nợ"],
+  ["hoc-phi-2026", "Học phí 2026"],
   ["income", "Thu khác"],
   ["expense", "Khoản chi"],
   ["ledger", "Sổ giao dịch & Đối soát"],
@@ -34,9 +36,20 @@ const PHAN_HE = [
 const THANG = Array.from({ length: 12 }, (_, i) => i + 1);
 
 export default function TaiChinh() {
-  const { user, role } = useAuth();
+  const { user, role, hasRole } = useAuth();
   const bayGio = useMemo(() => new Date(), []);
-  const [tab, setTab] = useState("overview");
+  // Học phí 2026 (bảng theo dõi từng học viên, app tuition) là phân hệ duy nhất
+  // mở cho vai chỉ có quyền học phí; các phân hệ còn lại gọi API tài chính và
+  // backend sẽ trả 403 cho họ.
+  const coQuyenTaiChinh = hasRole(ROUTE_PERMISSIONS.finance);
+  const coQuyenHocPhi = hasRole(ROUTE_PERMISSIONS.tuition);
+  const phanHe = PHAN_HE.filter(([ma]) => (
+    ma === "hoc-phi-2026" ? coQuyenHocPhi : coQuyenTaiChinh
+  ));
+  const [thamSo, setThamSo] = useSearchParams();
+  const tabUrl = thamSo.get("tab");
+  const tab = phanHe.some(([ma]) => ma === tabUrl) ? tabUrl : (phanHe[0]?.[0] || "overview");
+  const setTab = (ma) => setThamSo(ma === "overview" ? {} : { tab: ma }, { replace: true });
   const [thang, setThang] = useState(bayGio.getMonth() + 1);
   const [nam, setNam] = useState(bayGio.getFullYear());
   const [thongBao, setThongBao] = useState("");
@@ -90,7 +103,7 @@ export default function TaiChinh() {
         display: "flex", gap: 26, marginTop: 4, marginBottom: 0,
         borderBottom: "1px solid " + mau.borderStrong, overflowX: "auto",
       }} role="tablist">
-        {PHAN_HE.map(([ma, ten]) => {
+        {phanHe.map(([ma, ten]) => {
           const dang = tab === ma;
           return (
             <button
@@ -123,6 +136,8 @@ export default function TaiChinh() {
           thang={thang} nam={nam} laQuanTri={laQuanTri} onNotice={setThongBao}
         />
       ) : null}
+
+      {tab === "hoc-phi-2026" ? <Tuition nhung /> : null}
 
       {tab === "ledger" ? (
         <SoGiaoDich thang={thang} nam={nam} onNotice={setThongBao} />

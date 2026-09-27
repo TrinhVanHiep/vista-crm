@@ -13,7 +13,6 @@ import ClassManager from './pages/ClassManager.jsx';
 import MonthlyReports from './pages/MonthlyReports.jsx';
 import DailyReport from './pages/DailyReport.jsx';
 import ComingSoon from './pages/ComingSoon.jsx';
-import Tuition from './pages/Tuition.jsx';
 import MediaPlan from './pages/MediaPlan.jsx';
 import Finance from './pages/Finance.jsx';
 import TaiChinh from './pages/TaiChinh.jsx';
@@ -228,14 +227,8 @@ function App() {
               </RoleGuard>
             }
           />
-          <Route
-            path="hoc-phi"
-            element={
-              <RoleGuard allowedRoles={ROUTE_PERMISSIONS.tuition}>
-                <Tuition />
-              </RoleGuard>
-            }
-          />
+          {/* Học phí 2026 đã thành một phân hệ trong Tài chính; giữ link cũ. */}
+          <Route path="hoc-phi" element={<Navigate to="/finance?tab=hoc-phi-2026" replace />} />
           <Route
             path="kho-tai-lieu"
             element={
@@ -263,7 +256,7 @@ function App() {
           <Route
             path="finance"
             element={
-              <RoleGuard allowedRoles={ROUTE_PERMISSIONS.finance}>
+              <RoleGuard allowedRoles={ROUTE_PERMISSIONS.financeMenu}>
                 <TaiChinh />
               </RoleGuard>
             }

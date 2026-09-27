@@ -75,7 +75,8 @@ function Modal({ title, onClose, width = 600, children }) {
   );
 }
 
-function Tuition() {
+// nhung: đang nằm làm phân hệ trong Tài chính — trang cha đã có tiêu đề.
+function Tuition({ nhung = false }) {
   const [summary, setSummary] = useState({ total_fee: 0, collected: 0, discount: 0, remaining: 0, students: 0, by_class: [] });
   const [records, setRecords] = useState([]);
   const [recordCount, setRecordCount] = useState(0);
@@ -261,10 +262,16 @@ function Tuition() {
       <div className="content-col">
         <div className="page-head">
           <div className="flex-between" style={{ alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
-            <div>
-              <h1>Học phí {YEAR}</h1>
-              <p>Theo dõi &amp; thu học phí học viên — nhập tay hoặc import từ file Excel</p>
-            </div>
+            {nhung ? (
+              <p className="small muted" style={{ margin: 0 }}>
+                Bảng theo dõi học phí {YEAR} theo từng học viên — nhập tay hoặc import từ file Excel.
+              </p>
+            ) : (
+              <div>
+                <h1>Học phí {YEAR}</h1>
+                <p>Theo dõi &amp; thu học phí học viên — nhập tay hoặc import từ file Excel</p>
+              </div>
+            )}
             <div className="flex" style={{ gap: 8, flexWrap: "wrap" }}>
               <button type="button" className="btn ghost" onClick={() => { setForm(emptyForm); setFormError(""); setModal("manual"); }}>➕ Nhập tay</button>
               <button type="button" className="btn primary" onClick={() => { setImportError(""); setModal("import"); }}>📥 Nhập file Excel</button>

@@ -711,18 +711,25 @@
 .v4page .sr-ok { color: #12703C; }
 .v4page .sr-no { color: var(--muted); font-weight: 600; }
 
-/* Mặc định gói gọn 6 dòng; bấm "Xem đầy đủ" mới bung. Không giới hạn thì một
-   báo cáo dài chiếm trọn màn hình, người duyệt phải cuộn mãi mới tới cái sau. */
-.v4page .sr-card__body { display: grid; gap: 8px; max-height: 8.6em; overflow: hidden;
-  position: relative; }
-.v4page .sr-card__body.is-open { max-height: none; }
-.v4page .sr-card__body:not(.is-open)::after { content: ""; position: absolute; left: 0; right: 0;
-  bottom: 0; height: 2.2em; background: linear-gradient(180deg, rgba(255,255,255,0), #fff); }
-.v4page .sr-card__body p { font-size: 13px; line-height: 1.6; color: var(--text-2); margin: 0; }
+/* Không cắt nội dung: người duyệt phải đọc hết báo cáo mới ký được. */
+.v4page .sr-card__body { display: grid; gap: 8px; }
+.v4page .sr-card__body p { font-size: 13px; line-height: 1.6; color: var(--text-2); margin: 0;
+  white-space: pre-line; overflow-wrap: anywhere; }
 .v4page .sr-card__body em { font-style: normal; font-weight: 700; color: var(--text); }
-.v4page .sr-more { justify-self: start; border: 0; background: none; padding: 0; cursor: pointer;
-  font-size: 12.5px; font-weight: 600; color: var(--primary); }
-.v4page .sr-more:hover { text-decoration: underline; }
+
+/* Dải 2 cấp duyệt: cấp 1 quản lý đào tạo, cấp 2 quản lý cơ sở. */
+.v4page .sr-cap { list-style: none; margin: 0; padding: 0; display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
+.v4page .sr-cap__b { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px;
+  border: 1px dashed var(--border); border-radius: 9px; font-size: 12.5px; color: var(--muted); }
+.v4page .sr-cap__b b { display: block; color: var(--text); font-size: 12.5px; }
+.v4page .sr-cap__b small { display: block; overflow-wrap: anywhere; }
+.v4page .sr-cap__b.is-cho { border-style: solid; border-color: #F3C98B; background: #FFF8EC; }
+.v4page .sr-cap__b.is-xong { border-style: solid; border-color: #BfE3CC; background: #F0FAF4; }
+.v4page .sr-cap__so { flex: 0 0 22px; height: 22px; border-radius: 50%; display: grid;
+  place-items: center; font-weight: 700; font-size: 12px; background: var(--border-soft); color: var(--text-2); }
+.v4page .sr-cap__b.is-cho .sr-cap__so { background: #F5A524; color: #fff; }
+.v4page .sr-cap__b.is-xong .sr-cap__so { background: #1F9D55; color: #fff; }
 
 .v4page .sr-card__fb { border-radius: 8px; background: var(--warn-soft, #FFF6E6);
   border: 1px solid #F3E3C2; padding: 9px 12px; font-size: 12.5px; line-height: 1.55; }

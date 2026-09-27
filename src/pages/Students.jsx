@@ -56,7 +56,8 @@ const bandFromLabel = (label) => {
   if (s.includes("khá")) return "kha";
   return "tb"; // đạt / cần hỗ trợ / theo sát / cần củng cố...
 };
-const bandFromPercent = (p) => (p == null ? null : p >= 80 ? "gioi" : p >= 65 ? "kha" : "tb");
+// Cùng ngưỡng với xếp loại trên phiếu điểm (Giỏi ≥ 8.5, Khá ≥ 7 thang 10).
+const bandFromPercent = (p) => (p == null ? null : p >= 85 ? "gioi" : p >= 70 ? "kha" : "tb");
 
 // ---- Demo data for the analytics sections that have no backend source yet ----
 const PROGRESS_TOP5 = [["FP3-A1", 85, "Sắp cuối lộ trình"], ["Cambridge KET 01", 72, "Đang học"], ["GS Starter 02", 68, "Sắp kiểm tra giữa kỳ"], ["IELTS 4.0 Pre 01", 66, "Đang học"], ["FP2-B3", 62, "Đang học"]];
@@ -242,7 +243,9 @@ function Students() {
           listClassroomsAll().catch(() => []),
           listClassesOverview({ month, year }).catch(() => ({ results: [] })),
           listCentersAll().catch(() => []),
-          listMonthlyScorecards({ month, year, page_size: 100 }).catch(() => ({ results: [] })),
+          // 1000 chứ không phải 100: một tháng có cỡ 20 em x 23 lớp phiếu, trần
+          // 100 cắt mất phần lớn các lớp khỏi bảng phân loại.
+          listMonthlyScorecards({ month, year, page_size: 1000 }).catch(() => ({ results: [] })),
           listStudentScores({ page_size: 100 }).catch(() => ({ results: [] })),
           listEvaluationItems().catch(() => []),
           listAttendanceSummary().catch(() => ({ results: [], overall_rate: null })),
