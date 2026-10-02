@@ -3389,7 +3389,7 @@ function CalendarDetail() {
   return (
       <>
       <div className="v4page">
-        <div className="content">
+        <div className="content content--lich">
           <div className="content-col">
             {/* Tiêu đề + nút cùng một khối như các màn 4.0 khác (mẫu Students.jsx),
                 thay vì để hàng nút thành một dải riêng phía dưới. */}

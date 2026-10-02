@@ -174,6 +174,10 @@ export default function StudentProfile() {
     setLoiLuu("");
     const f = {};
     TRUONG_HO_SO.forEach((t) => { f[t.key] = hs?.[t.key] ?? ""; });
+    // Họ tên nằm trên tài khoản (user), không phải trên hồ sơ học viên —
+    // last_name = họ + đệm, first_name = tên (users/models.py get_full_name).
+    f.__ho = hs?.user?.last_name ?? "";
+    f.__ten = hs?.user?.first_name ?? "";
     setForm(f);
     setMoSua(true);
   };
@@ -189,6 +193,15 @@ export default function StudentProfile() {
         const cu = String(hs?.[t.key] ?? "").trim();
         if (moi !== cu) payload[t.key] = moi === "" ? null : moi;
       });
+      const ho = String(form.__ho ?? "").trim();
+      const tenMoi = String(form.__ten ?? "").trim();
+      if (!tenMoi) {
+        setLoiLuu("Tên học viên không được để trống.");
+        return;
+      }
+      if (ho !== (hs?.user?.last_name || "").trim() || tenMoi !== (hs?.user?.first_name || "").trim()) {
+        payload.user = { last_name: ho, first_name: tenMoi };
+      }
       if (!Object.keys(payload).length) {
         setMoSua(false);
         return;
@@ -248,7 +261,7 @@ export default function StudentProfile() {
         crumbs={[{ label: "Tổng quan", to: "/" }, { label: "Học sinh - Lớp học", to: "/students" }, { label: ten }]}
         title={ten}
         description={`${hs.classroom?.class_code || hs.classroom?.name || "Chưa xếp lớp"}${hs.classroom?.program_name ? ` · ${hs.classroom.program_name}` : ""}`}
-        actions={<Button variant="primary" onClick={moForm}>Bổ sung hồ sơ</Button>}
+        actions={<Button variant="primary" onClick={moForm}>Sửa hồ sơ</Button>}
       />
 
       {thongBao ? (
@@ -452,7 +465,7 @@ export default function StudentProfile() {
       <Modal
         open={moSua}
         onClose={() => setMoSua(false)}
-        title="Bổ sung hồ sơ học viên"
+        title="Sửa hồ sơ học viên"
         subtitle={ten}
         size="lg"
         footer={
@@ -464,6 +477,22 @@ export default function StudentProfile() {
       >
         {loiLuu ? <div className="alert red" style={{ marginBottom: 12 }}>{loiLuu}</div> : null}
         <div className="ui-form-grid">
+          <Field label="Họ và tên đệm">
+            <input
+              type="text"
+              value={form.__ho ?? ""}
+              placeholder="Ví dụ: Nguyễn Thị"
+              onChange={(e) => setForm((p) => ({ ...p, __ho: e.target.value }))}
+            />
+          </Field>
+          <Field label="Tên" required>
+            <input
+              type="text"
+              value={form.__ten ?? ""}
+              placeholder="Ví dụ: Lan"
+              onChange={(e) => setForm((p) => ({ ...p, __ten: e.target.value }))}
+            />
+          </Field>
           {TRUONG_HO_SO.map((f) => (
             <Field key={f.key} label={f.nhan}>
               {f.loai === "textarea" ? (

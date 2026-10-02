@@ -140,8 +140,20 @@ export default function StudentLearningReport() {
   const [donCaDaDuyet, setDonCaDaDuyet] = useState(false);
 
   const [lops, setLops] = useState([]);
-  const [items, setItems] = useState([]);
+  const [itemsGoc, setItems] = useState([]);
   const [itemsTruoc, setItemsTruoc] = useState([]);
+  // Lọc theo chương trình học — lọc tại chỗ trên phiếu đã tải, nên mọi khối
+  // của màn (phân bổ xếp loại, theo lớp, danh sách) đều chỉ tính chương trình đó.
+  const [chuongTrinh, setChuongTrinh] = useState("");
+  const tenChuongTrinh = (i) => String(i.program_name || "").trim() || "Chưa gắn chương trình";
+  const cacChuongTrinh = useMemo(
+    () => [...new Set(itemsGoc.map(tenChuongTrinh))].sort((a, b) => a.localeCompare(b, "vi")),
+    [itemsGoc],
+  );
+  const items = useMemo(
+    () => (chuongTrinh ? itemsGoc.filter((i) => tenChuongTrinh(i) === chuongTrinh) : itemsGoc),
+    [itemsGoc, chuongTrinh],
+  );
   const [dangTai, setDangTai] = useState(true);
   const [loi, setLoi] = useState("");
   const [dangXuat, setDangXuat] = useState(false);
@@ -394,6 +406,81 @@ export default function StudentLearningReport() {
       .sort((a, b) => (b.diemTB ?? -1) - (a.diemTB ?? -1));
   }, [items, diemTruocTheoHS]);
 
+  // Báo cáo tổng theo CHƯƠNG TRÌNH học (Starter, Movers, cấp 2...): ban giám đốc
+  // nhìn theo chương trình chứ không theo từng lớp. Cùng các phiếu đang lọc trên
+  // màn (tháng/năm/lớp/xếp loại), nên số cộng lại khớp với bảng theo lớp.
+  const theoChuongTrinh = useMemo(() => {
+    const nhom = new Map();
+    items.forEach((i) => {
+      const ten = String(i.program_name || "").trim() || "Chưa gắn chương trình";
+      if (!nhom.has(ten)) nhom.set(ten, { ten, ds: [], lop: new Set() });
+      const n = nhom.get(ten);
+      n.ds.push(i);
+      n.lop.add(i.classroom);
+    });
+    const tbTruoc = (ds) => trungBinh(ds.map((i) => diemTruocTheoHS.get(i.student)));
+    return [...nhom.values()]
+      .map((n) => {
+        const nay = trungBinh(n.ds.map((i) => Number(i.total_percent)));
+        const truoc = tbTruoc(n.ds);
+        const dem = Object.fromEntries(XEP_LOAI.map((x) => [x.key, 0]));
+        n.ds.forEach((i) => { if (i.grade_label in dem) dem[i.grade_label] += 1; });
+        return {
+          id: n.ten,
+          ten: n.ten,
+          soLop: n.lop.size,
+          soHS: new Set(n.ds.map((i) => i.student)).size,
+          soPhieu: n.ds.length,
+          diemTB: nay,
+          delta: Number.isFinite(nay) && Number.isFinite(truoc) ? nay - truoc : null,
+          ccTB: trungBinh(n.ds.map(tiLeChuyenCan)),
+          dem,
+          canHoTro: dem["Trung bình"] + dem["Yếu"],
+        };
+      })
+      .sort((a, b) => b.soHS - a.soHS);
+  }, [items, diemTruocTheoHS]);
+
+  const cotChuongTrinh = [
+    { key: "ten", header: "Chương trình", render: (r) => <b>{r.ten}</b> },
+    { key: "soLop", header: "Số lớp", align: "center" },
+    { key: "soHS", header: "HS có bảng điểm", align: "center" },
+    {
+      key: "diemTB", header: "Điểm TB", align: "right",
+      render: (r) => (so1(r.diemTB) ? `${so1(r.diemTB)}%` : "--"),
+    },
+    {
+      key: "thaydoi", header: "So tháng trước", align: "right",
+      render: (r) => <MucThayDoi delta={r.delta} chuThich="--" />,
+    },
+    {
+      key: "ccTB", header: "Chuyên cần", align: "right",
+      render: (r) => (so1(r.ccTB) ? `${so1(r.ccTB)}%` : "--"),
+    },
+    {
+      key: "phanbo", header: "Giỏi · Khá · TB · Yếu",
+      render: (r) => (
+        <div style={{ display: "grid", gap: 4, minWidth: 170 }}>
+          {/* Thanh chồng theo tỉ lệ: cùng màu với Phân bổ xếp loại phía trên. */}
+          <div style={{ display: "flex", height: 8, borderRadius: 4, overflow: "hidden", background: "var(--border-soft, #eee)" }}>
+            {XEP_LOAI.map((x) => (r.dem[x.key] ? (
+              <span key={x.key} title={`${x.key}: ${r.dem[x.key]}`}
+                    style={{ width: `${(r.dem[x.key] / (r.soPhieu || 1)) * 100}%`, background: x.mau }} />
+            ) : null))}
+          </div>
+          <span className="small muted" style={{ fontVariantNumeric: "tabular-nums" }}>
+            {XEP_LOAI.map((x) => r.dem[x.key]).join(" · ")}
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: "canHoTro", header: "Cần hỗ trợ", align: "center",
+      render: (r) =>
+        r.canHoTro > 0 ? <Badge tone="orange">{r.canHoTro} em</Badge> : <span className="muted">0</span>,
+    },
+  ];
+
   const cotLop = [
     { key: "ten", header: "Lớp", render: (r) => <b>{r.ten}</b> },
     { key: "soHS", header: "Sĩ số có bảng điểm", align: "center" },
@@ -604,6 +691,20 @@ export default function StudentLearningReport() {
         })),
       ]);
 
+      themSheet("Theo chuong trinh", theoChuongTrinh.map((c) => ({
+        "Chương trình": c.ten,
+        "Số lớp": c.soLop,
+        "HS có bảng điểm": c.soHS,
+        "Điểm trung bình (%)": so1(c.diemTB) ?? "",
+        "Thay đổi so tháng trước (điểm %)": c.delta == null ? "" : Number(c.delta.toFixed(1)),
+        "Chuyên cần (%)": so1(c.ccTB) ?? "",
+        "Giỏi": c.dem["Giỏi"],
+        "Khá": c.dem["Khá"],
+        "Trung bình": c.dem["Trung bình"],
+        "Yếu": c.dem["Yếu"],
+        "Cần hỗ trợ": c.canHoTro,
+      })));
+
       themSheet("Theo lop", theoLop.map((l) => ({
         "Lớp": l.ten,
         "Sĩ số có bảng điểm": l.soHS,
@@ -666,10 +767,21 @@ export default function StudentLearningReport() {
         </select>
       </label>
       <label>
+        <span>Chương trình</span>
+        <select value={chuongTrinh} onChange={(e) => { setChuongTrinh(e.target.value); setLopId(""); }}>
+          <option value="">Tất cả chương trình</option>
+          {cacChuongTrinh.map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
+      </label>
+      <label>
         <span>Lớp</span>
         <select value={lopId} onChange={(e) => setLopId(e.target.value)}>
           <option value="">Tất cả lớp</option>
-          {lops.map((l) => (
+          {lops
+            .filter((l) => !chuongTrinh || (String(l.program_name || "").trim() || "Chưa gắn chương trình") === chuongTrinh)
+            .map((l) => (
             <option key={l.id} value={l.id}>{l.class_code || l.name}</option>
           ))}
         </select>
@@ -816,6 +928,13 @@ export default function StudentLearningReport() {
             ))}
           </div>
         )}
+      </Card>
+
+      <Card title="Báo cáo tổng theo chương trình học">
+        <DataTable columns={cotChuongTrinh} rows={theoChuongTrinh} loading={dangTai}
+                   rowKey={(r) => r.id}
+                   empty="Chưa có bảng điểm nào trong tháng này."
+                   minWidth={820} />
       </Card>
 
       <Card title="So sánh giữa các lớp">

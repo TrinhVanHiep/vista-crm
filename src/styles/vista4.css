@@ -913,3 +913,20 @@ input.dshv-o[type=search]{min-width:230px;flex:1 1 230px}
    cuộn bên trong; Esc hoặc nút "Thoát" để trở lại. */
 .v4page .card.cal-full { position: fixed; inset: 10px; z-index: 250; margin: 0;
   overflow: auto; box-shadow: 0 24px 60px rgba(40, 26, 12, 0.28); }
+
+/* Lịch làm việc: khi màn hẹp (≤ 1200px) bố cục xếp một cột và cột phải
+   (Nhắc việc hôm nay, Phê duyệt chờ xử lý, Sự kiện sắp tới) từng rơi xuống
+   tận đáy trang, sau cả khung lịch dài. Đưa nó lên ngay dưới tiêu đề trang,
+   xếp thành hàng ngang. `display: contents` cho phép xếp lại thứ tự giữa
+   tiêu đề (nằm trong .content-col) và cột phải mà không phải viết lại JSX. */
+@media (max-width: 1200px) {
+  .v4page .content.content--lich > .content-col { display: contents; }
+  .v4page .content.content--lich > .content-col > * { width: 100%; min-width: 0; }
+  .v4page .content.content--lich > .content-col > .page-head { order: -2; }
+  .v4page .content.content--lich > .rightbar {
+    order: -1;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    align-items: start;
+  }
+}
