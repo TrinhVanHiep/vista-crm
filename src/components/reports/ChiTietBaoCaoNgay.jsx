@@ -43,6 +43,63 @@ const gioPhut = (s) => {
     + `${d.getFullYear()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 };
 
+const HINH_THUC = { online: "Online", offline: "Trực tiếp", hybrid: "Kết hợp" };
+const TRANG_THAI_CA = {
+  scheduled: "Đã lên lịch", in_progress: "Đang diễn ra", completed: "Hoàn thành",
+  cancelled: "Đã huỷ", rescheduled: "Đổi lịch", no_show: "Vắng mặt",
+};
+const LICH_BAO_GIANG = {
+  draft: "Nháp", submitted: "Chờ duyệt", approved: "Đã duyệt",
+  revision_required: "Cần sửa", rejected: "Từ chối",
+};
+
+const gio = (v) => {
+  if (!v) return "";
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? "" : `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+};
+
+/**
+ * Thông tin CA DẠY (không phải báo cáo): luôn hiện, kể cả ca chưa báo cáo — bấm
+ * vào một ca ở "Lịch dạy hôm nay" là để xem ca đó dạy gì, ai dạy, mục tiêu gì.
+ * Trước đây popup chỉ mở được với ca đã có báo cáo.
+ */
+function ThongTinCa({ buoi }) {
+  const ngay = buoi.session_date
+    ? `${buoi.session_date.slice(8, 10)}/${buoi.session_date.slice(5, 7)}/${buoi.session_date.slice(0, 4)}` : "";
+  const dong = [
+    ["Thời gian", [ngay, [gio(buoi.start_at), gio(buoi.end_at)].filter(Boolean).join(" – ")].filter(Boolean).join(" · ")],
+    ["Lớp", buoi.classroom_name],
+    ["Giáo viên", buoi.teacher_name],
+    ["Hình thức", HINH_THUC[buoi.delivery_mode] || buoi.delivery_mode],
+    ["Trạng thái ca", TRANG_THAI_CA[buoi.status] || buoi.status],
+    ["Lịch báo giảng", LICH_BAO_GIANG[buoi.teaching_plan_status] || buoi.teaching_plan_status],
+  ].filter(([, v]) => v);
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <div className="bcn-luoi">
+        {dong.map(([k, v]) => (
+          <div key={k} className="bcn-muc">
+            <div className="bcn-muc__nhan">{k}</div>
+            <div className="bcn-muc__noi">{v}</div>
+          </div>
+        ))}
+        <Muc nhan="Nội dung dạy (giáo viên đăng ký)" giaTri={buoi.lesson_topic} rong />
+        <Muc nhan="Mục tiêu buổi học" giaTri={buoi.lesson_objective} rong />
+        {buoi.meeting_link ? (
+          <div className="bcn-muc bcn-muc--rong">
+            <div className="bcn-muc__nhan">Link học</div>
+            <div className="bcn-muc__noi">
+              <a href={buoi.meeting_link} target="_blank" rel="noreferrer">{buoi.meeting_link}</a>
+            </div>
+          </div>
+        ) : null}
+        {buoi.cancelled_reason ? <Muc nhan="Lý do huỷ" giaTri={buoi.cancelled_reason} rong /> : null}
+      </div>
+    </div>
+  );
+}
+
 /** Một mục nội dung. Rỗng thì nói rõ là chưa nhập chứ không để trắng. */
 function Muc({ nhan, giaTri, rong = false }) {
   const co = giaTri != null && String(giaTri).trim() !== "";
@@ -207,7 +264,7 @@ export default function ChiTietBaoCaoNgay({ buoi, onDong, coQuyenDuyet = false, 
     <Modal
       open={!!buoi}
       onClose={onDong}
-      title="Nội dung báo cáo ca dạy"
+      title="Chi tiết ca dạy"
       subtitle={buoi ? `${buoi.classroom_name || "--"} — ${buoi.teacher_name || "--"}` : ""}
       size="lg"
       footer={chanTrang}
@@ -217,11 +274,14 @@ export default function ChiTietBaoCaoNgay({ buoi, onDong, coQuyenDuyet = false, 
       ) : null}
       {loi ? <div className="alert red" style={{ marginBottom: 12 }}><span>⚠️</span><div>{loi}</div></div> : null}
 
+      {buoi ? <ThongTinCa buoi={buoi} /> : null}
+      <div className="bcn-muc__nhan" style={{ margin: "4px 0 8px", fontSize: 13 }}>Báo cáo sau ca dạy</div>
+
       {dangTai ? (
         <div className="bcn-trong">Đang tải nội dung...</div>
       ) : !bc ? (
         <div className="bcn-trong">
-          Buổi dạy này chưa có báo cáo nào. Giáo viên cần nộp báo cáo trước khi duyệt.
+          Giáo viên chưa nộp báo cáo cho ca này.
         </div>
       ) : (
         <>

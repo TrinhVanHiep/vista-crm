@@ -482,7 +482,12 @@ function DailyReport() {
                         {sessions.map((s) => {
                           const meta = reportMeta(s.report_status);
                           return (
-                            <tr key={s.id}>
+                            <tr
+                              key={s.id}
+                              style={{ cursor: "pointer" }}
+                              title="Bấm để xem chi tiết ca dạy"
+                              onClick={() => setXemChiTiet(s)}
+                            >
                               {!isDay && <td className="muted">{s.session_date ? `${s.session_date.slice(8)}/${s.session_date.slice(5, 7)}` : "--"}</td>}
                               <td className="muted">{timeRange(s.start_at, s.end_at)}</td>
                               <td className="bold" style={{ color: "var(--primary)" }}>{s.classroom_name || "--"}</td>
@@ -492,18 +497,15 @@ function DailyReport() {
                                 {/* Quản lý vào đây để ĐỌC báo cáo. Trước đây bảng
                                     chỉ có badge trạng thái nên không có đường nào
                                     xem được giáo viên đã viết gì. */}
-                                {coNoiDungDeXem(s.report_status) ? (
-                                  <button
-                                    type="button"
-                                    className="card-link"
-                                    style={{ cursor: "pointer", background: "none", border: "none", font: "inherit" }}
-                                    onClick={() => setXemChiTiet(s)}
-                                  >
-                                    Xem chi tiết
-                                  </button>
-                                ) : (
-                                  <span className="small muted">--</span>
-                                )}
+                                {/* Cả dòng bấm được; nút giữ lại cho rõ là có chi tiết. */}
+                                <button
+                                  type="button"
+                                  className="card-link"
+                                  style={{ cursor: "pointer", background: "none", border: "none", font: "inherit" }}
+                                  onClick={(e) => { e.stopPropagation(); setXemChiTiet(s); }}
+                                >
+                                  {coNoiDungDeXem(s.report_status) ? "Xem báo cáo" : "Xem chi tiết"}
+                                </button>
                               </td>
                             </tr>
                           );
