@@ -1,24 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useOutletContext } from "react-router-dom";
+import { useOutletContext } from "react-router-dom";
 import {
   getMediaSummary,
   listAllMediaReports,
   listClassroomsAll,
-  listSchedules,
   updateMediaReport,
 } from "../services/calendarService";
 import "../styles/vista4.css";
 
 const PAGE_SIZE = 12;
-
-// Trạng thái việc trên Lịch làm việc (schedules.Schedule.status).
-const TRANG_THAI_LICH = {
-  todo: { nhan: "Chưa bắt đầu", cls: "gray" },
-  in_progress: { nhan: "Đang xử lý", cls: "blue" },
-  done: { nhan: "Hoàn tất", cls: "green" },
-  delay: { nhan: "Cần xử lý", cls: "orange" },
-  cancel: { nhan: "Huỷ", cls: "red" },
-};
 const TODAY = new Date();
 
 const fmt = (n) => (Number(n) || 0).toLocaleString("vi-VN");
@@ -216,27 +206,6 @@ function MediaPlan() {
       setAcceptSaving(false);
     }
   };
-
-  // Việc nhóm "Truyền thông" trên Lịch làm việc (bảng Schedule, category
-  // "marketing"). Trang này vốn chỉ đọc MediaReport — một bảng KHÁC — nên lịch
-  // có 13 việc truyền thông mà ở đây trống trơn. Đọc thẳng từ lịch thay vì chép
-  // sang MediaReport: hai bản chép sẽ lệch nhau ngay lần sửa đầu tiên.
-  const [viecLich, setViecLich] = useState([]);
-  const [viecLichLoi, setViecLichLoi] = useState("");
-  useEffect(() => {
-    let huy = false;
-    setViecLichLoi("");
-    listSchedules({ year, month, page_size: 1000 })
-      .then((res) => {
-        if (huy) return;
-        const ds = (Array.isArray(res?.results) ? res.results : [])
-          .filter((x) => x.category === "marketing")
-          .sort((a, b) => String(a.event_date || "").localeCompare(String(b.event_date || "")));
-        setViecLich(ds);
-      })
-      .catch(() => { if (!huy) { setViecLich([]); setViecLichLoi("Không tải được việc truyền thông từ Lịch làm việc."); } });
-    return () => { huy = true; };
-  }, [year, month, reloadKey]);
 
   // Tháng/năm bám theo bộ chọn kỳ trên thanh trên cùng.
   useEffect(() => { setMonth(scopeMonth); }, [scopeMonth]);
@@ -448,48 +417,6 @@ function MediaPlan() {
           </div>
 
           <div className="stack">
-            <div className="card">
-              <div className="card-head" style={{ flexWrap: "wrap" }}>
-                <h3>Việc truyền thông trên Lịch làm việc ({viecLich.length})</h3>
-                <span className="small muted">Tháng {pad2(month)}/{year} · nhóm “Truyền thông” của Lịch làm việc</span>
-              </div>
-              {viecLichLoi ? (
-                <Empty>{viecLichLoi}</Empty>
-              ) : !viecLich.length ? (
-                <Empty>Tháng này Lịch làm việc chưa có việc truyền thông nào.</Empty>
-              ) : (
-                <div className="tbl-wrap">
-                  <table className="tbl">
-                    <thead>
-                      <tr><th>Ngày</th><th>Việc</th><th>Phụ trách</th><th className="t-center">Trạng thái</th></tr>
-                    </thead>
-                    <tbody>
-                      {viecLich.map((v) => {
-                        const tt = TRANG_THAI_LICH[v.status] || { nhan: v.status || "--", cls: "gray" };
-                        return (
-                          <tr key={v.id}>
-                            <td style={{ whiteSpace: "nowrap" }}>
-                              {v.event_date ? (
-                                <Link to={`/calendar-detail?date=${v.event_date}`}>
-                                  {v.event_date.slice(8, 10)}/{v.event_date.slice(5, 7)}
-                                </Link>
-                              ) : (v.time_label || "--")}
-                            </td>
-                            <td>
-                              <b>{v.title}</b>
-                              {v.description ? <div className="small muted">{v.description}</div> : null}
-                            </td>
-                            <td>{v.assigned_to?.name || <span className="muted">--</span>}</td>
-                            <td className="t-center"><span className={`badge ${tt.cls}`}>{tt.nhan}</span></td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-
             {/* 3. Bộ lọc + bảng kế hoạch nội dung */}
             <div className="card">
               <div className="card-head" style={{ flexWrap: "wrap" }}>
@@ -595,7 +522,14 @@ function MediaPlan() {
                             <td className="muted">{row.program_name || "—"}</td>
                             <td className="bold">{row.classroom_name || "—"}</td>
                             <td style={{ whiteSpace: "normal", minWidth: 220, maxWidth: 320 }}>
-                              <div className="bold">{row.title}</div>
+                              <div className="bold">
+                                {row.title}
+                                {/* Sinh tự động từ việc nhóm Truyền thông trên Lịch làm việc;
+                                    tiêu đề / ngày sửa ở Lịch, chỉ số & nghiệm thu sửa ở đây. */}
+                                {row.schedule ? (
+                                  <span className="badge blue" style={{ marginLeft: 6, fontSize: 10 }} title="Từ Lịch làm việc — sửa tiêu đề, ngày ở Lịch">Từ Lịch</span>
+                                ) : null}
+                              </div>
                               {row.description ? (
                                 <div className="small muted" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 300 }}>
                                   {row.description}
