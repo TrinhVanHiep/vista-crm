@@ -94,7 +94,7 @@ export const moLaiKy = (id, ly_do) =>
 
 /* ------------------------------------------------------ nhập liệu */
 
-/** Ba đường nhập: khoản phải thu, phiếu thu, khoản chi. */
+/** Các đường nhập: khoản phải thu, phiếu thu, khoản chi, học phí theo lớp. */
 export const LOAI_NHAP = [
   {
     ma: "phai-thu",
@@ -114,6 +114,18 @@ export const LOAI_NHAP = [
     mo: "Ghi các khoản đã chi thẳng vào sổ giao dịch.",
     cot: "Ngày chi · Nội dung · Số tiền · Quỹ / Tài khoản · Danh mục",
   },
+  {
+    ma: "hoc-phi-lop",
+    ten: "Học phí theo lớp (mỗi lớp 1 sheet)",
+    mo: "Nhập file học phí kiểu “HỌC PHÍ 2026”: lập công nợ, ghi các lần đã đóng và ưu đãi cho cả lớp.",
+    cot: "Mỗi sheet: LỚP · HỌC PHÍ CT · SỐ BUỔI · THỜI GIAN HỌC, rồi HỌ VÀ TÊN · ĐỊA CHỈ · TỔNG THIẾU · "
+      + "ĐÃ ĐÓNG LẦN 2 · ngày đóng · ĐÃ ĐÓNG LẦN 1 · ngày đóng · TỔNG TIỀN · ƯU ĐÃI/ HỌC BỔNG · GHI CHÚ",
+    goiY: "Mỗi sheet là MỘT lớp, tên sheet là mã lớp trong hệ thống (‘501 -’, ‘M1+’ được hiểu là 501, M1). "
+      + "Mỗi học viên sinh một khoản học phí = TỔNG TIỀN vào kỳ đang chọn; ĐÃ ĐÓNG LẦN 1/2 thành phiếu thu "
+      + "với ngày lấy từ ô “ngày đóng” (có ‘ck’ là chuyển khoản, còn lại là tiền mặt); ƯU ĐÃI/HỌC BỔNG thành "
+      + "giảm trừ chờ duyệt. Dòng tổng lớp và các sheet tổng hợp (doanh thu, lương, nháp…) được tự bỏ qua. "
+      + "Học viên phải có sẵn trong hệ thống. Nhập lại cùng file không ghi trùng.",
+  },
 ];
 
 /** Tải file mẫu về máy. Trình duyệt không cho tải chéo miền bằng thẻ <a> có
@@ -125,7 +137,8 @@ export async function taiFileMau(loai, { coDuLieu = false, thang, nam } = {}) {
   });
   const goc = { "phai-thu": "Mau-khoan-phai-thu.xlsx",
                 "phieu-thu": "Mau-phieu-thu.xlsx",
-                "khoan-chi": "Mau-khoan-chi.xlsx" }[loai] || "Mau.xlsx";
+                "khoan-chi": "Mau-khoan-chi.xlsx",
+                "hoc-phi-lop": "Mau-hoc-phi-theo-lop.xlsx" }[loai] || "Mau.xlsx";
   const ten = coDuLieu ? goc.replace(".xlsx", "-co-du-lieu.xlsx") : goc;
   const url = URL.createObjectURL(new Blob([res.data]));
   const a = document.createElement("a");

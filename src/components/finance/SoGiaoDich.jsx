@@ -32,7 +32,8 @@ const ngayGio = (s) => {
   return `${hai(d.getDate())}/${hai(d.getMonth() + 1)} ${hai(d.getHours())}:${hai(d.getMinutes())}`;
 };
 
-export default function SoGiaoDich({ thang, nam, onNotice }) {
+/** `coTheGhi` = false: vai chỉ xem (quản lý) — ẩn ghi sổ, nhập, đối soát, sửa quỹ. */
+export default function SoGiaoDich({ thang, nam, onNotice, coTheGhi = true }) {
   const [ds, setDs] = useState([]);
   const [tong, setTong] = useState(null);
   const [nhatKy, setNhatKy] = useState([]);
@@ -102,7 +103,7 @@ export default function SoGiaoDich({ thang, nam, onNotice }) {
        cột thứ 10 là buộc phải cuộn ngang ở 1600px. Hai thứ này cùng một việc —
        muốn khớp sổ thì phải có chứng từ — nên đọc chung một ô là đúng mạch. */
     <div key="k" style={{ display: "flex", flexDirection: "column", gap: 3, alignItems: "flex-start" }}>
-      {g.reconcile_status === "pending" ? (
+      {g.reconcile_status === "pending" && coTheGhi ? (
         <button type="button" onClick={() => khop(g)} style={{
           background: "none", border: 0, padding: 0, cursor: "pointer",
           color: color.orange, fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap",
@@ -162,12 +163,14 @@ export default function SoGiaoDich({ thang, nam, onNotice }) {
           { value: "matched", label: "Đã khớp" },
           { value: "not_required", label: "Không cần đối soát" },
         ]} />
-        <div style={{ marginLeft: "auto", display: "flex", gap: 10 }}>
-          <Button variant="outline" icon="doc" onClick={() => setMoNhap(true)}>
-            Nhập khoản chi
-          </Button>
-          <Button icon="plus" onClick={() => setMoGhiSo(true)}>Ghi giao dịch</Button>
-        </div>
+        {coTheGhi ? (
+          <div style={{ marginLeft: "auto", display: "flex", gap: 10 }}>
+            <Button variant="outline" icon="doc" onClick={() => setMoNhap(true)}>
+              Nhập khoản chi
+            </Button>
+            <Button icon="plus" onClick={() => setMoGhiSo(true)}>Ghi giao dịch</Button>
+          </div>
+        ) : null}
       </div>
 
       {loi ? (
@@ -288,10 +291,12 @@ export default function SoGiaoDich({ thang, nam, onNotice }) {
                     <div style={{ fontSize: 13.5, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
                       {rutGonM(q.current_balance)} đ
                     </div>
-                    <button type="button" onClick={() => setSuaQuyNao(q)} style={{
-                      background: "none", border: 0, padding: 0, cursor: "pointer",
-                      color: color.orange, fontSize: 11.5, fontWeight: 700, marginTop: 2,
-                    }}>Sửa</button>
+                    {coTheGhi ? (
+                      <button type="button" onClick={() => setSuaQuyNao(q)} style={{
+                        background: "none", border: 0, padding: 0, cursor: "pointer",
+                        color: color.orange, fontSize: 11.5, fontWeight: 700, marginTop: 2,
+                      }}>Sửa</button>
+                    ) : null}
                   </div>
                 </div>
               ))}

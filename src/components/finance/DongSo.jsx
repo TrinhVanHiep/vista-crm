@@ -22,7 +22,7 @@ const thoiDiem = (s) => {
     + ` ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 };
 
-export default function DongSo({ thang, nam, onNotice, laQuanTri }) {
+export default function DongSo({ thang, nam, onNotice, laQuanTri, coTheGhi = true }) {
   const [ky, setKy] = useState(null);
   const [kiemTra, setKiemTra] = useState(null);
   const [soLieu, setSoLieu] = useState({ so: null, congNo: null });
@@ -38,14 +38,15 @@ export default function DongSo({ thang, nam, onNotice, laQuanTri }) {
     try {
       const ds = await layDanhSachKy();
       let k = ds.find((x) => x.period_month === thang && x.period_year === nam);
-      if (!k) {
+      if (!k && coTheGhi) {
         // Kỳ chưa tồn tại là chuyện bình thường — chưa có giao dịch nào thì
-        // chưa ai tạo. Tạo sẵn để màn hình có gì mà hiển thị.
+        // chưa ai tạo. Tạo sẵn để màn hình có gì mà hiển thị. Vai chỉ xem
+        // (quản lý) không được tạo kỳ, nên với họ chỉ hiện số liệu.
         k = await taoKy({ period_month: thang, period_year: nam });
       }
-      setKy(k);
+      setKy(k || null);
       const [kt, so, cn, log] = await Promise.all([
-        kiemTraDongSo(k.id),
+        k ? kiemTraDongSo(k.id) : Promise.resolve(null),
         tongHopSo({ month: thang, year: nam }),
         tongHopCongNo({ month: thang, year: nam }),
         layNhatKy({ page_size: 25 }),
@@ -58,7 +59,7 @@ export default function DongSo({ thang, nam, onNotice, laQuanTri }) {
     } finally {
       setDangTai(false);
     }
-  }, [thang, nam, taiLai]);
+  }, [thang, nam, taiLai, coTheGhi]);
 
   useEffect(() => { tai(); }, [tai]);
 

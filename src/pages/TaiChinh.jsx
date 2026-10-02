@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
-import { ROUTE_PERMISSIONS, VAI_QUAN_TRI } from "../auth/permissions";
-import Tuition from "./Tuition";
+import { ROUTE_PERMISSIONS } from "../auth/permissions";
 import DongSo from "../components/finance/DongSo";
+import BangLuong from "../components/finance/BangLuong";
 import HocPhiCongNo from "../components/finance/HocPhiCongNo";
 import SoGiaoDich from "../components/finance/SoGiaoDich";
 import TongQuanTaiChinh from "../components/finance/TongQuanTaiChinh";
@@ -25,7 +25,6 @@ import { Page, PageHeader } from "../ui";
 const PHAN_HE = [
   ["overview", "Tổng quan"],
   ["tuition", "Học phí & Công nợ"],
-  ["hoc-phi-2026", "Học phí 2026"],
   ["income", "Thu khác"],
   ["expense", "Khoản chi"],
   ["ledger", "Sổ giao dịch & Đối soát"],
@@ -36,27 +35,27 @@ const PHAN_HE = [
 const THANG = Array.from({ length: 12 }, (_, i) => i + 1);
 
 export default function TaiChinh() {
-  const { user, role, hasRole } = useAuth();
+  const { user, hasRole } = useAuth();
   const bayGio = useMemo(() => new Date(), []);
-  // Học phí 2026 (bảng theo dõi từng học viên, app tuition) là phân hệ duy nhất
-  // mở cho vai chỉ có quyền học phí; các phân hệ còn lại gọi API tài chính và
-  // backend sẽ trả 403 cho họ.
+  // Quản lý cơ sở / quản lý đào tạo: chỉ xem, và không thấy Tổng quan (dòng
+  // tiền, hiệu suất kinh doanh). Backend chặn tương ứng — ẩn ở đây để họ không
+  // bấm vào nút rồi nhận 403.
   const coQuyenTaiChinh = hasRole(ROUTE_PERMISSIONS.finance);
-  const coQuyenHocPhi = hasRole(ROUTE_PERMISSIONS.tuition);
+  const coTheGhi = !!user && (user.is_superuser || hasRole(ROUTE_PERMISSIONS.financeWrite));
+  const xemTongQuan = !!user && (user.is_superuser || hasRole(ROUTE_PERMISSIONS.financeOverview));
   const phanHe = PHAN_HE.filter(([ma]) => (
-    ma === "hoc-phi-2026" ? coQuyenHocPhi : coQuyenTaiChinh
+    ma === "overview" ? xemTongQuan : coQuyenTaiChinh
   ));
   const [thamSo, setThamSo] = useSearchParams();
   const tabUrl = thamSo.get("tab");
   const tab = phanHe.some(([ma]) => ma === tabUrl) ? tabUrl : (phanHe[0]?.[0] || "overview");
-  const setTab = (ma) => setThamSo(ma === "overview" ? {} : { tab: ma }, { replace: true });
+  const setTab = (ma) => setThamSo(ma === phanHe[0]?.[0] ? {} : { tab: ma }, { replace: true });
   const [thang, setThang] = useState(bayGio.getMonth() + 1);
   const [nam, setNam] = useState(bayGio.getFullYear());
   const [thongBao, setThongBao] = useState("");
 
-  // role đã được AuthProvider chuẩn hoá về chuỗi; đọc thẳng user.role.name
-  // thì hỏng với tài khoản mà API trả role dạng chuỗi.
-  const laQuanTri = !!user && (user.is_superuser || VAI_QUAN_TRI.includes(role));
+  // Người duyệt giảm trừ / khoá kỳ: chỉ admin, super admin (IsFinanceApprover).
+  const laQuanTri = !!user && (user.is_superuser || hasRole(ROUTE_PERMISSIONS.financeApprove));
 
   // Thông báo thành công tự tắt; để mãi trên màn thì lần sau người dùng không
   // phân biệt được đây là kết quả vừa xong hay của thao tác trước.
@@ -133,23 +132,27 @@ export default function TaiChinh() {
 
       {tab === "tuition" ? (
         <HocPhiCongNo
-          thang={thang} nam={nam} laQuanTri={laQuanTri} onNotice={setThongBao}
+          thang={thang} nam={nam} laQuanTri={laQuanTri} coTheGhi={coTheGhi}
+          onNotice={setThongBao}
         />
       ) : null}
 
-      {tab === "hoc-phi-2026" ? <Tuition nhung /> : null}
-
       {tab === "ledger" ? (
-        <SoGiaoDich thang={thang} nam={nam} onNotice={setThongBao} />
+        <SoGiaoDich thang={thang} nam={nam} coTheGhi={coTheGhi} onNotice={setThongBao} />
       ) : null}
 
       {tab === "report" ? (
         <>
-          <DongSo thang={thang} nam={nam} laQuanTri={laQuanTri} onNotice={setThongBao} />
-          <p className="fin-mo" style={{ fontSize: 13, marginTop: 14 }}>
-            Biểu đồ thu chi theo tháng và phần nhập doanh thu từ Excel của bản trước
-            vẫn dùng được ở <Link to="/finance/thong-ke">Thống kê thu chi</Link>.
-          </p>
+          <DongSo
+            thang={thang} nam={nam} laQuanTri={laQuanTri} coTheGhi={coTheGhi}
+            onNotice={setThongBao}
+          />
+          {xemTongQuan ? (
+            <p className="fin-mo" style={{ fontSize: 13, marginTop: 14 }}>
+              Biểu đồ thu chi theo tháng và phần nhập doanh thu từ Excel của bản trước
+              vẫn dùng được ở <Link to="/finance/thong-ke">Thống kê thu chi</Link>.
+            </p>
+          ) : null}
         </>
       ) : null}
 
@@ -188,24 +191,7 @@ export default function TaiChinh() {
         />
       ) : null}
 
-      {tab === "payroll" ? (
-        <ChuaDung
-          ten="Bảng lương"
-          mo="Tính từ dữ liệu nguồn đã chốt, không nhập tay số thực nhận."
-          gom={[
-            "Kỳ lương, tính nháp từ lịch dạy và chấm công đã chốt.",
-            "Xem ngược về từng buổi dạy, từng khoản phụ cấp, từng điều chỉnh đã duyệt.",
-            "Khóa bảng lương trước khi đóng sổ.",
-          ]}
-          canThem={[
-            "Đơn giá và chính sách lương từng giáo viên — hiện CHƯA giáo viên nào được khai.",
-            "Buổi dạy bị huỷ do giáo viên nghỉ, hoặc do trung tâm, có tính lương không.",
-            "Học phí một buổi và tỉ lệ chia cho giáo viên, theo từng lớp.",
-            "Chốt công đến ngày nào, trả lương ngày nào.",
-          ]}
-          tam="lương vẫn xử lý ở mục Bảng lương cũ; phần nối vào sổ giao dịch làm sau."
-        />
-      ) : null}
+      {tab === "payroll" ? <BangLuong thang={thang} nam={nam} /> : null}
       </div>
     </Page>
   );

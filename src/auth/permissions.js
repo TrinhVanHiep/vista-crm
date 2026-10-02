@@ -51,12 +51,18 @@ export const ROUTE_PERMISSIONS = {
   // (users/permissions.py FINANCE_ROLE_NAMES); để lệch ở đây thì kế toán gọi
   // được API nhưng RoleGuard chặn ngay ở cửa, không vào nổi màn hình.
   finance: [...VAI_QUAN_TRI, 'accountant'],
+  // Chủ dự án chốt (02/10/2026): quản lý cơ sở / quản lý đào tạo chỉ XEM học
+  // phí, công nợ, thu chi, bảng lương; không ghi, không duyệt, không xem Tổng
+  // quan tài chính (dòng tiền, hiệu suất kinh doanh). Soi gương với
+  // FINANCE_WRITE_ROLE_NAMES / FINANCE_APPROVER_ROLE_NAMES bên backend.
+  financeWrite: ['superadmin', 'admin', 'accountant'],
+  financeApprove: ['superadmin', 'admin'],
+  financeOverview: ['superadmin', 'admin', 'accountant'],
   documents: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager'],
   settings: VAI_QUAN_TRI,
   accounts: VAI_QUAN_TRI,
   media: ['superadmin', 'admin', 'staff', 'teacher', 'center_manager', 'training_manager'],
-  tuition: ['superadmin', 'admin', 'staff', 'center_manager', 'training_manager'],
-  // Cửa vào /finance: ai có quyền tài chính HOẶC quyền học phí. Học phí 2026 nằm
-  // trong Tài chính, nên chặn staff ở cửa là staff mất luôn màn học phí.
-  financeMenu: ['superadmin', 'admin', 'staff', 'center_manager', 'training_manager', 'accountant'],
+  // Cửa vào /finance. Tab Học phí 2026 (mở cho cả staff) đã gộp vào Học phí &
+  // Công nợ, mà API tài chính không mở cho staff, nên cửa vào = quyền tài chính.
+  financeMenu: [...VAI_QUAN_TRI, 'accountant'],
 };

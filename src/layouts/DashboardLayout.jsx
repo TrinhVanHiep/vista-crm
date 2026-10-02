@@ -91,8 +91,8 @@ const navItems = [
     ),
   },
   {
-    // Học phí 2026 đã gộp vào đây thành một phân hệ; vai chỉ có quyền học phí
-    // (staff) vẫn thấy mục này nhưng bên trong chỉ mở được phân hệ đó.
+    // Học phí 2026 đã gộp vào Tài chính → Học phí & Công nợ. Quản lý cơ sở /
+    // đào tạo vào được nhưng chỉ xem, không thấy Tổng quan.
     label: "Tài chính",
     to: "/finance",
     allowedRoles: ROUTE_PERMISSIONS.financeMenu,

@@ -163,16 +163,6 @@ export async function listAttendanceSummary(params = {}) {
   return data || { results: [], overall_rate: null };
 }
 
-export async function createTuitionRecord(payload) {
-  const { data } = await apiClient.post("/tuition-records/", payload);
-  return data;
-}
-
-export async function importTuitionFile(formData) {
-  const { data } = await apiClient.post("/tuition-records/import_tuition/", formData);
-  return data;
-}
-
 export async function createTeachingSession(payload) {
   const { data } = await apiClient.post("/teaching-sessions/", payload);
   return data;

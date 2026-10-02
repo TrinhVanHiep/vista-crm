@@ -227,8 +227,8 @@ function App() {
               </RoleGuard>
             }
           />
-          {/* Học phí 2026 đã thành một phân hệ trong Tài chính; giữ link cũ. */}
-          <Route path="hoc-phi" element={<Navigate to="/finance?tab=hoc-phi-2026" replace />} />
+          {/* Học phí 2026 đã gộp vào Tài chính → Học phí & Công nợ; giữ link cũ. */}
+          <Route path="hoc-phi" element={<Navigate to="/finance?tab=tuition" replace />} />
           <Route
             path="kho-tai-lieu"
             element={
@@ -266,7 +266,9 @@ function App() {
           <Route
             path="finance/thong-ke"
             element={
-              <RoleGuard allowedRoles={ROUTE_PERMISSIONS.finance}>
+              /* Biểu đồ thu chi theo tháng = hiệu suất kinh doanh: cùng nhóm với
+                 Tổng quan tài chính, quản lý không xem. */
+              <RoleGuard allowedRoles={ROUTE_PERMISSIONS.financeOverview}>
                 <Finance />
               </RoleGuard>
             }

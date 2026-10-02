@@ -46,7 +46,12 @@ const nutLink = {
   color: color.orange, fontSize: 13, fontWeight: 700, whiteSpace: "nowrap",
 };
 
-export default function HocPhiCongNo({ thang, nam, onNotice, laQuanTri }) {
+/**
+ * `coTheGhi` = false với vai chỉ được xem tài chính (quản lý cơ sở / đào tạo):
+ * ẩn các nút ghi sổ, backend cũng chặn (IsFinanceLedgerAccess). Đăng ký học là
+ * nghiệp vụ vận hành nên vẫn mở.
+ */
+export default function HocPhiCongNo({ thang, nam, onNotice, laQuanTri, coTheGhi = true }) {
   const [ds, setDs] = useState([]);
   const [tong, setTong] = useState(null);
   const [choDuyet, setChoDuyet] = useState([]);
@@ -124,6 +129,9 @@ export default function HocPhiCongNo({ thang, nam, onNotice, laQuanTri }) {
     r.status === "cancelled" ? (
       <Pill tone="grey">Đã hủy</Pill>
     ) : Number(r.balance) > 0 ? (
+      !coTheGhi ? (
+        <span style={{ fontSize: 12.5, color: color.faint }}>Còn nợ</span>
+      ) : (
       <div style={{ display: "flex", gap: 14, justifyContent: "flex-end" }}>
         <button type="button" style={nutLink} onClick={() => setDangThu({
           id: r.student, ten: r.student_name, lop: r.classroom_name,
@@ -131,6 +139,7 @@ export default function HocPhiCongNo({ thang, nam, onNotice, laQuanTri }) {
         <button type="button" style={{ ...nutLink, color: color.muted }}
                 onClick={() => setDangGiam(r)}>Giảm trừ</button>
       </div>
+      )
     ) : (
       <span style={{ fontSize: 12.5, color: color.faint }}>Đã tất toán</span>
     ),
@@ -152,9 +161,13 @@ export default function HocPhiCongNo({ thang, nam, onNotice, laQuanTri }) {
           width={190}
         />
         <div style={{ marginLeft: "auto", display: "flex", gap: 10 }}>
-          <Button variant="ghost" icon="doc" onClick={() => setMoNhap(true)}>Nhập từ Excel</Button>
+          {coTheGhi ? (
+            <Button variant="ghost" icon="doc" onClick={() => setMoNhap(true)}>Nhập từ Excel</Button>
+          ) : null}
           <Button variant="ghost" icon="plus" onClick={() => setMoDangKy(true)}>Đăng ký học</Button>
-          <Button icon="plus" onClick={() => setMoLapHangLoat(true)}>Lập học phí cho lớp</Button>
+          {coTheGhi ? (
+            <Button icon="plus" onClick={() => setMoLapHangLoat(true)}>Lập học phí cho lớp</Button>
+          ) : null}
         </div>
       </div>
 

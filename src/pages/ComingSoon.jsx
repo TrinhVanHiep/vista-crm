@@ -3,7 +3,6 @@ import "../styles/vista4.css";
 
 const TITLES = {
   "/truyen-thong": ["Truyền thông", "Quản lý chiến dịch & nội dung truyền thông đa kênh"],
-  "/hoc-phi": ["Học phí 2026", "Quản lý học phí, hoá đơn và công nợ học viên"],
   "/kho-tai-lieu": ["Kho tài liệu", "Tài liệu, giáo trình và biểu mẫu dùng chung"],
   "/cai-dat": ["Cài đặt hệ thống", "Cấu hình hệ thống, phân quyền và tuỳ chỉnh"],
 };

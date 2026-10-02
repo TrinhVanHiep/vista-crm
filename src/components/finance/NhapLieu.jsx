@@ -6,7 +6,7 @@ import { color, radius } from "./v3/theme";
 import { Button, Drawer, NoteStrip, Pill } from "./v3/ui";
 
 /**
- * Nhập liệu Tài chính từ Excel — ba đường, mỗi đường một file mẫu.
+ * Nhập liệu Tài chính từ Excel — bốn đường, mỗi đường một file mẫu.
  *
  * Luồng cố ý là hai bước rõ ràng: TẢI MẪU rồi mới CHỌN FILE. Cho tải file tuỳ ý
  * lên trước khi biết cần cột gì thì phần lớn lần nhập đầu sẽ hỏng, và người
@@ -15,6 +15,39 @@ import { Button, Drawer, NoteStrip, Pill } from "./v3/ui";
  * Kết quả in ra ĐẦY ĐỦ số dòng lỗi kèm SỐ DÒNG trong file, không gộp thành một
  * câu "có lỗi" — kế toán cần biết sửa dòng nào.
  */
+
+/** Danh sách dòng kèm số dòng (và tên sheet với file nhiều sheet). */
+function DanhSachDong({ tieuDe, ds, mau, chuThich }) {
+  if (!ds?.length) return null;
+  return (
+    <>
+      <div style={{ fontSize: 12.5, fontWeight: 700, margin: "12px 0 7px" }}>{tieuDe}</div>
+      <div style={{
+        maxHeight: 220, overflow: "auto",
+        border: "1px solid " + color.border, borderRadius: radius.sm,
+      }}>
+        {ds.map((e, i) => (
+          <div key={`${e.sheet || ""}-${e.row}-${i}`} style={{
+            display: "flex", gap: 10, padding: "8px 11px", fontSize: 12.5,
+            borderTop: i ? "1px solid " + color.border : "none",
+          }}>
+            <span style={{
+              flex: "0 0 auto", fontWeight: 700, color: mau,
+              fontVariantNumeric: "tabular-nums",
+            }}>
+              {e.sheet ? `${e.sheet}${e.row ? " · " : ""}` : ""}
+              {e.row ? `Dòng ${e.row}` : (e.sheet ? "" : "—")}
+            </span>
+            <span style={{ color: color.ink70, lineHeight: 1.5 }}>{e.message}</span>
+          </div>
+        ))}
+      </div>
+      {chuThich ? (
+        <div style={{ fontSize: 11.5, color: color.faint, marginTop: 8 }}>{chuThich}</div>
+      ) : null}
+    </>
+  );
+}
 
 export default function NhapLieu({ mo, loaiBanDau, thang, nam, onDong, onXong }) {
   const [loai, setLoai] = useState(loaiBanDau || "phai-thu");
@@ -44,11 +77,11 @@ export default function NhapLieu({ mo, loaiBanDau, thang, nam, onDong, onXong })
     setKetQua(null);
     setDangNhap(true);
     try {
-      // Kỳ chỉ dùng cho khoản phải thu, và chỉ khi dòng trong file bỏ trống
-      // tháng/năm. Gửi kèm luôn cho gọn, backend tự bỏ qua với hai loại kia.
+      // Kỳ dùng cho khoản phải thu (dòng bỏ trống tháng/năm) và học phí theo
+      // lớp (mọi khoản vào kỳ này). Gửi kèm luôn, backend tự bỏ qua với loại khác.
       const kq = await nhapFileTaiChinh(loai, tep, { month: thang, year: nam });
       setKetQua(kq);
-      if (kq.created_count > 0) onXong?.(kq.detail);
+      if (kq.created_count > 0 || kq.updated_count > 0) onXong?.(kq.detail);
     } catch (e) {
       setLoi(loiApi(e, "Không nhập được file."));
     } finally {
@@ -109,6 +142,14 @@ export default function NhapLieu({ mo, loaiBanDau, thang, nam, onDong, onXong })
           Các cột trong mẫu:
           <div style={{ color: color.ink70, marginTop: 4 }}>{chon.cot}</div>
         </div>
+        {chon.goiY ? (
+          <div style={{
+            fontSize: 12, color: color.ink70, lineHeight: 1.6, marginBottom: 11,
+            background: color.orangeSoft, borderRadius: radius.sm, padding: "9px 11px",
+          }}>
+            {chon.goiY} Kỳ ghi công nợ: <b>{String(thang).padStart(2, "0")}/{nam}</b>.
+          </div>
+        ) : null}
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <Button
             variant="outline"
@@ -169,39 +210,35 @@ export default function NhapLieu({ mo, loaiBanDau, thang, nam, onDong, onXong })
         }}>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
             <Pill tone="green">Đã nhập {ketQua.created_count || 0} dòng</Pill>
+            {ketQua.updated_count ? <Pill tone="green">Bổ sung {ketQua.updated_count} dòng</Pill> : null}
             {ketQua.error_count ? <Pill tone="red">{ketQua.error_count} dòng lỗi</Pill> : null}
             {ketQua.skipped_count ? <Pill tone="amber">{ketQua.skipped_count} dòng bỏ qua</Pill> : null}
+            {ketQua.warning_count ? <Pill tone="amber">{ketQua.warning_count} cảnh báo</Pill> : null}
           </div>
 
-          {(ketQua.errors || []).length ? (
-            <>
-              <div style={{ fontSize: 12.5, fontWeight: 700, margin: "12px 0 7px" }}>
-                Dòng cần sửa rồi nhập lại
-              </div>
-              <div style={{
-                maxHeight: 220, overflow: "auto",
-                border: "1px solid " + color.border, borderRadius: radius.sm,
-              }}>
-                {ketQua.errors.map((e, i) => (
-                  <div key={`${e.row}-${i}`} style={{
-                    display: "flex", gap: 10, padding: "8px 11px", fontSize: 12.5,
-                    borderTop: i ? "1px solid " + color.border : "none",
-                  }}>
-                    <span style={{
-                      flex: "0 0 auto", fontWeight: 700, color: color.red,
-                      fontVariantNumeric: "tabular-nums",
-                    }}>Dòng {e.row}</span>
-                    <span style={{ color: color.ink70, lineHeight: 1.5 }}>{e.message}</span>
-                  </div>
-                ))}
-              </div>
-              <div style={{ fontSize: 11.5, color: color.faint, marginTop: 8 }}>
-                Chỉ những dòng này chưa vào; các dòng còn lại đã được ghi nhận.
-                Sửa trong file rồi tải lên lại — đừng xoá các dòng đã vào, hệ thống
-                sẽ báo lỗi trùng chứ không ghi hai lần.
-              </div>
-            </>
+          {ketQua.sheets?.length ? (
+            <div style={{ fontSize: 12, color: color.ink70, lineHeight: 1.6 }}>
+              {ketQua.sheets.length} sheet lớp · {ketQua.payment_count || 0} phiếu thu ·{" "}
+              {ketQua.adjustment_count || 0} khoản ưu đãi/học bổng
+              {ketQua.note ? <div style={{ color: color.orange, marginTop: 4 }}>{ketQua.note}</div> : null}
+            </div>
           ) : null}
+
+          <DanhSachDong
+            tieuDe="Dòng cần sửa rồi nhập lại"
+            ds={ketQua.errors}
+            mau={color.red}
+            chuThich={"Chỉ những dòng này chưa vào; các dòng còn lại đã được ghi nhận. "
+              + "Sửa trong file rồi tải lên lại — đừng xoá các dòng đã vào, hệ thống "
+              + "sẽ bỏ qua phần đã nhập chứ không ghi hai lần."}
+          />
+          <DanhSachDong tieuDe="Cảnh báo — đã nhập, nên kiểm tra lại" ds={ketQua.warnings} mau={color.orange} />
+          <DanhSachDong tieuDe="Dòng bỏ qua" ds={ketQua.skipped} mau={color.muted} />
+          <DanhSachDong
+            tieuDe="Sheet không nhập"
+            ds={(ketQua.skipped_sheets || []).map((x) => ({ sheet: x.sheet, message: x.reason }))}
+            mau={color.muted}
+          />
         </div>
       ) : null}
 
