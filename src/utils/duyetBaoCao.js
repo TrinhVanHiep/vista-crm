@@ -53,9 +53,13 @@ export const capDangCho = (bc) => {
  * Người đang đăng nhập có ký được cấp đang chờ không. Trả về lý do khi không
  * ký được để giao diện nói rõ vì sao không có nút, thay vì để trống.
  */
-export const quyenKy = (bc, role, userId) => {
+export const quyenKy = (bc, role, userId, teacherId = null) => {
   const cap = capDangCho(bc);
   if (!cap) return { cap: null, duoc: false, lyDo: "" };
+  // Quản lý kiêm đứng lớp không duyệt báo cáo ca của chính mình (backend chặn).
+  if (teacherId != null && Number(bc.teacher) === Number(teacherId)) {
+    return { cap, duoc: false, lyDo: "Báo cáo của chính bạn — người khác sẽ duyệt." };
+  }
   const dsVai = cap === 1 ? VAI_DUYET_CAP_1 : VAI_DUYET_CAP_2;
   if (!dsVai.includes(role)) {
     return { cap, duoc: false, lyDo: `Chờ ${TEN_CAP[cap].toLowerCase()} duyệt cấp ${cap}.` };

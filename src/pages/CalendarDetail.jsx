@@ -848,8 +848,10 @@ function CalendarDetail() {
   const [calendarView, setCalendarView] = useState("week");
   // Khung lịch phủ kín màn hình — xem được nhiều ca trong tuần mà không cuộn.
   const [toanManHinh, setToanManHinh] = useState(false);
-  // Bấm thẻ "Ca dạy hôm nay" thì thả xuống danh sách ca hôm nay.
-  const [moCaHomNay, setMoCaHomNay] = useState(false);
+  // Bấm thẻ số liệu đầu trang thì thả xuống phần tương ứng (thay cho cột phải
+  // đã bỏ): "today" = ca dạy + nhắc việc hôm nay, "plan" = phê duyệt chờ xử lý,
+  // "deadline" = sự kiện sắp tới. Mỗi lúc mở một phần.
+  const [khungMo, setKhungMo] = useState(null);
   // Link từ Tổng quan: /calendar-detail?date=YYYY-MM-DD&session=ID mở thẳng ca đó.
   const caCanMoRef = useRef(searchParams.get("session") || "");
   // Mỗi cột ngày trong board tuần chỉ hiện tối đa MAX_VISIBLE_EVENTS buổi;
@@ -1859,8 +1861,8 @@ function CalendarDetail() {
     return map;
   }, [selectedCard, sessionsByDate, schedulesByDate]);
 
-  // Mở chi tiết một mục lịch công tác từ cột phải. Dựng đúng dạng mà hộp thoại
-  // chi tiết đang đọc (kind/title/time/raw) để dùng lại chính hộp thoại đó.
+  // Mở chi tiết một mục lịch công tác. Dựng đúng dạng mà hộp thoại chi tiết
+  // đang đọc (kind/title/time/raw) để dùng lại chính hộp thoại đó.
   const openScheduleDetail = useCallback((schedule) => {
     if (!schedule) return;
     setDetailSession({
@@ -1874,19 +1876,20 @@ function CalendarDetail() {
     });
   }, []);
 
-  // Nhắc việc hôm nay + sự kiện sắp tới (từ lịch công tác).
+  // Nhắc việc hôm nay + sự kiện trong 7 ngày tới (từ lịch công tác) — đúng phạm
+  // vi mà thẻ "Deadline sắp tới" đang đếm, để số trên thẻ khớp danh sách thả ra.
   const todaySchedules = useMemo(
     () => schedules.filter((s) => s.event_date === todayString),
     [schedules, todayString],
   );
-  const upcomingSchedules = useMemo(
-    () =>
-      schedules
-        .filter((s) => s.event_date && s.event_date > todayString)
-        .sort((a, b) => a.event_date.localeCompare(b.event_date))
-        .slice(0, 5),
-    [schedules, todayString],
-  );
+  const suKienSapToi = useMemo(() => {
+    const moc = new Date(todayString);
+    moc.setDate(moc.getDate() + 7);
+    const het = toDateInputValueFromParts(moc);
+    return schedules
+      .filter((s) => s.event_date && s.event_date > todayString && s.event_date <= het)
+      .sort((a, b) => a.event_date.localeCompare(b.event_date));
+  }, [schedules, todayString]);
 
   // 4 thẻ KPI đầu trang (giống bản 4.0) + chỉ số tăng/giảm.
   const calendarKpis = useMemo(() => {
@@ -2685,31 +2688,6 @@ function CalendarDetail() {
     setStaffReviewError("");
   };
 
-  const renderStaffApprovalRow = (group, icon, label, count, clickable) => {
-    const active = count > 0;
-    const interactiveProps = clickable
-      ? {
-          role: "button",
-          tabIndex: 0,
-          onClick: () => setStaffReviewGroup(group),
-          onKeyDown: (event) => {
-            if (event.key === "Enter" || event.key === " ") {
-              event.preventDefault();
-              setStaffReviewGroup(group);
-            }
-          },
-          style: { cursor: "pointer", ...(active ? {} : { opacity: 0.6 }) },
-        }
-      : { style: active ? undefined : { opacity: 0.6 } };
-    return (
-      <div className="li" {...interactiveProps}>
-        <div className="ico-sm" style={{ background: "var(--primary-soft)", color: "var(--primary)" }}>{icon}</div>
-        <div className="li-body"><div className="li-title">{label}</div></div>
-        <span className="li-end" style={active ? { color: "var(--primary)" } : undefined}>{count || "—"}</span>
-      </div>
-    );
-  };
-
   const handleExportCalendarReport = async () => {
     setScheduleError("");
     setNotice("");
@@ -3389,7 +3367,7 @@ function CalendarDetail() {
   return (
       <>
       <div className="v4page">
-        <div className="content content--lich">
+        <div className="content">
           <div className="content-col">
             {/* Tiêu đề + nút cùng một khối như các màn 4.0 khác (mẫu Students.jsx),
                 thay vì để hàng nút thành một dải riêng phía dưới. */}
@@ -3472,7 +3450,7 @@ function CalendarDetail() {
                     Xoá lịch tháng {pad2(selectedMonth)}
                   </button>
                 )}
-                {canManageSessions && (<button className="btn ghost sm" onClick={handleOpenReviewPlan}>Duyệt lịch báo giảng tháng</button>)}
+                {canManageSessions && (<button className="btn ghost sm" onClick={handleOpenReviewPlan}>Duyệt lịch báo giảng tháng{planStatusCounts.submitted ? ` (${planStatusCounts.submitted})` : ""}</button>)}
                 <button className="btn ghost sm" onClick={() => openStaffCreateModal("leave")}>Tạo đơn nhân sự</button>
                 {canSubmitTeachingPlan && (<button className="btn ghost sm" onClick={handleSubmitMonthPlan} disabled={Boolean(planActionLoading) || !sessions.length || !isSubmitWindowOpen}>{planActionLoading === "submit" ? "Đang gửi..." : "Gửi duyệt lịch tháng"}</button>)}
               </div>
@@ -3501,7 +3479,14 @@ function CalendarDetail() {
               {calendarKpis.map((k) => {
                 const cmap = { today: "orange", plan: "orange", overdue: "red", deadline: "yellow" };
                 const emap = { today: "📅", plan: "📝", overdue: "⚠️", deadline: "⏰" };
-                const laHomNay = k.key === "today";
+                const GOI_Y = {
+                  today: "Bấm để xem ca dạy và nhắc việc hôm nay",
+                  plan: "Bấm để xem phê duyệt chờ xử lý",
+                  deadline: "Bấm để xem sự kiện sắp tới",
+                };
+                const moDuoc = Boolean(GOI_Y[k.key]);
+                const dangMo = khungMo === k.key;
+                const doi = () => setKhungMo((v) => (v === k.key ? null : k.key));
                 const noiDung = (
                   <>
                     <div className={`ico ${cmap[k.key] || "orange"}`} style={{ fontSize: 18 }}>{emap[k.key]}</div>
@@ -3510,20 +3495,20 @@ function CalendarDetail() {
                       <div className="kpi-value">{k.value}</div>
                       <span className={`trend ${k.trend > 0 ? "up" : k.trend < 0 ? "down" : ""}`}>{k.trend > 0 ? "▲" : k.trend < 0 ? "▼" : "•"} {k.caption}</span>
                     </div>
-                    {laHomNay ? <span aria-hidden="true" style={{ alignSelf: "center", fontSize: 12 }}>{moCaHomNay ? "▲" : "▼"}</span> : null}
+                    {moDuoc ? <span aria-hidden="true" style={{ alignSelf: "center", fontSize: 12 }}>{dangMo ? "▲" : "▼"}</span> : null}
                   </>
                 );
-                return laHomNay ? (
+                return moDuoc ? (
                   <div
                     className="kpi"
                     key={k.key}
                     role="button"
                     tabIndex={0}
-                    aria-expanded={moCaHomNay}
-                    title="Bấm để xem các ca dạy hôm nay"
-                    style={{ cursor: "pointer", outline: moCaHomNay ? "2px solid #F26522" : undefined }}
-                    onClick={() => setMoCaHomNay((v) => !v)}
-                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setMoCaHomNay((v) => !v); } }}
+                    aria-expanded={dangMo}
+                    title={GOI_Y[k.key]}
+                    style={{ cursor: "pointer", outline: dangMo ? "2px solid #F26522" : undefined }}
+                    onClick={doi}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); doi(); } }}
                   >
                     {noiDung}
                   </div>
@@ -3533,11 +3518,11 @@ function CalendarDetail() {
               })}
             </div>
 
-            {moCaHomNay ? (
+            {khungMo === "today" ? (
               <div className="card" style={{ marginTop: 12 }}>
                 <div className="card-head">
                   <h3>Ca dạy hôm nay ({caHomNay.length})</h3>
-                  <button type="button" className="btn ghost sm" onClick={() => setMoCaHomNay(false)}>Thu gọn</button>
+                  <button type="button" className="btn ghost sm" onClick={() => setKhungMo(null)}>Thu gọn</button>
                 </div>
                 {caHomNay.length ? (
                   <div className="tbl-wrap">
@@ -3564,6 +3549,103 @@ function CalendarDetail() {
                 ) : (
                   <div className="small muted" style={{ padding: 12 }}>Hôm nay không có ca dạy nào.</div>
                 )}
+                <div className="card-head" style={{ marginTop: 14 }}><h3>Nhắc việc hôm nay</h3></div>
+                <div className="list">
+                  {(planStatusCounts.submitted || 0) > 0 && (
+                    <div className="li" role="button" tabIndex={0} style={{ cursor: "pointer" }} onClick={() => setKhungMo("plan")}>
+                      <div className="ico-sm" style={{ background: "var(--primary-soft)", color: "var(--primary)" }}>📋</div>
+                      <div className="li-body"><div className="li-title">Duyệt {planStatusCounts.submitted} lịch báo giảng chờ duyệt</div></div>
+                    </div>
+                  )}
+                  {todaySchedules.length === 0 && (planStatusCounts.submitted || 0) === 0 ? (
+                    <div className="li"><div className="li-body"><div className="li-sub">Hôm nay không có nhắc việc.</div></div></div>
+                  ) : todaySchedules.map((t) => (
+                    <div
+                      className="li"
+                      key={t.id}
+                      role="button"
+                      tabIndex={0}
+                      style={{ cursor: "pointer" }}
+                      onClick={() => openScheduleDetail(t)}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openScheduleDetail(t); } }}
+                    >
+                      <div className="ico-sm" style={{ background: "var(--primary-soft)", color: "var(--primary)" }}>•</div>
+                      <div className="li-body"><div className="li-title">{t.title}</div></div>
+                      <span className="small bold muted">{t.time_label || "--"}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {khungMo === "plan" ? (
+              <div className="card" style={{ marginTop: 12 }}>
+                <div className="card-head">
+                  <h3>Phê duyệt chờ xử lý</h3>
+                  <button type="button" className="btn ghost sm" onClick={() => setKhungMo(null)}>Thu gọn</button>
+                </div>
+                <div className="list">
+                  {[
+                    { key: "plan", icon: "📄", nhan: "Lịch báo giảng", so: planStatusCounts.submitted || 0,
+                      duoc: canManageSessions, bam: handleOpenReviewPlan },
+                    { key: "leave_shift", icon: "🗓", nhan: "Đơn xin nghỉ / đổi ca", so: staffPending.leave_shift,
+                      duoc: canReviewLeaveShift, bam: () => setStaffReviewGroup("leave_shift") },
+                    { key: "proposal", icon: "✎", nhan: "Đề xuất - yêu cầu", so: staffPending.proposal,
+                      duoc: canReviewProposal, bam: () => setStaffReviewGroup("proposal") },
+                  ].map((d) => (
+                    <div
+                      className="li"
+                      key={d.key}
+                      {...(d.duoc ? {
+                        role: "button",
+                        tabIndex: 0,
+                        onClick: d.bam,
+                        onKeyDown: (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); d.bam(); } },
+                      } : {})}
+                      style={{ cursor: d.duoc ? "pointer" : "default", ...(d.so > 0 ? {} : { opacity: 0.6 }) }}
+                    >
+                      <div className="ico-sm" style={{ background: "var(--primary-soft)", color: "var(--primary)" }}>{d.icon}</div>
+                      <div className="li-body">
+                        <div className="li-title">{d.nhan}</div>
+                        {!d.duoc ? <div className="li-sub">Bạn không có quyền duyệt mục này</div> : null}
+                      </div>
+                      <span className="li-end" style={d.so > 0 ? { color: "var(--primary)" } : undefined}>{d.so || "—"}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {khungMo === "deadline" ? (
+              <div className="card" style={{ marginTop: 12 }}>
+                <div className="card-head">
+                  <h3>Sự kiện sắp tới — 7 ngày ({suKienSapToi.length})</h3>
+                  <button type="button" className="btn ghost sm" onClick={() => setKhungMo(null)}>Thu gọn</button>
+                </div>
+                <div className="list">
+                  {suKienSapToi.length === 0 ? (
+                    <div className="li"><div className="li-body"><div className="li-sub">Chưa có sự kiện trong 7 ngày tới.</div></div></div>
+                  ) : suKienSapToi.map((e) => (
+                    <div
+                      className="li"
+                      key={e.id}
+                      role="button"
+                      tabIndex={0}
+                      style={{ cursor: "pointer" }}
+                      onClick={() => openScheduleDetail(e)}
+                      onKeyDown={(ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); openScheduleDetail(e); } }}
+                    >
+                      <div style={{ width: 44, textAlign: "center", background: "var(--primary-soft)", borderRadius: 10, padding: "5px 0", flexShrink: 0 }}>
+                        <div style={{ fontWeight: 800, fontSize: 16, color: "var(--primary)" }}>{e.event_date?.slice(8, 10)}</div>
+                        <div style={{ fontSize: 9, fontWeight: 700, color: "var(--primary)" }}>THG {Number(e.event_date?.slice(5, 7))}</div>
+                      </div>
+                      <div className="li-body">
+                        <div className="li-title">{e.title}</div>
+                        <div className="li-sub">{WORK_CARDS.find((c) => c.id === e.category)?.label || ""}{e.time_label ? ` · ${e.time_label}` : ""}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             ) : null}
 
@@ -3876,104 +3958,9 @@ function CalendarDetail() {
             </div>
           </div>
 
-          <div className="rightbar">
-            <div className="card">
-              <div className="card-head"><h3>Nhắc việc hôm nay</h3></div>
-              <div className="list">
-                {(planStatusCounts.submitted || 0) > 0 && (
-                  <div className="li"><div className="ico-sm" style={{ background: "var(--primary-soft)", color: "var(--primary)" }}>📋</div><div className="li-body"><div className="li-title">Duyệt {planStatusCounts.submitted} lịch báo giảng chờ duyệt</div></div></div>
-                )}
-                {todaySchedules.length === 0 && (planStatusCounts.submitted || 0) === 0 ? (
-                  <div className="li"><div className="li-body"><div className="li-sub">Hôm nay không có nhắc việc.</div></div></div>
-                ) : todaySchedules.map((t) => (
-                  // Bấm được để mở chi tiết: trước đây là div trơn, nhìn y hệt dòng
-                  // "Phê duyệt chờ xử lý" ngay bên dưới (vốn bấm được) nên người dùng
-                  // bấm mãi không ra gì.
-                  <div
-                    className="li"
-                    key={t.id}
-                    role="button"
-                    tabIndex={0}
-                    style={{ cursor: "pointer" }}
-                    onClick={() => openScheduleDetail(t)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        openScheduleDetail(t);
-                      }
-                    }}
-                  >
-                    <div className="ico-sm" style={{ background: "var(--primary-soft)", color: "var(--primary)" }}>•</div>
-                    <div className="li-body"><div className="li-title">{t.title}</div></div>
-                    <span className="small bold muted">{t.time_label || "--"}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="card">
-              <div className="card-head"><h3>Phê duyệt chờ xử lý</h3></div>
-              <div className="list">
-                {/* Hai dòng dưới bấm được để mở đúng hộp duyệt, riêng dòng này trước
-                    đây là div trơn không có onClick — nhìn giống hệt nhau mà chỉ
-                    một cái ấn được. Nối vào cùng chỗ với nút "Duyệt lịch báo giảng
-                    tháng" ở đầu trang. */}
-                <div
-                  className="li"
-                  {...(canManageSessions
-                    ? {
-                        role: "button",
-                        tabIndex: 0,
-                        onClick: handleOpenReviewPlan,
-                        onKeyDown: (event) => {
-                          if (event.key === "Enter" || event.key === " ") {
-                            event.preventDefault();
-                            handleOpenReviewPlan();
-                          }
-                        },
-                        style: { cursor: "pointer", ...((planStatusCounts.submitted || 0) > 0 ? {} : { opacity: 0.6 }) },
-                      }
-                    : {})}
-                >
-                  <div className="ico-sm" style={{ background: "var(--primary-soft)", color: "var(--primary)" }}>📄</div>
-                  <div className="li-body"><div className="li-title">Lịch báo giảng</div></div>
-                  <span className="li-end" style={{ color: "var(--primary)" }}>{planStatusCounts.submitted || 0}</span>
-                </div>
-                {renderStaffApprovalRow("leave_shift", "🗓", "Đơn xin nghỉ / đổi ca", staffPending.leave_shift, canReviewLeaveShift)}
-                {renderStaffApprovalRow("proposal", "✎", "Đề xuất - yêu cầu", staffPending.proposal, canReviewProposal)}
-              </div>
-            </div>
-
-            <div className="card">
-              <div className="card-head"><h3>Sự kiện sắp tới</h3></div>
-              <div className="list">
-                {upcomingSchedules.length === 0 ? (
-                  <div className="li"><div className="li-body"><div className="li-sub">Chưa có sự kiện sắp tới.</div></div></div>
-                ) : upcomingSchedules.map((e) => (
-                  <div
-                    className="li"
-                    key={e.id}
-                    role="button"
-                    tabIndex={0}
-                    style={{ cursor: "pointer" }}
-                    onClick={() => openScheduleDetail(e)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        openScheduleDetail(e);
-                      }
-                    }}
-                  >
-                    <div style={{ width: 44, textAlign: "center", background: "var(--primary-soft)", borderRadius: 10, padding: "5px 0", flexShrink: 0 }}>
-                      <div style={{ fontWeight: 800, fontSize: 16, color: "var(--primary)" }}>{e.event_date?.slice(8, 10)}</div>
-                      <div style={{ fontSize: 9, fontWeight: 700, color: "var(--primary)" }}>THG {Number(e.event_date?.slice(5, 7))}</div>
-                    </div>
-                    <div className="li-body"><div className="li-title">{e.title}</div><div className="li-sub">⏱ {e.time_label || ""}</div></div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          {/* Cột phải (Nhắc việc hôm nay / Phê duyệt chờ xử lý / Sự kiện sắp tới) đã bỏ
+              theo yêu cầu để khung lịch rộng hết trang. Nội dung của nó nay thả ra khi
+              bấm các thẻ số liệu đầu trang (xem khungMo). */}
         </div>
       </div>
 

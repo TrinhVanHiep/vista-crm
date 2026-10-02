@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import {
   createSessionReport,
@@ -146,11 +147,11 @@ const getErrorMessage = (error, fallback) =>
    người duyệt không bao giờ đọc hết được báo cáo dài. Nay cũng không cắt nội
    dung nữa — người duyệt phải đọc hết mới ký được. */
 function TheBaoCaoCaDay({
-  report, session, role, userId, dangDuyet, laQuanLy, onDuyet, onSua,
+  report, session, role, userId, teacherId = null, dangDuyet, laQuanLy, onDuyet, onSua, laCuaToi = false,
 }) {
   const daTick = getChecklistFlag(report.completion_checklist, "manual_reported");
   const cap = capDangCho(report);
-  const ky = quyenKy(report, role, userId);
+  const ky = quyenKy(report, role, userId, teacherId);
   const tt = cap
     ? { label: `Chờ duyệt cấp ${cap}`, tone: cap === 1 ? "blue" : "orange" }
     : statusMeta[report.report_status] || {};
@@ -261,7 +262,7 @@ function TheBaoCaoCaDay({
         </div>
       ) : laQuanLy && ky.lyDo ? (
         <p className="small muted" style={{ margin: 0, textAlign: "right" }}>{ky.lyDo}</p>
-      ) : !laQuanLy && report.report_status === "revision_required" ? (
+      ) : (!laQuanLy || laCuaToi) && report.report_status === "revision_required" ? (
         <div className="sr-card__act">
           <Button size="sm" onClick={() => onSua(report)}>Chỉnh sửa</Button>
         </div>
@@ -296,6 +297,9 @@ function MonthlyReports() {
     "center_manager",
     "training_manager",
   ].includes(role);
+  // Quản lý mà cũng đứng lớp (có hồ sơ giáo viên, vd. quản lý đào tạo kiêm dạy)
+  // vẫn phải nhập được báo cáo ca CỦA MÌNH. Chỉ dựa vào vai thì họ mất ô nhập.
+  const nhapBaoCaoCaDay = !isReportManager || Boolean(user?.teacher_id);
 
   const [submissions, setSubmissions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -331,9 +335,18 @@ function MonthlyReports() {
   const [manualReloadKey, setManualReloadKey] = useState(0);
   const manualFormRef = useRef(null);
   const manualLoadedRef = useRef(false);
+  // Link từ cảnh báo "việc cần làm ngay" / tin nhắc: ?thang=&nam= mở đúng tháng
+  // của việc đó (mặc định là tháng hiện tại, nên việc tháng trước bị khuất),
+  // &ca= chọn sẵn ca cần nộp báo cáo, &cap= cuộn tới danh sách chờ duyệt.
+  const [thamSo] = useSearchParams();
+  const thangLink = Number(thamSo.get("thang"));
+  const namLink = Number(thamSo.get("nam"));
+  const caLinkRef = useRef(thamSo.get("ca") || "");
+  const cuonDanhSachRef = useRef(Boolean(thamSo.get("cap")));
+  const danhSachRef = useRef(null);
   const [manualForm, setManualForm] = useState({
-    month: new Date().getMonth() + 1,
-    year: currentYear,
+    month: thangLink >= 1 && thangLink <= 12 ? thangLink : new Date().getMonth() + 1,
+    year: namLink >= 2000 && namLink <= 2100 ? namLink : currentYear,
     session: "",
     student_count: "",
     content_taught: "",
@@ -471,12 +484,42 @@ function MonthlyReports() {
     [manualForm.session, manualSessions],
   );
 
+  // Ô chọn ca để NHẬP báo cáo: quản lý chỉ thấy ca mình dạy, không nhập hộ
+  // giáo viên khác (danh sách ca của quản lý là toàn trung tâm).
+  const caCuaToi = useMemo(
+    () => (isReportManager
+      ? manualSessions.filter((ss) => Number(ss.teacher) === Number(user?.teacher_id))
+      : manualSessions),
+    [isReportManager, manualSessions, user?.teacher_id],
+  );
+
+  useEffect(() => {
+    if (manualLoading) return;
+    if (caLinkRef.current) {
+      const ca = caCuaToi.find((x) => String(x.id) === String(caLinkRef.current));
+      caLinkRef.current = "";
+      if (ca) {
+        handleManualSessionChange(String(ca.id));
+        window.requestAnimationFrame(() => {
+          manualFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      }
+    } else if (cuonDanhSachRef.current) {
+      cuonDanhSachRef.current = false;
+      window.requestAnimationFrame(() => {
+        danhSachRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
+    // Chỉ chạy khi danh sách ca/báo cáo vừa tải xong lần đầu theo link.
+    // eslint-disable-next-line
+  }, [manualLoading]);
+
   const selectedManualReport = manualForm.session
     ? manualReportBySessionId.get(Number(manualForm.session))
     : null;
 
   const manualReportLocked =
-    !isReportManager &&
+    nhapBaoCaoCaDay &&
     selectedManualReport &&
     !["draft", "revision_required"].includes(selectedManualReport.report_status);
 
@@ -937,7 +980,7 @@ function MonthlyReports() {
           </Field>
         </div>
 
-        {!isReportManager && (
+        {nhapBaoCaoCaDay && (
           <div
             ref={manualFormRef}
             style={{
@@ -957,7 +1000,7 @@ function MonthlyReports() {
                     <option value="">
                       {manualLoading ? "Đang tải ca dạy..." : "Chọn lớp / ca dạy"}
                     </option>
-                    {manualSessions.map((session) => (
+                    {caCuaToi.map((session) => (
                       <option key={session.id} value={session.id}>
                         {formatDate(session.session_date)} - {session.classroom_name} -{" "}
                         {formatTimeRange(session.start_at, session.end_at)}
@@ -1114,7 +1157,7 @@ function MonthlyReports() {
           </div>
         )}
 
-        <div className="sr-list">
+        <div className="sr-list" ref={danhSachRef}>
           {manualLoading ? (
             <p className="small muted">Đang tải báo cáo ca dạy…</p>
           ) : !manualReports.length ? (
@@ -1127,8 +1170,10 @@ function MonthlyReports() {
                 session={resolveManualSession(report)}
                 role={role}
                 userId={user?.id}
+                teacherId={user?.teacher_id ?? null}
                 dangDuyet={manualReviewLoadingId === report.id}
                 laQuanLy={isReportManager}
+                laCuaToi={Boolean(user?.teacher_id) && Number(report.teacher) === Number(user.teacher_id)}
                 onDuyet={handleManualReportReview}
                 onSua={handleEditManualReport}
               />

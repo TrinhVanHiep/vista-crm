@@ -135,7 +135,7 @@ export default function ChiTietBaoCaoNgay({ buoi, onDong, coQuyenDuyet = false, 
   // bấm vào chỉ nhận lỗi 400. Hiện nút trong hai trường hợp đó là bẫy người dùng.
   // Duyệt 2 cấp: chỉ hiện nút khi người đang xem ký được đúng cấp đang chờ.
   const cap = capDangCho(bc);
-  const ky = quyenKy(bc, role, user?.id);
+  const ky = quyenKy(bc, role, user?.id, user?.teacher_id ?? null);
   const duyetDuoc = coQuyenDuyet && ky.duoc;
 
   const chanTrang = !duyetDuoc ? null : quyetDinh ? (
