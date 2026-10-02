@@ -434,7 +434,9 @@ function sessionTimeLabel(startAt) {
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
-function DashMiniWeek({ weekStart, sessionsByDate }) {
+// Bấm một ca thì mở thẳng chi tiết ca đó ở Lịch làm việc (nội dung dạy, mục
+// tiêu giáo viên đăng ký) thay vì chỉ có nút "Xem tất cả" mở cả lịch.
+function DashMiniWeek({ weekStart, sessionsByDate, onOpen }) {
   const days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(weekStart);
     d.setDate(weekStart.getDate() + i);
@@ -459,7 +461,12 @@ function DashMiniWeek({ weekStart, sessionsByDate }) {
               <div
                 className="mini-les"
                 key={s.id ?? j}
-                style={{ background: MINI_LES_TINTS[j % MINI_LES_TINTS.length], color: "#43301F" }}
+                role="button"
+                tabIndex={0}
+                title="Xem chi tiết ca dạy"
+                onClick={() => onOpen?.(s, toLocalDateKey(d))}
+                onKeyDown={(e) => { if (e.key === "Enter") onOpen?.(s, toLocalDateKey(d)); }}
+                style={{ background: MINI_LES_TINTS[j % MINI_LES_TINTS.length], color: "#43301F", cursor: "pointer" }}
               >
                 <b>
                   {sessionTimeLabel(s.start_at)} · {s.classroom_name || "Lớp"}
@@ -468,7 +475,13 @@ function DashMiniWeek({ weekStart, sessionsByDate }) {
               </div>
             ))}
             {items.length > MAX ? (
-              <div className="small muted" style={{ fontSize: 8.5 }}>
+              <div
+                className="small muted"
+                role="button"
+                tabIndex={0}
+                onClick={() => onOpen?.(null, toLocalDateKey(d))}
+                style={{ fontSize: 8.5, cursor: "pointer" }}
+              >
                 +{items.length - MAX} lịch
               </div>
             ) : null}
@@ -944,7 +957,11 @@ function Dashboard() {
             )} · lịch dạy theo ngày`}
           </div>
           {weekSessions.length ? (
-            <DashMiniWeek weekStart={weekStart} sessionsByDate={weekSessionsByDate} />
+            <DashMiniWeek
+              weekStart={weekStart}
+              sessionsByDate={weekSessionsByDate}
+              onOpen={(s, ngay) => navigate(`/calendar-detail?date=${ngay}${s ? `&session=${s.id}` : ""}`)}
+            />
           ) : (
             <div className="small muted" style={{ padding: "10px 2px" }}>
               Không có lịch dạy trong tuần này.

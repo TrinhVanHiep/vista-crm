@@ -619,3 +619,9 @@ export async function listClassroomsByCenter(centerId) {
   const { data } = await apiClient.get(`/centers/centers/${centerId}/classrooms/`);
   return Array.isArray(data) ? data : [];
 }
+
+// Việc cần làm ngay của người đang đăng nhập (ca quá hạn báo cáo, báo cáo chờ ký).
+export async function getViecCanLam() {
+  const { data } = await apiClient.get("/teaching-sessions/viec-can-lam/");
+  return data;
+}

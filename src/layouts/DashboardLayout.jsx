@@ -25,6 +25,7 @@ import {
   loadWebPushState,
 } from "../services/webPushService";
 import styles from "../styles/dashboard.module.css";
+import CanhBaoViecGap from "../components/CanhBaoViecGap";
 import { useAutoCenter, isSingleCenter } from "../utils/centerField";
 
 const NOTIFICATION_POLL_MS = 5000;
@@ -988,6 +989,7 @@ function DashboardLayout() {
           </div>
         </header>
         <main className={styles["dashboard__content"]} aria-live="polite">
+          <CanhBaoViecGap userId={user?.id} />
           <Outlet
             context={{
               centerId: scopeCenterId,

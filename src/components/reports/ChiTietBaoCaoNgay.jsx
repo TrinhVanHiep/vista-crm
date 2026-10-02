@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../../auth/AuthProvider";
-import { TEN_CAP, capDangCho, quyenKy } from "../../utils/duyetBaoCao";
+import { TEN_CAP, capDangCho, quyenKy, tomTatPhieuKiem } from "../../utils/duyetBaoCao";
+import HopKyDuyet from "./HopKyDuyet";
 import { listSessionReports, reviewApprovalEntity } from "../../services/calendarService";
 import { Badge, Button, Modal } from "../../ui";
 
@@ -88,13 +89,16 @@ export default function ChiTietBaoCaoNgay({ buoi, onDong, coQuyenDuyet = false, 
     return () => { con = false; };
   }, [buoi?.id]);
 
-  const guiQuyetDinh = async (qd, ghiChu) => {
+  const [moKy, setMoKy] = useState(false);
+
+  const guiQuyetDinh = async (qd, ghiChu, phieuKiem) => {
     setDangDuyet(true);
     setLoiDuyet("");
     try {
       const kq = await reviewApprovalEntity("session_report", bc.id, qd, {
         comment: ghiChu.trim(),
         payroll_eligible: qd === "approve",
+        ...(phieuKiem ? { evidence: phieuKiem } : {}),
       });
       // Cập nhật tại chỗ để người duyệt thấy ngay kết quả, không phải đóng
       // hộp thoại rồi mở lại mới biết đã ăn.
@@ -181,7 +185,7 @@ export default function ChiTietBaoCaoNgay({ buoi, onDong, coQuyenDuyet = false, 
         variant="primary"
         loading={dangDuyet}
         loadingText="Đang duyệt..."
-        onClick={() => guiQuyetDinh("approve", "")}
+        onClick={() => setMoKy(true)}
       >
         ✓ Duyệt cấp {ky.cap}
       </Button>
@@ -189,6 +193,17 @@ export default function ChiTietBaoCaoNgay({ buoi, onDong, coQuyenDuyet = false, 
   );
 
   return (
+    <>
+    <HopKyDuyet
+      open={moKy}
+      cap={ky.cap}
+      dangGui={dangDuyet}
+      onDong={() => setMoKy(false)}
+      onXacNhan={async (phieuKiem, ghiChu) => {
+        await guiQuyetDinh("approve", ghiChu, phieuKiem);
+        setMoKy(false);
+      }}
+    />
     <Modal
       open={!!buoi}
       onClose={onDong}
@@ -264,11 +279,15 @@ export default function ChiTietBaoCaoNgay({ buoi, onDong, coQuyenDuyet = false, 
                   ? `${bc.level1_reviewed_by_name || "đã ký"} — ${gioPhut(bc.level1_reviewed_at)}`
                   : bc.report_status === "approved" ? "đã ký" : "đang chờ ký"}
                 {bc.level1_note ? ` (“${bc.level1_note}”)` : ""}
+                {tomTatPhieuKiem(bc.level1_evidence) ? ` — ✓ ${tomTatPhieuKiem(bc.level1_evidence)}` : ""}
+                {bc.level1_evidence?.issues ? <><br />Vấn đề phát sinh: {bc.level1_evidence.issues}</> : null}
                 <br />
                 Cấp 2 · {TEN_CAP[2]}:{" "}
                 {bc.report_status === "approved"
                   ? `${bc.approved_by_name || "đã ký"}${bc.approved_at ? ` — ${gioPhut(bc.approved_at)}` : ""}`
                   : cap === 2 ? "đang chờ ký" : "chưa tới lượt"}
+                {bc.report_status === "approved" && tomTatPhieuKiem(bc.level2_evidence)
+                  ? ` — ✓ ${tomTatPhieuKiem(bc.level2_evidence)}` : ""}
                 {coQuyenDuyet && !ky.duoc && ky.lyDo ? <><br /><i>{ky.lyDo}</i></> : null}
               </div>
             </div>
@@ -282,5 +301,6 @@ export default function ChiTietBaoCaoNgay({ buoi, onDong, coQuyenDuyet = false, 
         </>
       )}
     </Modal>
+    </>
   );
 }

@@ -25,7 +25,8 @@ import {
   Kpi,
   Field,
 } from "../ui";
-import { TEN_CAP, capDangCho, quyenKy } from "../utils/duyetBaoCao";
+import { TEN_CAP, capDangCho, quyenKy, tomTatPhieuKiem } from "../utils/duyetBaoCao";
+import HopKyDuyet from "../components/reports/HopKyDuyet";
 
 const monthOptions = Array.from({ length: 12 }, (_, index) => ({
   value: index + 1,
@@ -167,8 +168,12 @@ function TheBaoCaoCaDay({
       xong: Boolean(report.level1_reviewed_at) || daDuyet,
       ai: report.level1_reviewed_by_name,
       luc: report.level1_reviewed_at,
+      phieu: tomTatPhieuKiem(report.level1_evidence),
     },
-    { cap: 2, xong: daDuyet, ai: report.approved_by_name, luc: report.approved_at },
+    {
+      cap: 2, xong: daDuyet, ai: report.approved_by_name, luc: report.approved_at,
+      phieu: tomTatPhieuKiem(report.level2_evidence),
+    },
   ];
 
   return (
@@ -220,10 +225,17 @@ function TheBaoCaoCaDay({
                     ? `${b.ai || "Đã ký"}${b.luc ? ` — ${formatDateTime(b.luc)}` : ""}`
                     : cap === b.cap ? "Đang chờ ký" : "Chưa tới lượt"}
                 </small>
+                {b.xong && b.phieu ? <small>✓ {b.phieu}</small> : null}
               </span>
             </li>
           ))}
         </ol>
+      ) : null}
+
+      {report.level1_evidence?.issues ? (
+        <div className="sr-card__fb">
+          <em>Vấn đề phát sinh (cấp 1):</em> {report.level1_evidence.issues}
+        </div>
       ) : null}
 
       {report.level1_note && cap === 2 ? (
@@ -333,6 +345,7 @@ function MonthlyReports() {
 
   // Hộp thoại nhập lý do khi Từ chối / Yêu cầu sửa (thay cho window.prompt).
   const [reviewDialog, setReviewDialog] = useState(null);
+  const [kyDuyet, setKyDuyet] = useState(null);
   const [reviewNote, setReviewNote] = useState("");
 
   useEffect(() => {
@@ -659,7 +672,7 @@ function MonthlyReports() {
     }
   };
 
-  const runManualReportReview = async (reportId, decision, comment) => {
+  const runManualReportReview = async (reportId, decision, comment, evidence) => {
     setManualReviewLoadingId(reportId);
     setManualError("");
     try {
@@ -668,6 +681,7 @@ function MonthlyReports() {
         // lên thẻ như thể quản lý đã viết "Ghi chú cấp 1" thật.
         comment: comment.trim(),
         payroll_eligible: decision === "approve",
+        ...(evidence ? { evidence } : {}),
       });
       setManualReports((prev) =>
         prev.map((report) =>
@@ -687,7 +701,7 @@ function MonthlyReports() {
       );
       setNotice(
         decision === "approve" && reviewed.entity_status === "submitted"
-          ? "Đã ký duyệt cấp 1. Báo cáo chuyển sang chờ quản lý cơ sở duyệt cấp 2."
+          ? "Đã ký duyệt cấp 1. Báo cáo chuyển sang chờ quản lý đào tạo duyệt cấp 2."
           : decision === "approve"
             ? "Đã duyệt cấp 2 — báo cáo được chốt và tính công."
             : `Đã ${decisionLabels[decision].toLowerCase()} báo cáo nhập tay.`,
@@ -713,7 +727,9 @@ function MonthlyReports() {
 
   const handleManualReportReview = (reportId, decision) => {
     if (decision === "approve") {
-      runManualReportReview(reportId, decision, "");
+      // Duyệt phải qua hộp phiếu kiểm (bằng chứng đã đọc, sĩ số, Zalo…).
+      const bc = manualReports.find((r) => r.id === reportId);
+      setKyDuyet({ id: reportId, cap: capDangCho(bc) || 1 });
       return;
     }
     setReviewNote("");
@@ -864,9 +880,9 @@ function MonthlyReports() {
       >
         <p className="small muted" style={{ marginBottom: 12 }}>
           {canReviewSession
-            ? "Báo cáo ca dạy duyệt 2 cấp: cấp 1 quản lý đào tạo, cấp 2 quản lý cơ sở. Báo cáo chỉ được tính công sau khi cấp 2 ký."
+            ? "Báo cáo ca dạy duyệt 2 cấp: cấp 1 quản lý cơ sở (sĩ số, báo cáo Zalo, vấn đề phát sinh), cấp 2 quản lý đào tạo. Báo cáo chỉ được tính công sau khi cấp 2 ký."
             : isReportManager
-            ? "Theo dõi báo cáo ngày của giáo viên (quản lý đào tạo phụ trách duyệt)."
+            ? "Theo dõi báo cáo ngày của giáo viên (duyệt 2 cấp: quản lý cơ sở rồi quản lý đào tạo)."
             : "Nhập báo cáo sau buổi học, tick trạng thái đã báo cáo và gửi quản lý duyệt."}
         </p>
 
@@ -1266,6 +1282,17 @@ function MonthlyReports() {
           minWidth={1080}
         />
       </Card>
+
+      <HopKyDuyet
+        open={Boolean(kyDuyet)}
+        cap={kyDuyet?.cap}
+        dangGui={Boolean(kyDuyet) && manualReviewLoadingId === kyDuyet.id}
+        onDong={() => setKyDuyet(null)}
+        onXacNhan={async (phieu, ghiChu) => {
+          await runManualReportReview(kyDuyet.id, "approve", ghiChu, phieu);
+          setKyDuyet(null);
+        }}
+      />
 
       <Modal
         open={Boolean(reviewDialog)}

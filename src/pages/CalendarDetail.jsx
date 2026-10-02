@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { VAI_QUAN_TRI } from "../auth/permissions";
 import { useOutletContext, useSearchParams } from "react-router-dom";
 import { plannerCategories } from "../data/scheduleData";
@@ -846,6 +846,12 @@ function CalendarDetail() {
   // không được gọi ở đâu), nên màn chỉ có đúng một cách xem dù yêu cầu là xem
   // được cả tuần lẫn tháng. Mặc định "week" để giữ nguyên cách hiển thị cũ.
   const [calendarView, setCalendarView] = useState("week");
+  // Khung lịch phủ kín màn hình — xem được nhiều ca trong tuần mà không cuộn.
+  const [toanManHinh, setToanManHinh] = useState(false);
+  // Bấm thẻ "Ca dạy hôm nay" thì thả xuống danh sách ca hôm nay.
+  const [moCaHomNay, setMoCaHomNay] = useState(false);
+  // Link từ Tổng quan: /calendar-detail?date=YYYY-MM-DD&session=ID mở thẳng ca đó.
+  const caCanMoRef = useRef(searchParams.get("session") || "");
   // Mỗi cột ngày trong board tuần chỉ hiện tối đa MAX_VISIBLE_EVENTS buổi;
   // ngày nào được mở rộng thì hiện hết (tránh hiển thị quá nhiều lịch cùng lúc).
   const [expandedDays, setExpandedDays] = useState(() => new Set());
@@ -941,6 +947,7 @@ function CalendarDetail() {
       [isStaffCreateOpen, () => setIsStaffCreateOpen(false)],
       [staffReviewGroup, () => setStaffReviewGroup(null)],
       [isReviewOpen, () => setIsReviewOpen(false)],
+      [toanManHinh, () => setToanManHinh(false)],
     ];
     const topMost = closers.find(([isOpen]) => Boolean(isOpen));
     if (!topMost) return undefined;
@@ -949,7 +956,7 @@ function CalendarDetail() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [reviewReasonTarget, reportSessionId, detailSession, isCreateOpen, isImportOpen, isStaffCreateOpen, staffReviewGroup, isReviewOpen]);
+  }, [reviewReasonTarget, reportSessionId, detailSession, isCreateOpen, isImportOpen, isStaffCreateOpen, staffReviewGroup, isReviewOpen, toanManHinh]);
 
   // Loại lịch mỗi vai được phép tạo — PHẢI khớp luật ở backend
   // (schedules/permissions.py). Giáo viên chỉ nhập lịch trong phạm vi công việc
@@ -1811,23 +1818,27 @@ function CalendarDetail() {
   }, [visibleDateIds, sessionsByDate, schedulesByDate]);
 
   // Dữ liệu hiển thị trên khung lịch theo thẻ đang chọn (báo giảng = ca dạy; còn lại = lịch công tác).
+  // Một ca dạy dựng thành mục lịch — dùng chung cho ô lịch, danh sách "Ca dạy
+  // hôm nay" và link mở thẳng từ Tổng quan, để cả ba mở cùng một hộp chi tiết.
+  const sessionToItem = (s) => ({
+    id: `s-${s.id}`,
+    kind: "session",
+    title: `${s.classroom_name || "Lớp"} - ${shortTeacherName(s.teacher_name)}`,
+    // Tách sẵn để ô lịch tuần xuống dòng ở đúng chỗ. Nối thành một chuỗi
+    // rồi để trình duyệt tự ngắt thì ra "Nguyễ / n Việt".
+    classLabel: s.classroom_name || "Lớp",
+    ownerLabel: shortTeacherName(s.teacher_name),
+    time: formatTimeRange(s.start_at, s.end_at),
+    subtitle: s.lesson_topic ? `Nội dung dạy: ${truncateText(s.lesson_topic, 60)}` : "",
+    color: performanceLegend[mapSessionStatusToBoardStatus(s.status)]?.color || "#94a3b8",
+    raw: s,
+  });
+
   const gridItemsByDate = useMemo(() => {
     const map = new Map();
     if (selectedCard === "teaching_plan") {
       sessionsByDate.forEach((list, date) => {
-        map.set(date, list.map((s) => ({
-          id: `s-${s.id}`,
-          kind: "session",
-          title: `${s.classroom_name || "Lớp"} - ${shortTeacherName(s.teacher_name)}`,
-          // Tách sẵn để ô lịch tuần xuống dòng ở đúng chỗ. Nối thành một chuỗi
-          // rồi để trình duyệt tự ngắt thì ra "Nguyễ / n Việt".
-          classLabel: s.classroom_name || "Lớp",
-          ownerLabel: shortTeacherName(s.teacher_name),
-          time: formatTimeRange(s.start_at, s.end_at),
-          subtitle: s.lesson_topic ? `Nội dung dạy: ${truncateText(s.lesson_topic, 60)}` : "",
-          color: performanceLegend[mapSessionStatusToBoardStatus(s.status)]?.color || "#94a3b8",
-          raw: s,
-        })));
+        map.set(date, list.map(sessionToItem));
       });
     } else {
       schedulesByDate.forEach((list, date) => {
@@ -1916,6 +1927,35 @@ function CalendarDetail() {
       },
     ];
   }, [sessions, schedules, todayString]);
+
+  const caHomNay = useMemo(() => {
+    const dateOf = (s) => s.session_date || toLocalDateString(s.start_at);
+    return sessions
+      .filter((s) => dateOf(s) === todayString)
+      .sort((a, b) => String(a.start_at || "").localeCompare(String(b.start_at || "")));
+  }, [sessions, todayString]);
+
+  // Mở thẳng ca dạy được bấm ở Tổng quan: chuyển lịch về đúng tháng/tuần của ca,
+  // rồi khi danh sách ca đã tải thì mở hộp chi tiết (nội dung dạy, mục tiêu).
+  useEffect(() => {
+    const ngay = searchParams.get("date");
+    if (!ngay || !/^\d{4}-\d{2}-\d{2}$/.test(ngay)) return;
+    const [y, m] = ngay.split("-").map(Number);
+    if (y !== selectedYear) setSelectedYear(y);
+    if (m !== selectedMonth) setSelectedMonth(m);
+    setFocusDate(ngay);
+    setCalendarView("week");
+    // Chỉ chạy một lần khi mở trang từ link.
+    // eslint-disable-next-line
+  }, []);
+  useEffect(() => {
+    if (!caCanMoRef.current) return;
+    const ca = sessions.find((s) => String(s.id) === String(caCanMoRef.current));
+    if (!ca) return;
+    caCanMoRef.current = "";
+    setDetailSession(sessionToItem(ca));
+    // eslint-disable-next-line
+  }, [sessions]);
 
   const summaryCards = useMemo(() => {
     const approvedSessions = reports.filter(
@@ -3461,18 +3501,71 @@ function CalendarDetail() {
               {calendarKpis.map((k) => {
                 const cmap = { today: "orange", plan: "orange", overdue: "red", deadline: "yellow" };
                 const emap = { today: "📅", plan: "📝", overdue: "⚠️", deadline: "⏰" };
-                return (
-                  <div className="kpi" key={k.key}>
+                const laHomNay = k.key === "today";
+                const noiDung = (
+                  <>
                     <div className={`ico ${cmap[k.key] || "orange"}`} style={{ fontSize: 18 }}>{emap[k.key]}</div>
-                    <div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       <div className="kpi-label">{k.label}</div>
                       <div className="kpi-value">{k.value}</div>
                       <span className={`trend ${k.trend > 0 ? "up" : k.trend < 0 ? "down" : ""}`}>{k.trend > 0 ? "▲" : k.trend < 0 ? "▼" : "•"} {k.caption}</span>
                     </div>
+                    {laHomNay ? <span aria-hidden="true" style={{ alignSelf: "center", fontSize: 12 }}>{moCaHomNay ? "▲" : "▼"}</span> : null}
+                  </>
+                );
+                return laHomNay ? (
+                  <div
+                    className="kpi"
+                    key={k.key}
+                    role="button"
+                    tabIndex={0}
+                    aria-expanded={moCaHomNay}
+                    title="Bấm để xem các ca dạy hôm nay"
+                    style={{ cursor: "pointer", outline: moCaHomNay ? "2px solid #F26522" : undefined }}
+                    onClick={() => setMoCaHomNay((v) => !v)}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setMoCaHomNay((v) => !v); } }}
+                  >
+                    {noiDung}
                   </div>
+                ) : (
+                  <div className="kpi" key={k.key}>{noiDung}</div>
                 );
               })}
             </div>
+
+            {moCaHomNay ? (
+              <div className="card" style={{ marginTop: 12 }}>
+                <div className="card-head">
+                  <h3>Ca dạy hôm nay ({caHomNay.length})</h3>
+                  <button type="button" className="btn ghost sm" onClick={() => setMoCaHomNay(false)}>Thu gọn</button>
+                </div>
+                {caHomNay.length ? (
+                  <div className="tbl-wrap">
+                    <table className="tbl">
+                      <thead>
+                        <tr>
+                          <th>Giờ</th><th>Lớp</th><th>Giáo viên</th><th>Nội dung dạy</th><th>Mục tiêu</th><th>Trạng thái</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {caHomNay.map((ca) => (
+                          <tr key={ca.id} style={{ cursor: "pointer" }} onClick={() => setDetailSession(sessionToItem(ca))}>
+                            <td className="bold" style={{ whiteSpace: "nowrap" }}>{formatTimeRange(ca.start_at, ca.end_at)}</td>
+                            <td>{ca.classroom_name || "—"}</td>
+                            <td>{ca.teacher_name || "—"}</td>
+                            <td>{ca.lesson_topic || <span className="muted">Chưa đăng ký</span>}</td>
+                            <td>{ca.lesson_objective || <span className="muted">Chưa đăng ký</span>}</td>
+                            <td>{sessionStatusOptions.find((o) => o.value === ca.status)?.label || ca.status || "—"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="small muted" style={{ padding: 12 }}>Hôm nay không có ca dạy nào.</div>
+                )}
+              </div>
+            ) : null}
 
             <div className="stack">
               {(() => {
@@ -3542,7 +3635,7 @@ function CalendarDetail() {
                   setFocusDate(focusInMonth(wks[targetIdx]));
                 };
                 return (
-                  <div className="card">
+                  <div className={`card${toanManHinh ? " cal-full" : ""}`}>
                     <div className="card-head">
                       <h3>
                         {calendarView === "month" ? "Lịch dạy theo tháng" : "Lịch dạy theo tuần"}
@@ -3552,6 +3645,15 @@ function CalendarDetail() {
                       <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                         {/* Chuyển Tuần / Tháng. Yêu cầu là xem được cả hai, nhưng
                             trước đây không có nút nào đổi nên chỉ xem được tuần. */}
+                        <button
+                          type="button"
+                          className="btn ghost sm"
+                          aria-pressed={toanManHinh}
+                          title={toanManHinh ? "Thoát toàn màn hình (Esc)" : "Xem khung lịch toàn màn hình"}
+                          onClick={() => setToanManHinh((v) => !v)}
+                        >
+                          {toanManHinh ? "✕ Thoát toàn màn hình" : "⛶ Toàn màn hình"}
+                        </button>
                         <div className="view-switch" role="group" aria-label="Chế độ xem lịch">
                           <button
                             type="button"
