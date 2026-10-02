@@ -461,7 +461,7 @@ export default function StudentLearningReport() {
       key: "phanbo", header: "Giỏi · Khá · TB · Yếu",
       render: (r) => (
         <div style={{ display: "grid", gap: 4, minWidth: 170 }}>
-          {/* Thanh chồng theo tỉ lệ: cùng màu với Phân bổ xếp loại phía trên. */}
+          {/* Thanh chồng theo tỉ lệ Giỏi/Khá/TB/Yếu, màu theo XEP_LOAI. */}
           <div style={{ display: "flex", height: 8, borderRadius: 4, overflow: "hidden", background: "var(--border-soft, #eee)" }}>
             {XEP_LOAI.map((x) => (r.dem[x.key] ? (
               <span key={x.key} title={`${x.key}: ${r.dem[x.key]}`}
@@ -906,30 +906,9 @@ export default function StudentLearningReport() {
              sub="xếp loại Trung bình hoặc Yếu" />
       </KpiGrid>
 
-      <Card title="Phân bố xếp loại">
-        {dangTai ? (
-          <p className="small muted">Đang tải...</p>
-        ) : !items.length ? (
-          <EmptyState icon="📭" title="Chưa có bảng điểm trong tháng này"
-                      hint="Chọn tháng khác, hoặc để giáo viên nhập bảng điểm ở màn Bảng điểm tháng." />
-        ) : (
-          <div className="slr-dist">
-            {phanBo.map((x) => (
-              <div className="slr-dist__row" key={x.key}>
-                <span className="slr-dist__label">{x.key}</span>
-                <span className="slr-dist__track">
-                  <span className="slr-dist__bar"
-                        style={{ width: `${x.phanTram}%`, background: x.mau }} />
-                </span>
-                <span className="slr-dist__num">
-                  {x.soLuong} <small>({so1(x.phanTram)}%)</small>
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
-
+      {/* Khối "Phân bố xếp loại" toàn trung tâm đã bỏ theo yêu cầu (02/10/2026):
+          xếp loại nay xem theo từng chương trình ở bảng ngay dưới. Số liệu
+          phân bố vẫn xuất trong file Excel (sheet Tổng quan). */}
       <Card title="Báo cáo tổng theo chương trình học">
         <DataTable columns={cotChuongTrinh} rows={theoChuongTrinh} loading={dangTai}
                    rowKey={(r) => r.id}

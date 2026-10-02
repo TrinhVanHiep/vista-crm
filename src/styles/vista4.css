@@ -16,11 +16,15 @@
   /* Thang khoảng cách dùng chung để các màn không tự chế số lẻ */
   --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px; --sp-6:32px;}
 .v4page{font-size:14px;}
-.v4page *{margin:0;padding:0;box-sizing:border-box}
+/* Reset bọc trong :where() để độ ưu tiên = 0. Viết thẳng `.v4page *` thì nó ngang
+   hạng `.ui-modal__body`, `.ui-btn`… mà file này nạp sau, nên XOÁ khoảng đệm của
+   mọi hộp thoại và kiểu dáng mọi nút dùng chung nằm trong trang 4.0 (hộp "Sửa
+   lớp học" dính sát viền, nút bé tí). Reset vẫn thắng mặc định của trình duyệt. */
+:where(.v4page) *{margin:0;padding:0;box-sizing:border-box}
 .v4page{scroll-behavior:smooth}
 .v4page{font-family:'Be Vietnam Pro',-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
 .v4page a{color:inherit;text-decoration:none}
-.v4page button{font-family:inherit;cursor:pointer;border:none;background:none}
+:where(.v4page) button{font-family:inherit;cursor:pointer;border:none;background:none}
 .v4page /* ---------- Layout ---------- */
 .app{display:flex;min-height:100vh}
 .v4page .main{flex:1;min-width:0;display:flex;flex-direction:column}

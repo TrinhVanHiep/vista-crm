@@ -16,3 +16,30 @@ export async function layCoCauLuong() {
   const { data } = await apiClient.get("/payroll/co-cau-luong/");
   return data;
 }
+
+/** Tải file mẫu bảng chấm công tháng (điền sẵn email + họ tên nhân sự). */
+export async function taiMauChamCong({ thang, nam }) {
+  const res = await apiClient.get("/payroll/cham-cong/mau/", {
+    responseType: "blob",
+    params: { month: thang, year: nam },
+  });
+  const url = URL.createObjectURL(new Blob([res.data]));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `Mau-cham-cong-${String(thang).padStart(2, "0")}-${nam}.xlsx`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
+/** Nhập bảng chấm công. ghi=false chỉ xem trước; KHÔNG tự đặt Content-Type. */
+export async function nhapChamCong(tep, { thang, nam, ghi = false }) {
+  const fd = new FormData();
+  fd.append("file", tep);
+  fd.append("month", thang);
+  fd.append("year", nam);
+  if (ghi) fd.append("ghi", "1");
+  const { data } = await apiClient.post("/payroll/cham-cong/nhap/", fd);
+  return data;
+}

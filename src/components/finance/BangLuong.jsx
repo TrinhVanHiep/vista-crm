@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { dinhDangTien, loiApi, rutGonM } from "../../services/financeService";
-import { layBangLuong, layCoCauLuong } from "../../services/payrollService";
-import { Card, CardHead, NoteStrip, Num, Pill, StatCard, Table } from "./v3/ui";
+import { layBangLuong, layCoCauLuong, nhapChamCong, taiMauChamCong } from "../../services/payrollService";
+import { Button, Card, CardHead, NoteStrip, Num, Pill, StatCard, Table } from "./v3/ui";
 import { color } from "./v3/theme";
 
 /**
@@ -17,7 +17,105 @@ const LOAI = { full_time: "Full-time", part_time: "Part-time", director: "Giám 
 
 const tien = (v) => dinhDangTien(Math.round(Number(v || 0)));
 
-export default function BangLuong({ thang, nam }) {
+/**
+ * Nhập bảng chấm công tháng từ Excel (payroll/cham_cong_import.py). Hai bước:
+ * chọn file → máy chủ đọc và trả bản xem trước (ai được ghép, bao nhiêu công,
+ * bao nhiêu buổi trực, dòng nào lỗi) → bấm "Ghi vào bảng lương" mới lưu.
+ * Ghi thẳng một lần thì gõ nhầm tháng là đè mất bảng công tháng khác.
+ */
+function NhapChamCong({ thang, nam, onDaGhi }) {
+  const oFile = useRef(null);
+  const [tep, setTep] = useState(null);
+  const [xem, setXem] = useState(null);
+  const [dang, setDang] = useState("");
+  const [loi, setLoi] = useState("");
+
+  const chon = async (f) => {
+    setTep(f);
+    setXem(null);
+    setLoi("");
+    if (!f) return;
+    setDang("xem");
+    try {
+      setXem(await nhapChamCong(f, { thang, nam }));
+    } catch (e) {
+      setLoi(loiApi(e, "Không đọc được file chấm công."));
+    } finally {
+      setDang("");
+    }
+  };
+
+  const ghi = async () => {
+    setDang("ghi");
+    setLoi("");
+    try {
+      const kq = await nhapChamCong(tep, { thang, nam, ghi: true });
+      setXem(null);
+      setTep(null);
+      if (oFile.current) oFile.current.value = "";
+      onDaGhi?.(`Đã ghi chấm công tháng ${thang}/${nam} cho ${kq.matched_count} nhân sự.`);
+    } catch (e) {
+      setLoi(loiApi(e, "Không ghi được chấm công."));
+    } finally {
+      setDang("");
+    }
+  };
+
+  return (
+    <Card>
+      <CardHead
+        title="Nhập file chấm công"
+        sub={`Bảng công tháng ${String(thang).padStart(2, "0")}/${nam}: X = đi làm, T = ca trực, trống = nghỉ. Nhập lại cùng tháng sẽ thay dữ liệu đã nhập trước.`}
+      />
+      <div style={{ padding: "14px 22px 20px", display: "grid", gap: 12 }}>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <Button variant="ghost" onClick={() => taiMauChamCong({ thang, nam }).catch((e) => setLoi(loiApi(e, "Không tải được file mẫu.")))}>
+            Tải file mẫu tháng {thang}
+          </Button>
+          <label style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 13.5 }}>
+            <input
+              ref={oFile}
+              type="file"
+              accept=".xlsx"
+              onChange={(e) => chon(e.target.files?.[0] || null)}
+            />
+          </label>
+          {dang === "xem" ? <span style={{ color: color.muted, fontSize: 13 }}>Đang đọc file...</span> : null}
+        </div>
+        {loi ? <div style={{ color: color.red, fontSize: 13.5 }}>{loi}</div> : null}
+        {xem ? (
+          <>
+            <div style={{ fontSize: 13.5 }}>
+              Xem trước: nhận được <b>{xem.matched_count}</b> nhân sự
+              {xem.error_count ? <>, <b style={{ color: color.red }}>{xem.error_count}</b> dòng có vấn đề</> : null}. Chưa ghi gì.
+            </div>
+            {xem.rows?.length ? (
+              <Table
+                columns={["Nhân sự", "Số công", "Trực T2–T6", "Trực T7", "Trực CN"]}
+                rows={xem.rows.map((r) => [r.ten, r.so_cong, r.truc_t2_t6, r.truc_t7, r.truc_cn])}
+                align={{ 1: "right", 2: "right", 3: "right", 4: "right" }}
+              />
+            ) : null}
+            {xem.errors?.length ? (
+              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: color.red, display: "grid", gap: 2 }}>
+                {xem.errors.map((l) => <li key={l}>{l}</li>)}
+              </ul>
+            ) : null}
+            <div style={{ display: "flex", gap: 10 }}>
+              <Button disabled={!xem.matched_count || dang === "ghi"} onClick={ghi}>
+                {dang === "ghi" ? "Đang ghi..." : `Ghi vào bảng lương tháng ${thang}/${nam}`}
+              </Button>
+              <Button variant="ghost" onClick={() => chon(null)}>Huỷ</Button>
+            </div>
+          </>
+        ) : null}
+      </div>
+    </Card>
+  );
+}
+
+export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
+  const [taiLai, setTaiLai] = useState(0);
   const [ds, setDs] = useState([]);
   const [coCau, setCoCau] = useState(null);
   const [dangTai, setDangTai] = useState(true);
@@ -36,7 +134,7 @@ export default function BangLuong({ thang, nam }) {
       .catch((e) => !huy && setLoi(loiApi(e, "Không tải được bảng lương.")))
       .finally(() => !huy && setDangTai(false));
     return () => { huy = true; };
-  }, [thang, nam]);
+  }, [thang, nam, taiLai]);
 
   const tong = ds.reduce(
     (a, x) => {
@@ -117,6 +215,14 @@ export default function BangLuong({ thang, nam }) {
         không tính doanh thu; ca trực lấy từ chấm công (T2–T6, T7, CN tính giá khác nhau). Thưởng năm theo
         LNST và các khoản chưa đối soát không nằm trong bảng này.
       </NoteStrip>
+
+      {coTheGhi ? (
+        <NhapChamCong
+          thang={thang}
+          nam={nam}
+          onDaGhi={(tb) => { onNotice?.(tb); setTaiLai((v) => v + 1); }}
+        />
+      ) : null}
 
       <Card>
         <CardHead title="Bảng lương tạm tính" sub={`Tháng ${String(thang).padStart(2, "0")}/${nam}`} />

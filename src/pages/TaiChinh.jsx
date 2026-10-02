@@ -191,7 +191,9 @@ export default function TaiChinh() {
         />
       ) : null}
 
-      {tab === "payroll" ? <BangLuong thang={thang} nam={nam} /> : null}
+      {tab === "payroll" ? (
+        <BangLuong thang={thang} nam={nam} coTheGhi={coTheGhi} onNotice={setThongBao} />
+      ) : null}
       </div>
     </Page>
   );
