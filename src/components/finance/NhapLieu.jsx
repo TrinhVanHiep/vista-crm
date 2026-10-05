@@ -55,6 +55,10 @@ export default function NhapLieu({ mo, loaiBanDau, thang, nam, onDong, onXong })
   const [dangNhap, setDangNhap] = useState(false);
   const [ketQua, setKetQua] = useState(null);
   const [loi, setLoi] = useState("");
+  // Máy chủ nhận ra file thuộc loại khác (vd. file học phí gốc mỗi lớp một sheet
+  // mà chọn "Khoản phải thu") → gợi ý loại đúng và cho gửi lại chính file đó.
+  const [goiYLoai, setGoiYLoai] = useState("");
+  const tepVuaChon = useRef(null);
   const oTep = useRef(null);
 
   const chon = LOAI_NHAP.find((x) => x.ma === loai) || LOAI_NHAP[0];
@@ -71,19 +75,23 @@ export default function NhapLieu({ mo, loaiBanDau, thang, nam, onDong, onXong })
     }
   };
 
-  const gui = async (tep) => {
+  const gui = async (tep, loaiGui = loai) => {
     if (!tep) return;
+    tepVuaChon.current = tep;
     setLoi("");
+    setGoiYLoai("");
     setKetQua(null);
     setDangNhap(true);
     try {
       // Kỳ dùng cho khoản phải thu (dòng bỏ trống tháng/năm) và học phí theo
       // lớp (mọi khoản vào kỳ này). Gửi kèm luôn, backend tự bỏ qua với loại khác.
-      const kq = await nhapFileTaiChinh(loai, tep, { month: thang, year: nam });
+      const kq = await nhapFileTaiChinh(loaiGui, tep, { month: thang, year: nam });
       setKetQua(kq);
       if (kq.created_count > 0 || kq.updated_count > 0) onXong?.(kq.detail);
     } catch (e) {
       setLoi(loiApi(e, "Không nhập được file."));
+      const goiY = e?.response?.data?.goi_y_loai;
+      setGoiYLoai(typeof goiY === "string" ? goiY : Array.isArray(goiY) ? String(goiY[0] || "") : "");
     } finally {
       setDangNhap(false);
       // Xoá ô file để chọn lại đúng file vừa rồi vẫn kích hoạt onChange.
@@ -110,7 +118,7 @@ export default function NhapLieu({ mo, loaiBanDau, thang, nam, onDong, onXong })
             <button
               key={x.ma}
               type="button"
-              onClick={() => { setLoai(x.ma); setKetQua(null); setLoi(""); }}
+              onClick={() => { setLoai(x.ma); setKetQua(null); setLoi(""); setGoiYLoai(""); }}
               style={{
                 textAlign: "left", cursor: "pointer", width: "100%",
                 background: dang ? color.orangeSoft : "#fff",
@@ -200,7 +208,23 @@ export default function NhapLieu({ mo, loaiBanDau, thang, nam, onDong, onXong })
         <div style={{
           background: color.redSoft, color: color.red, borderRadius: radius.md,
           padding: "12px 14px", fontSize: 13, marginBottom: 16, lineHeight: 1.5,
-        }}>{loi}</div>
+        }}>
+          {loi}
+          {goiYLoai && tepVuaChon.current ? (
+            <div style={{ marginTop: 10 }}>
+              <button
+                type="button"
+                onClick={() => { setLoai(goiYLoai); gui(tepVuaChon.current, goiYLoai); }}
+                style={{
+                  border: 0, borderRadius: radius.md, padding: "8px 14px", cursor: "pointer",
+                  background: color.orange, color: "#fff", fontWeight: 700, fontSize: 13,
+                }}
+              >
+                Nhập bằng loại “{(LOAI_NHAP.find((x) => x.ma === goiYLoai) || {}).ten || goiYLoai}” với file này
+              </button>
+            </div>
+          ) : null}
+        </div>
       ) : null}
 
       {ketQua ? (
