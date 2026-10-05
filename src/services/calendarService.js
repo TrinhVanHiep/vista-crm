@@ -625,3 +625,19 @@ export async function getViecCanLam() {
   const { data } = await apiClient.get("/teaching-sessions/viec-can-lam/");
   return data;
 }
+
+// Điểm danh từng học sinh của một ca (kể cả học bù) — teaching/diem_danh.py.
+export async function getDiemDanhCa(sessionId) {
+  const { data } = await apiClient.get(`/teaching-sessions/${sessionId}/diem-danh/`);
+  return data;
+}
+
+export async function luuDiemDanhCa(sessionId, rows) {
+  const { data } = await apiClient.post(`/teaching-sessions/${sessionId}/diem-danh/`, { rows });
+  return data;
+}
+
+export async function timHocSinhHocBu(sessionId, q) {
+  const { data } = await apiClient.get(`/teaching-sessions/${sessionId}/diem-danh/tim-hoc-sinh/`, { params: { q } });
+  return data?.results || [];
+}

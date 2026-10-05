@@ -1,6 +1,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { VAI_QUAN_TRI } from "../auth/permissions";
-import { useOutletContext, useSearchParams } from "react-router-dom";
+import { Link, useOutletContext, useSearchParams } from "react-router-dom";
+import DiemDanhCa from "../components/reports/DiemDanhCa";
 import { plannerCategories } from "../data/scheduleData";
 import { useAuth } from "../auth/AuthProvider";
 import {
@@ -846,6 +847,8 @@ function CalendarDetail() {
   // không được gọi ở đâu), nên màn chỉ có đúng một cách xem dù yêu cầu là xem
   // được cả tuần lẫn tháng. Mặc định "week" để giữ nguyên cách hiển thị cũ.
   const [calendarView, setCalendarView] = useState("week");
+  // Ca đang mở màn điểm danh từng học sinh (kể cả học bù).
+  const [diemDanhCa, setDiemDanhCa] = useState(null);
   // Khung lịch phủ kín màn hình — xem được nhiều ca trong tuần mà không cuộn.
   const [toanManHinh, setToanManHinh] = useState(false);
   // Bấm thẻ số liệu đầu trang thì thả xuống phần tương ứng (thay cho cột phải
@@ -3964,6 +3967,15 @@ function CalendarDetail() {
         </div>
       </div>
 
+      {diemDanhCa ? (
+        <DiemDanhCa
+          sessionId={diemDanhCa.id}
+          tieuDe={diemDanhCa.ten}
+          onDong={() => setDiemDanhCa(null)}
+          onDaLuu={(d) => setNotice(`Đã lưu điểm danh: ${d.present_count}/${d.rows.length} em có mặt.`)}
+        />
+      ) : null}
+
       {detailSession && (
         <div
           className={styles.modalBackdrop}
@@ -4025,6 +4037,18 @@ function CalendarDetail() {
             <div className={styles.modalBody}>
               {detailSession.kind === "session" ? (
                 <dl className={styles.detailGrid}>
+                  <div>
+                    <dt>Lớp học</dt>
+                    <dd>
+                      {/* Lịch báo giảng dẫn sang trang lớp: số buổi đã học / còn lại,
+                          lịch dạy tháng, phân loại năng lực của lớp. */}
+                      {detailSession.raw.classroom ? (
+                        <Link to={`/classrooms/${detailSession.raw.classroom}`} style={{ color: "var(--primary)", fontWeight: 700 }}>
+                          {detailSession.raw.classroom_name || "Mở lớp"} →
+                        </Link>
+                      ) : (detailSession.raw.classroom_name || "--")}
+                    </dd>
+                  </div>
                   <div>
                     <dt>Trung tâm</dt>
                     <dd>{detailSession.raw.center_name || "--"}</dd>
@@ -4153,7 +4177,10 @@ function CalendarDetail() {
                 )}
               </footer>
             )}
-            {detailSession.kind === "session" && canCreateTeachingPlan && (
+            {/* Có cả tầng quản trị (canManageSessions): trước chỉ canCreateTeachingPlan
+                (superadmin/admin/GV/nhân viên) nên quản lý cơ sở / đào tạo mở ca
+                dạy ra không có nút Sửa / Xoá nào. */}
+            {detailSession.kind === "session" && (canCreateTeachingPlan || canManageSessions) && (
               // Không đặt lại gap ở đây: .modalFooter đã là 12px và 4 hộp thoại còn
               // lại đều dùng mức đó, riêng chỗ này từng bị đè xuống 8 nên nhìn chật
               // hơn hẳn phần còn lại của hệ thống.
@@ -4183,6 +4210,13 @@ function CalendarDetail() {
                     {deletingSessionId === detailSession.raw.id ? "Đang xoá..." : "Xoá"}
                   </button>
                 )}
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  onClick={() => setDiemDanhCa({ id: detailSession.raw.id, ten: detailSession.title })}
+                >
+                  Điểm danh
+                </button>
                 <button
                   type="button"
                   className={styles.primaryButton}

@@ -146,9 +146,15 @@ export default function StudentLearningReport() {
   // của màn (phân bổ xếp loại, theo lớp, danh sách) đều chỉ tính chương trình đó.
   const [chuongTrinh, setChuongTrinh] = useState("");
   const tenChuongTrinh = (i) => String(i.program_name || "").trim() || "Chưa gắn chương trình";
+  // Lấy theo TOÀN BỘ lớp (cộng với phiếu đã tải), không chỉ theo phiếu tháng
+  // này: tháng mới chỉ vài lớp có điểm thì ô lọc chỉ còn một chương trình, người
+  // dùng tưởng các chương trình khác mất.
   const cacChuongTrinh = useMemo(
-    () => [...new Set(itemsGoc.map(tenChuongTrinh))].sort((a, b) => a.localeCompare(b, "vi")),
-    [itemsGoc],
+    () => [...new Set([
+      ...lops.map((l) => String(l.program_name || "").trim()).filter(Boolean),
+      ...itemsGoc.map(tenChuongTrinh),
+    ])].sort((a, b) => a.localeCompare(b, "vi")),
+    [itemsGoc, lops],
   );
   const items = useMemo(
     () => (chuongTrinh ? itemsGoc.filter((i) => tenChuongTrinh(i) === chuongTrinh) : itemsGoc),

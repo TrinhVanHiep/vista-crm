@@ -3,10 +3,9 @@
  * (giasu_online/approval/services.py: SESSION_REPORT_LEVEL1_ROLES / LEVEL2_ROLES).
  * Lệch một vai là nút hiện ra mà bấm vào báo lỗi, nên sửa thì sửa cả hai nơi.
  *
- * Cấp 1: quản lý cơ sở ký — kiểm sĩ số, đã báo cáo Zalo, vấn đề phát sinh.
- *         Báo cáo vẫn "Chờ duyệt".
+ * Cấp 1: quản lý cơ sở ký. Báo cáo vẫn "Chờ duyệt".
  * Cấp 2: quản lý đào tạo ký — lúc này mới "Đã duyệt" và được tính công.
- * Ký cấp nào cũng phải tick bằng chứng: đã đọc trên Zalo / đã trao đổi trực tiếp.
+ * Hai cấp cùng một phiếu kiểm (BANG_CHUNG), tick ít nhất một ô.
  * Admin/superadmin ký được cả hai cấp, nhưng không ký cả hai trên cùng một báo cáo.
  */
 
@@ -14,31 +13,30 @@ export const VAI_DUYET_CAP_1 = ["superadmin", "admin", "center_manager"];
 export const VAI_DUYET_CAP_2 = ["superadmin", "admin", "training_manager"];
 export const TEN_CAP = { 1: "Quản lý cơ sở", 2: "Quản lý đào tạo" };
 
-// Phiếu kiểm của người duyệt — khoá khớp approval/services.py.
+// Phiếu kiểm của người duyệt — HAI cấp dùng CÙNG một bộ, khoá khớp
+// approval/services.py::EVIDENCE_KEYS. Duyệt phải tick ít nhất một.
 export const BANG_CHUNG = [
-  ["zalo_read", "Đã đọc báo cáo trên Zalo"],
+  ["zalo_read", "Đã duyệt báo cáo trên Zalo"],
+  ["crm_read", "Đã duyệt báo cáo trên CRM"],
   ["discussed_directly", "Đã trao đổi trực tiếp với giáo viên"],
 ];
-export const MUC_KIEM_CAP_1 = [
+// Các ô của bộ cũ (cấp 1 trước 05/10/2026) — chỉ để hiện lại trên phiếu đã lưu.
+const O_CU = [
   ["class_size_ok", "Sĩ số đã chuẩn"],
   ["zalo_reported", "Giáo viên đã báo cáo trên Zalo"],
 ];
 
 /** Phiếu kiểm đủ để bấm Duyệt chưa; trả lại lý do còn thiếu (rỗng = đủ). */
-export const thieuPhieuKiem = (cap, phieu) => {
-  if (!BANG_CHUNG.some(([k]) => phieu[k])) {
-    return "Tick ít nhất một bằng chứng: đã đọc trên Zalo hoặc đã trao đổi trực tiếp.";
-  }
-  if (cap === 1 && !MUC_KIEM_CAP_1.every(([k]) => phieu[k])) {
-    return "Cấp 1 cần xác nhận sĩ số chuẩn và giáo viên đã báo cáo trên Zalo — chưa thì chọn Yêu cầu sửa.";
-  }
-  return "";
-};
+export const thieuPhieuKiem = (_cap, phieu) => (
+  BANG_CHUNG.some(([k]) => phieu[k])
+    ? ""
+    : "Tick ít nhất một mục: đã duyệt báo cáo trên Zalo, trên CRM, hoặc đã trao đổi trực tiếp."
+);
 
 /** Tóm tắt phiếu kiểm đã lưu thành chuỗi ngắn để hiện trên thẻ báo cáo. */
 export const tomTatPhieuKiem = (phieu) => {
   if (!phieu || typeof phieu !== "object") return "";
-  const nhan = [...BANG_CHUNG, ...MUC_KIEM_CAP_1].filter(([k]) => phieu[k]).map(([, n]) => n);
+  const nhan = [...BANG_CHUNG, ...O_CU].filter(([k]) => phieu[k]).map(([, n]) => n);
   return nhan.join(" · ");
 };
 

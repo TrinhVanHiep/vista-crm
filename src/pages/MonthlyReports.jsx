@@ -28,6 +28,7 @@ import {
 } from "../ui";
 import { TEN_CAP, capDangCho, quyenKy, tomTatPhieuKiem } from "../utils/duyetBaoCao";
 import HopKyDuyet from "../components/reports/HopKyDuyet";
+import DiemDanhCa from "../components/reports/DiemDanhCa";
 
 const monthOptions = Array.from({ length: 12 }, (_, index) => ({
   value: index + 1,
@@ -239,6 +240,12 @@ function TheBaoCaoCaDay({
         </div>
       ) : null}
 
+      {report.level2_evidence?.issues ? (
+        <div className="sr-card__fb">
+          <em>Vấn đề phát sinh (cấp 2):</em> {report.level2_evidence.issues}
+        </div>
+      ) : null}
+
       {report.level1_note && cap === 2 ? (
         <div className="sr-card__fb">
           <em>Ghi chú cấp 1:</em> {report.level1_note}
@@ -359,6 +366,7 @@ function MonthlyReports() {
   // Hộp thoại nhập lý do khi Từ chối / Yêu cầu sửa (thay cho window.prompt).
   const [reviewDialog, setReviewDialog] = useState(null);
   const [kyDuyet, setKyDuyet] = useState(null);
+  const [moDiemDanh, setMoDiemDanh] = useState(false);
   const [reviewNote, setReviewNote] = useState("");
 
   useEffect(() => {
@@ -923,7 +931,7 @@ function MonthlyReports() {
       >
         <p className="small muted" style={{ marginBottom: 12 }}>
           {canReviewSession
-            ? "Báo cáo ca dạy duyệt 2 cấp: cấp 1 quản lý cơ sở (sĩ số, báo cáo Zalo, vấn đề phát sinh), cấp 2 quản lý đào tạo. Báo cáo chỉ được tính công sau khi cấp 2 ký."
+            ? "Báo cáo ca dạy duyệt 2 cấp: cấp 1 quản lý cơ sở, cấp 2 quản lý đào tạo — cả hai tick đã duyệt trên Zalo / CRM / đã trao đổi trực tiếp. Báo cáo chỉ được tính công sau khi cấp 2 ký."
             : isReportManager
             ? "Theo dõi báo cáo ngày của giáo viên (duyệt 2 cấp: quản lý cơ sở rồi quản lý đào tạo)."
             : "Nhập báo cáo sau buổi học, tick trạng thái đã báo cáo và gửi quản lý duyệt."}
@@ -1008,6 +1016,13 @@ function MonthlyReports() {
                     ))}
                   </select>
                 </Field>
+                {manualForm.session ? (
+                  <div style={{ marginTop: 6 }}>
+                    <Button size="sm" variant="ghost" onClick={() => setMoDiemDanh(true)}>
+                      Điểm danh từng em (kể cả học bù) — sĩ số tự điền
+                    </Button>
+                  </div>
+                ) : null}
               </div>
               <Field label="Tên lớp">
                 <input type="text" value={selectedManualSession?.classroom_name || ""} readOnly />
@@ -1327,6 +1342,15 @@ function MonthlyReports() {
           minWidth={1080}
         />
       </Card>
+
+      {moDiemDanh && manualForm.session ? (
+        <DiemDanhCa
+          sessionId={manualForm.session}
+          tieuDe={selectedManualSession ? `${selectedManualSession.classroom_name || ""} — ${formatDate(selectedManualSession.session_date)}` : ""}
+          onDong={() => setMoDiemDanh(false)}
+          onDaLuu={(d) => setManualForm((p) => ({ ...p, student_count: String(d.present_count) }))}
+        />
+      ) : null}
 
       <HopKyDuyet
         open={Boolean(kyDuyet)}

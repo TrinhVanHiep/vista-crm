@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useLocation, useNavigate, useOutletContext, Link } from "react-router-dom";
-import { listStudents, listClassroomsAll, listStudentScores, listMonthlyScorecards, listEvaluationItems, getTuitionSummary, listAttendanceSummary } from "../services/calendarService";
+import { listStudents, listClassroomsAll, listStudentScores, listMonthlyScorecards, listEvaluationItems, getTuitionSummary, listAttendanceSummary, listTeachingSessions } from "../services/calendarService";
 import { useAuth } from "../auth/AuthProvider";
 import { skillsFor } from "../utils/skills";
 import { tuitionByNormCode, normCode } from "../utils/classCode";
@@ -28,6 +28,22 @@ const STUDENT_STATUS = {
 };
 
 const GENDER = { male: "Nam", female: "Nữ" };
+
+const TRANG_THAI_CA = {
+  scheduled: { nhan: "Đã lên lịch", cls: "blue" },
+  in_progress: { nhan: "Đang diễn ra", cls: "orange" },
+  completed: { nhan: "Hoàn thành", cls: "green" },
+  cancelled: { nhan: "Đã huỷ", cls: "red" },
+  rescheduled: { nhan: "Đổi lịch", cls: "gray" },
+  no_show: { nhan: "Vắng mặt", cls: "red" },
+};
+const TRANG_THAI_BAO_CAO = {
+  draft: { nhan: "Nháp", cls: "gray" },
+  submitted: { nhan: "Chờ duyệt", cls: "blue" },
+  approved: { nhan: "Đã duyệt", cls: "green" },
+  revision_required: { nhan: "Cần sửa", cls: "orange" },
+  rejected: { nhan: "Từ chối", cls: "red" },
+};
 
 // Nhóm năng lực — CÙNG ngưỡng với xếp loại trên phiếu điểm (teaching/services.py
 // _grade_cefr, thang 10): Giỏi ≥ 8.5, Khá ≥ 7, Trung bình ≥ 5.5, dưới nữa là Yếu.
@@ -172,6 +188,19 @@ export default function ClassDetail() {
   const [kyChon, setKyChon] = useState("");
 
   const [evalItems, setEvalItems] = useState([]);
+
+  // Toàn bộ ca dạy của lớp — để đếm buổi đã học / còn lại và hiện lịch tháng.
+  const [lichCa, setLichCa] = useState([]);
+  const [lichLoading, setLichLoading] = useState(true);
+  useEffect(() => {
+    let active = true;
+    setLichLoading(true);
+    listTeachingSessions({ classroom: classroomId, page_size: 1000 })
+      .then((res) => { if (active) setLichCa(Array.isArray(res?.results) ? res.results : []); })
+      .catch(() => { if (active) setLichCa([]); })
+      .finally(() => { if (active) setLichLoading(false); });
+    return () => { active = false; };
+  }, [classroomId]);
 
   // Học phí (thật) — Map(normCode -> {total_fee, remaining, paid, students}).
   const [tuitionMap, setTuitionMap] = useState(null);
@@ -335,11 +364,32 @@ export default function ClassDetail() {
     return m ? Number(m[1]) : null;
   }, [info.program]);
 
-  const buoiKnown = info.sessionCount != null && totalBuoi != null;
-  const buoiValue = buoiKnown ? `${info.sessionCount}/${totalBuoi}` : "—";
-  const buoiSub = totalBuoi != null
-    ? `Đã học ${info.sessionCount ?? "—"} / ${totalBuoi} buổi`
-    : "Chương trình chưa gắn tổng số buổi";
+  // Số buổi ĐẾM TỪ LỊCH DẠY THẬT của lớp (trước đây lấy session_count của tháng
+  // đang xem trên trang tổng quan, nên "đã học" chỉ là số buổi của một tháng).
+  // Đã học = ca có ngày ≤ hôm nay và không huỷ / đổi lịch / vắng.
+  const homNay = new Date().toISOString().slice(0, 10);
+  const BO_QUA = ["cancelled", "rescheduled", "no_show"];
+  const caHopLe = useMemo(() => lichCa.filter((c) => !BO_QUA.includes(c.status)), [lichCa]); // eslint-disable-line
+  const daHoc = caHopLe.filter((c) => (c.session_date || "") <= homNay).length;
+  const daXepSau = caHopLe.filter((c) => (c.session_date || "") > homNay).length;
+  const conLai = totalBuoi != null ? Math.max(totalBuoi - daHoc, 0) : daXepSau;
+  const buoiValue = lichLoading ? "…" : totalBuoi != null ? `${daHoc}/${totalBuoi}` : String(daHoc);
+  const buoiSub = lichLoading ? "Đang tải lịch dạy" : totalBuoi != null
+    ? `Còn lại ${conLai} buổi theo lộ trình ${totalBuoi} buổi`
+    : `Còn ${daXepSau} buổi đã xếp lịch phía trước`;
+
+  // Lịch dạy của THÁNG đang chọn trên thanh đầu trang.
+  const thangXem = Number(scope.month) || new Date().getMonth() + 1;
+  const namXem = Number(scope.year) || new Date().getFullYear();
+  const lichThang = useMemo(
+    () => lichCa
+      .filter((c) => {
+        const d = c.session_date || "";
+        return d.slice(0, 4) === String(namXem) && Number(d.slice(5, 7)) === thangXem;
+      })
+      .sort((a, b) => String(a.start_at || a.session_date).localeCompare(String(b.start_at || b.session_date))),
+    [lichCa, thangXem, namXem],
+  );
 
   // ---- Học phí lớp (THẬT) — tra theo normCode(mã lớp); ~18/23 lớp có dữ liệu. ----
   const tuition = useMemo(
@@ -597,6 +647,49 @@ export default function ClassDetail() {
                 <KV k="Trạng thái lớp">{statusMeta ? statusMeta.label : "—"}</KV>
               </div>
             </div>
+          </div>
+
+          {/* Lịch dạy tháng: số buổi + nội dung dạy theo lịch giáo viên đăng ký. */}
+          <div className="card">
+            <div className="card-head">
+              <h3>Lịch dạy tháng {String(thangXem).padStart(2, "0")}/{namXem}</h3>
+              <span className="small muted">
+                {lichLoading ? "Đang tải…" : `${lichThang.length} buổi · bấm một buổi để mở chi tiết ca`}
+              </span>
+            </div>
+            {lichLoading ? null : !lichThang.length ? (
+              <div className="muted small" style={{ padding: 12 }}>Tháng này lớp chưa có buổi dạy nào trên lịch.</div>
+            ) : (
+              <div className="tbl-wrap">
+                <table className="tbl">
+                  <thead>
+                    <tr><th>Ngày</th><th>Giờ</th><th>Giáo viên</th><th>Nội dung dạy</th><th>Mục tiêu</th><th className="t-center">Trạng thái</th><th className="t-center">Báo cáo</th></tr>
+                  </thead>
+                  <tbody>
+                    {lichThang.map((c) => {
+                      const gio = (v) => (v ? new Date(v).toTimeString().slice(0, 5) : "");
+                      const tt = TRANG_THAI_CA[c.status] || { nhan: c.status || "—", cls: "gray" };
+                      const bc = TRANG_THAI_BAO_CAO[c.report_status] || { nhan: "Chưa báo cáo", cls: "orange" };
+                      return (
+                        <tr
+                          key={c.id}
+                          style={{ cursor: "pointer" }}
+                          onClick={() => navigate(`/calendar-detail?date=${c.session_date}&session=${c.id}`)}
+                        >
+                          <td className="bold" style={{ whiteSpace: "nowrap" }}>{fmtDate(c.session_date)}</td>
+                          <td style={{ whiteSpace: "nowrap" }}>{[gio(c.start_at), gio(c.end_at)].filter(Boolean).join(" – ") || "—"}</td>
+                          <td>{c.teacher_name || "—"}</td>
+                          <td style={{ minWidth: 200 }}>{c.lesson_topic || <span className="muted">Chưa đăng ký</span>}</td>
+                          <td style={{ minWidth: 200 }}>{c.lesson_objective || <span className="muted">Chưa đăng ký</span>}</td>
+                          <td className="t-center"><span className={`badge ${tt.cls}`}>{tt.nhan}</span></td>
+                          <td className="t-center"><span className={`badge ${bc.cls}`}>{bc.nhan}</span></td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
           {/* 4. Phân nhóm năng lực học sinh (THẬT) */}

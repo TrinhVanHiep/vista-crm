@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../../auth/AuthProvider";
 import { TEN_CAP, capDangCho, quyenKy, tomTatPhieuKiem } from "../../utils/duyetBaoCao";
 import HopKyDuyet from "./HopKyDuyet";
+import DiemDanhCa from "./DiemDanhCa";
 import { listSessionReports, reviewApprovalEntity } from "../../services/calendarService";
 import { Badge, Button, Modal } from "../../ui";
 
@@ -69,7 +71,11 @@ function ThongTinCa({ buoi }) {
     ? `${buoi.session_date.slice(8, 10)}/${buoi.session_date.slice(5, 7)}/${buoi.session_date.slice(0, 4)}` : "";
   const dong = [
     ["Thời gian", [ngay, [gio(buoi.start_at), gio(buoi.end_at)].filter(Boolean).join(" – ")].filter(Boolean).join(" · ")],
-    ["Lớp", buoi.classroom_name],
+    ["Lớp", buoi.classroom ? (
+      <Link to={`/classrooms/${buoi.classroom}`} style={{ color: "var(--primary)", fontWeight: 700 }}>
+        {buoi.classroom_name || "Mở lớp"} →
+      </Link>
+    ) : buoi.classroom_name],
     ["Giáo viên", buoi.teacher_name],
     ["Hình thức", HINH_THUC[buoi.delivery_mode] || buoi.delivery_mode],
     ["Trạng thái ca", TRANG_THAI_CA[buoi.status] || buoi.status],
@@ -147,6 +153,7 @@ export default function ChiTietBaoCaoNgay({ buoi, onDong, coQuyenDuyet = false, 
   }, [buoi?.id]);
 
   const [moKy, setMoKy] = useState(false);
+  const [moDiemDanh, setMoDiemDanh] = useState(false);
 
   const guiQuyetDinh = async (qd, ghiChu, phieuKiem) => {
     setDangDuyet(true);
@@ -251,6 +258,14 @@ export default function ChiTietBaoCaoNgay({ buoi, onDong, coQuyenDuyet = false, 
 
   return (
     <>
+    {moDiemDanh && buoi ? (
+      <DiemDanhCa
+        sessionId={buoi.id}
+        tieuDe={`${buoi.classroom_name || ""} — ${buoi.teacher_name || ""}`}
+        onDong={() => setMoDiemDanh(false)}
+        onDaLuu={(d) => setBc((truoc) => (truoc ? { ...truoc, student_count: d.present_count } : truoc))}
+      />
+    ) : null}
     <HopKyDuyet
       open={moKy}
       cap={ky.cap}
@@ -275,6 +290,13 @@ export default function ChiTietBaoCaoNgay({ buoi, onDong, coQuyenDuyet = false, 
       {loi ? <div className="alert red" style={{ marginBottom: 12 }}><span>⚠️</span><div>{loi}</div></div> : null}
 
       {buoi ? <ThongTinCa buoi={buoi} /> : null}
+      {buoi ? (
+        <div style={{ margin: "-4px 0 14px" }}>
+          <Button size="sm" variant="ghost" onClick={() => setMoDiemDanh(true)}>
+            Điểm danh học sinh (kể cả học bù)
+          </Button>
+        </div>
+      ) : null}
       <div className="bcn-muc__nhan" style={{ margin: "4px 0 8px", fontSize: 13 }}>Báo cáo sau ca dạy</div>
 
       {dangTai ? (

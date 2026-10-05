@@ -208,6 +208,18 @@ export default function BulkImportModal({ loai, open, onClose, onXong }) {
           </div>
         ) : null}
 
+        {/* Cảnh báo không chặn dòng nào — đã nhập xong, chỉ nhắc người nhập kiểm
+            tra lại (vd. trùng tên với em ở lớp khác nên đã tạo hồ sơ mới). */}
+        {ketQua && Array.isArray(ketQua.warnings) && ketQua.warnings.length ? (
+          <div className="alert orange" style={{ marginBottom: 12, display: "block" }}>
+            <div><strong>{ketQua.warnings.length}</strong> dòng đã nhập nhưng nên kiểm tra lại:</div>
+            <ul style={{ margin: "6px 0 0 18px", fontSize: 12.5, lineHeight: 1.55 }}>
+              {ketQua.warnings.slice(0, 15).map((x, i) => <li key={i}>{x}</li>)}
+              {ketQua.warnings.length > 15 ? <li>… và {ketQua.warnings.length - 15} dòng nữa.</li> : null}
+            </ul>
+          </div>
+        ) : null}
+
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
           <Button type="button" variant="ghost" onClick={dong}>
             Đóng

@@ -18,6 +18,7 @@ import {
   TU_MOC as RANGE_WORD,
 } from "../utils/khoangThoiGian";
 import ChiTietBaoCaoNgay from "../components/reports/ChiTietBaoCaoNgay";
+import DiemDanhCa from "../components/reports/DiemDanhCa";
 import "../styles/vista4.css";
 
 
@@ -230,6 +231,7 @@ function DailyReport() {
 
   // Buổi dạy đang được MỞ RA XEM nội dung (khác với buổi đang chọn để nhập).
   const [xemChiTiet, setXemChiTiet] = useState(null);
+  const [moDiemDanh, setMoDiemDanh] = useState(false);
 
   const selectedSession = sessions.find((s) => String(s.id) === String(selectedSessionId)) || null;
   const selectedStatus = selectedSession?.report_status || "";
@@ -600,6 +602,16 @@ function DailyReport() {
                       <label>
                         <span className="field-label">Sĩ số học sinh đi học *</span>
                         <input type="number" min="0" placeholder="12" value={form.student_count} onChange={(e) => setForm((p) => ({ ...p, student_count: e.target.value }))} />
+                        {selectedSessionId ? (
+                          <button
+                            type="button"
+                            className="card-link"
+                            style={{ cursor: "pointer", background: "none", border: "none", font: "inherit", padding: "4px 0 0", textAlign: "left" }}
+                            onClick={() => setMoDiemDanh(true)}
+                          >
+                            Điểm danh từng em (kể cả học bù) — sĩ số tự điền →
+                          </button>
+                        ) : null}
                       </label>
                       <label>
                         <span className="field-label">Chủ đề bài học *</span>
@@ -741,6 +753,15 @@ function DailyReport() {
           </div>
         )}
       </div>
+
+      {moDiemDanh && selectedSessionId ? (
+        <DiemDanhCa
+          sessionId={selectedSessionId}
+          tieuDe={selectedSession ? `${selectedSession.classroom_name || ""} — ${selectedSession.teacher_name || ""}` : ""}
+          onDong={() => setMoDiemDanh(false)}
+          onDaLuu={(d) => setForm((p) => ({ ...p, student_count: String(d.present_count) }))}
+        />
+      ) : null}
 
       <ChiTietBaoCaoNgay
         buoi={xemChiTiet}
