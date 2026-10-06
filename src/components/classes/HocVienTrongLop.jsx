@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { listStudents, updateStudent } from "../../services/calendarService";
+import { listStudents, themHocSinhVaoLop, updateStudent } from "../../services/calendarService";
 import { Badge, Button, Field } from "../../ui";
 
 /**
@@ -21,6 +21,8 @@ const NHAN_TRANG_THAI = {
   withdrawn: "Nghỉ học",
 };
 
+const HS_MOI_TRONG = { ten: "", sdt: "", bo: "", me: "", ngay_sinh: "", gioi_tinh: "", dia_chi: "" };
+
 const tenHV = (r) =>
   (r?.user?.full_name || `${r?.user?.last_name || ""} ${r?.user?.first_name || ""}`).trim()
   || r?.user?.username
@@ -37,6 +39,11 @@ export default function HocVienTrongLop({ lopId, tenLop, onNotice, onDongHopThoa
   const [tuKhoa, setTuKhoa] = useState("");
   const [ketQuaTim, setKetQuaTim] = useState([]);
   const [dangTim, setDangTim] = useState(false);
+
+  const [moThemMoi, setMoThemMoi] = useState(false);
+  const [hsMoi, setHsMoi] = useState(HS_MOI_TRONG);
+  const [dangThem, setDangThem] = useState(false);
+  const [canhBao, setCanhBao] = useState([]);
 
   const tai = useCallback(async () => {
     if (!lopId) return;
@@ -94,6 +101,32 @@ export default function HocVienTrongLop({ lopId, tenLop, onNotice, onDongHopThoa
     }
   };
 
+  // Thêm tay một em MỚI ngay tại lớp — backend dùng chung luật chống trùng của
+  // nhập Excel (classrooms/views.py::them_hoc_sinh): trùng tên trong lớp thì cập
+  // nhật hồ sơ sẵn có thay vì đẻ thêm một em "ảo".
+  const themMoi = async (e) => {
+    e.preventDefault();
+    if (!hsMoi.ten.trim()) { setLoi("Nhập họ tên học sinh."); return; }
+    setDangThem(true);
+    setLoi("");
+    setCanhBao([]);
+    try {
+      const kq = await themHocSinhVaoLop(lopId, { ...hsMoi, ten: hsMoi.ten.trim() });
+      setCanhBao(Array.isArray(kq?.warnings) ? kq.warnings : []);
+      setHsMoi(HS_MOI_TRONG);
+      setMoThemMoi(false);
+      setTaiLai((v) => v + 1);
+      if (onNotice) onNotice(kq?.detail || `Đã thêm học sinh vào lớp ${tenLop}.`);
+    } catch (err) {
+      setLoi(err?.response?.data?.detail || err?.message || "Không thêm được học sinh.");
+    } finally {
+      setDangThem(false);
+    }
+  };
+
+  const soDangHoc = dsTrongLop.filter((x) => x.current_status === "active").length;
+  const soKhac = dsTrongLop.length - soDangHoc;
+
   // Đang tìm thì thu gọn danh sách hiện có, nếu không khung kết quả bị đẩy
   // xuống dưới nếp gấp và người dùng tưởng tìm không ra.
   const dangMoTim = tuKhoa.trim().length >= 2;
@@ -102,11 +135,15 @@ export default function HocVienTrongLop({ lopId, tenLop, onNotice, onDongHopThoa
     <div className={`cls-roster${dangMoTim ? " cls-roster--dang-tim" : ""}`}>
       <div className="cls-roster__hd">
         <span>
-          Đang có <b>{dangTai ? "..." : dsTrongLop.length}</b> học viên trong lớp {tenLop}
+          Sĩ số thực lớp {tenLop}: <b>{dangTai ? "..." : soDangHoc}</b> em đang học
+          {!dangTai && soKhac > 0 ? <small className="muted"> (+{soKhac} bảo lưu/nghỉ, không tính)</small> : null}
         </span>
       </div>
 
       {loi ? <div className="alert red" style={{ marginBottom: 10 }}><span>⚠️</span><div>{loi}</div></div> : null}
+      {canhBao.length ? (
+        <div className="alert" style={{ marginBottom: 10 }}><span>ℹ️</span><div>{canhBao.join(" ")}</div></div>
+      ) : null}
 
       <div className="cls-roster__list">
         {dangTai ? (
@@ -130,7 +167,11 @@ export default function HocVienTrongLop({ lopId, tenLop, onNotice, onDongHopThoa
                     tại đây, khỏi phải nhớ tên em rồi đi vòng qua màn Học sinh. */}
                 <Button
                   size="sm"
-                  onClick={() => { onDongHopThoai?.(); navigate(`/students/${hv.id}`); }}
+                  onClick={() => {
+                    onDongHopThoai?.();
+                    // Mang theo lớp đang mở để hồ sơ có nút "← Về lớp" quay lại đúng chỗ.
+                    navigate(`/students/${hv.id}`, { state: { tuLop: { id: lopId, ten: tenLop } } });
+                  }}
                 >
                   Sửa thông tin
                 </Button>
@@ -149,8 +190,52 @@ export default function HocVienTrongLop({ lopId, tenLop, onNotice, onDongHopThoa
       </div>
 
       <div className="cls-roster__add">
+        {moThemMoi ? (
+          <form className="cls-roster__moi" onSubmit={themMoi}>
+            <div className="cls-roster__moi-hd">
+              <b>Thêm học sinh mới vào lớp {tenLop}</b>
+              <small className="muted">Trùng tên với em đã có trong lớp thì hồ sơ cũ được cập nhật, không tạo thêm.</small>
+            </div>
+            <div className="cls-form">
+              <Field label="Họ và tên" required>
+                <input value={hsMoi.ten} onChange={(e) => setHsMoi((p) => ({ ...p, ten: e.target.value }))} required maxLength={150} autoFocus />
+              </Field>
+              <Field label="SĐT phụ huynh">
+                <input value={hsMoi.sdt} onChange={(e) => setHsMoi((p) => ({ ...p, sdt: e.target.value }))} inputMode="tel" maxLength={20} />
+              </Field>
+              <Field label="Họ tên bố">
+                <input value={hsMoi.bo} onChange={(e) => setHsMoi((p) => ({ ...p, bo: e.target.value }))} maxLength={150} />
+              </Field>
+              <Field label="Họ tên mẹ">
+                <input value={hsMoi.me} onChange={(e) => setHsMoi((p) => ({ ...p, me: e.target.value }))} maxLength={150} />
+              </Field>
+              <Field label="Ngày sinh">
+                <input type="date" value={hsMoi.ngay_sinh} onChange={(e) => setHsMoi((p) => ({ ...p, ngay_sinh: e.target.value }))} />
+              </Field>
+              <Field label="Giới tính">
+                <select value={hsMoi.gioi_tinh} onChange={(e) => setHsMoi((p) => ({ ...p, gioi_tinh: e.target.value }))}>
+                  <option value="">—</option>
+                  <option value="Nam">Nam</option>
+                  <option value="Nữ">Nữ</option>
+                </select>
+              </Field>
+              <Field label="Địa chỉ">
+                <input value={hsMoi.dia_chi} onChange={(e) => setHsMoi((p) => ({ ...p, dia_chi: e.target.value }))} maxLength={255} />
+              </Field>
+            </div>
+            <div className="cls-roster__nut" style={{ justifyContent: "flex-end", marginTop: 8 }}>
+              <Button size="sm" variant="ghost" onClick={() => { setMoThemMoi(false); setHsMoi(HS_MOI_TRONG); }}>Hủy</Button>
+              <Button size="sm" type="submit" variant="primary" loading={dangThem} loadingText="Đang thêm...">Thêm vào lớp</Button>
+            </div>
+          </form>
+        ) : (
+          <Button size="sm" variant="primary" onClick={() => setMoThemMoi(true)} style={{ marginBottom: 10 }}>
+            + Thêm học sinh mới vào lớp
+          </Button>
+        )}
+
         <Field
-          label="Thêm học viên vào lớp"
+          label="Hoặc chuyển em đã có hồ sơ vào lớp"
           hint="Gõ từ 2 ký tự để tìm trong toàn bộ học viên của trung tâm."
         >
           <input

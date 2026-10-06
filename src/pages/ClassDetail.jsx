@@ -350,7 +350,10 @@ export default function ClassDetail() {
   // Lớp có DUY NHẤT một chương trình -> 4 nhãn kỹ năng dùng cho cột & key skill_scores.
   const skills = useMemo(() => skillsFor(info.program, evalItems), [info.program, evalItems]);
 
-  const total = students.length || info.count || 0;
+  // Sĩ số thực chỉ đếm em đang học; em bảo lưu / nghỉ vẫn hiện trong danh sách.
+  const total = students.length
+    ? students.filter((s) => s.current_status === "active").length
+    : info.count || 0;
   const statusMeta = CLASS_STATUS[info.status] || null;
   const statusBadge = statusMeta ? (
     <span className={`badge ${statusMeta.cls}`}>{statusMeta.label}</span>

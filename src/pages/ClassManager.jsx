@@ -1,8 +1,9 @@
 import BulkImportModal from "../components/bulk/BulkImportModal";
 import { Fragment, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   listClassroomsAll,
+  listStudents,
   listClassesOverview,
   createClassroom,
   updateClassroom,
@@ -12,6 +13,7 @@ import {
 } from "../services/calendarService";
 import { CenterField } from "../utils/centerField";
 import HocVienTrongLop from "../components/classes/HocVienTrongLop";
+import HocSinhChuaXepLop from "../components/classes/HocSinhChuaXepLop";
 import { NHAN_NHOM, nhomChuongTrinh, soSanhLop } from "../utils/thuTuLop";
 import { Button, Field, Modal } from "../ui";
 import "../styles/vista4.css";
@@ -84,6 +86,10 @@ export default function ClassManager() {
   const [xemKho, setXemKho] = useState(false);
   const [saving, setSaving] = useState(false);
   const [moNhapExcel, setMoNhapExcel] = useState(false);
+  const [moChuaXep, setMoChuaXep] = useState(false);
+  const [soChuaXep, setSoChuaXep] = useState(null);
+  // Từ hồ sơ học sinh bấm "← Về lớp" quay lại đây với ?lop=ID&tab=hocvien.
+  const [thamSo, setThamSo] = useSearchParams();
 
   // Gán chương trình hàng loạt
   const [selected, setSelected] = useState(() => new Set());
@@ -209,6 +215,24 @@ export default function ClassManager() {
     [classes],
   );
 
+  useEffect(() => {
+    listStudents({ chua_xep_lop: true, page_size: 1 })
+      .then((kq) => setSoChuaXep(kq?.count ?? (kq?.results || []).length))
+      .catch(() => setSoChuaXep(null));
+  }, [reloadKey]);
+
+  useEffect(() => {
+    const lopId = thamSo.get("lop");
+    if (!lopId || loading) return;
+    const cls = classes.find((c) => String(c.id) === lopId);
+    if (cls) {
+      openEdit(cls);
+      if (thamSo.get("tab") === "hocvien") setTabForm("hocvien");
+    }
+    setThamSo({}, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [classes, loading, thamSo]);
+
   const openCreate = () => {
     setFormError("");
     setForm({
@@ -258,11 +282,21 @@ export default function ClassManager() {
       };
       if (form.center_id) payload.center_id = Number(form.center_id);
       if (form.id) {
-        await updateClassroom(form.id, payload);
-        setNotice(`Đã cập nhật lớp ${payload.class_code || payload.name}.`);
+        const kq = await updateClassroom(form.id, payload);
+        setNotice(
+          `Đã cập nhật lớp ${payload.class_code || payload.name}.`
+          + (kq?.ma_da_nhuong?.length
+            ? ` Mã này trước thuộc lớp đã giải tán — lớp cũ đã đổi mã thành ${kq.ma_da_nhuong.join(", ")}.`
+            : ""),
+        );
       } else {
-        await createClassroom(payload);
-        setNotice(`Đã tạo lớp ${payload.class_code || payload.name}.`);
+        const kq = await createClassroom(payload);
+        setNotice(
+          `Đã tạo lớp ${payload.class_code || payload.name}.`
+          + (kq?.ma_da_nhuong?.length
+            ? ` Lớp đã giải tán từng giữ mã này đã đổi mã thành ${kq.ma_da_nhuong.join(", ")}.`
+            : ""),
+        );
       }
       setIsFormOpen(false);
       setReloadKey((k) => k + 1);
@@ -397,6 +431,9 @@ export default function ClassManager() {
               />
               <span>Xem cả lớp đã giải tán</span>
             </label>
+            <button type="button" className="btn ghost" onClick={() => setMoChuaXep(true)}>
+              Học sinh chưa xếp lớp{soChuaXep != null ? ` (${soChuaXep})` : ""}
+            </button>
             <button type="button" className="btn ghost" onClick={() => setMoNhapExcel(true)}>
               📥 Nhập Excel
             </button>
@@ -741,6 +778,13 @@ export default function ClassManager() {
         open={moNhapExcel}
         onClose={() => setMoNhapExcel(false)}
         onXong={() => setReloadKey((k) => k + 1)}
+      />
+
+      <HocSinhChuaXepLop
+        open={moChuaXep}
+        onClose={() => setMoChuaXep(false)}
+        lopDangChay={[...classes].filter((c) => c.status !== "dissolved").sort(soSanhLop)}
+        onDaDoi={() => setReloadKey((k) => k + 1)}
       />
     </div>
   );

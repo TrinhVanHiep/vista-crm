@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   getStudent,
   updateStudent,
@@ -107,6 +107,8 @@ const coGiaTri = (v) => v != null && String(v).trim() !== "";
 export default function StudentProfile() {
   const { studentId } = useParams();
   const navigate = useNavigate();
+  // Mở từ tab "Học viên trong lớp" thì có đường quay về đúng lớp đó.
+  const tuLop = useLocation().state?.tuLop;
 
   const [hs, setHs] = useState(null);
   const [bangDiem, setBangDiem] = useState([]);
@@ -261,7 +263,16 @@ export default function StudentProfile() {
         crumbs={[{ label: "Tổng quan", to: "/" }, { label: "Học sinh - Lớp học", to: "/students" }, { label: ten }]}
         title={ten}
         description={`${hs.classroom?.class_code || hs.classroom?.name || "Chưa xếp lớp"}${hs.classroom?.program_name ? ` · ${hs.classroom.program_name}` : ""}`}
-        actions={<Button variant="primary" onClick={moForm}>Sửa hồ sơ</Button>}
+        actions={(
+          <>
+            {tuLop?.id ? (
+              <Button onClick={() => navigate(`/quan-ly-lop?lop=${tuLop.id}&tab=hocvien`)}>
+                ← Về lớp {tuLop.ten}
+              </Button>
+            ) : null}
+            <Button variant="primary" onClick={moForm}>Sửa hồ sơ</Button>
+          </>
+        )}
       />
 
       {thongBao ? (

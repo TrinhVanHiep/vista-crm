@@ -237,9 +237,11 @@ function Students() {
         const month = now.getMonth() + 1;
         const year = now.getFullYear();
         const [all, male, female, classAll, ovw, ctrs, cards, rawScores, evItems, attend] = await Promise.all([
-          listStudents({ page_size: 1 }),
-          listStudents({ gender: "male", page_size: 1 }).catch(() => ({ count: 0 })),
-          listStudents({ gender: "female", page_size: 1 }).catch(() => ({ count: 0 })),
+          // Sĩ số thực: em đang học VÀ đang ở một lớp chưa giải tán. Đếm cả hồ sơ
+          // nghỉ / mất lớp là sĩ số "ảo" cao hơn thực tế (students/filters.py).
+          listStudents({ dang_hoc: true, page_size: 1 }),
+          listStudents({ dang_hoc: true, gender: "male", page_size: 1 }).catch(() => ({ count: 0 })),
+          listStudents({ dang_hoc: true, gender: "female", page_size: 1 }).catch(() => ({ count: 0 })),
           listClassroomsAll().catch(() => []),
           listClassesOverview({ month, year }).catch(() => ({ results: [] })),
           listCentersAll().catch(() => []),

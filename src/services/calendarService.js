@@ -527,6 +527,12 @@ export async function choHocVienNghi(studentId, payload) {
   return data;
 }
 
+/** Thêm tay một học sinh MỚI vào lớp — cùng luật chống trùng tên của nhập Excel. */
+export async function themHocSinhVaoLop(lopId, payload) {
+  const { data } = await apiClient.post(`/classrooms/classrooms/${lopId}/them-hoc-sinh/`, payload);
+  return data;
+}
+
 export async function nhanHocVienHocLai(studentId) {
   const { data } = await apiClient.post(`/students/students/${studentId}/nhan-hoc-lai/`);
   return data;

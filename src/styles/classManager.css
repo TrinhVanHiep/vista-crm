@@ -137,3 +137,13 @@
   .cls-roster__nut { grid-column: 1 / -1; }
   .cls-roster__nut > button { flex: 1 1 0; justify-content: center; }
 }
+
+/* Form thêm học sinh mới ngay tại lớp (HocVienTrongLop). */
+.cls-roster__moi {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 14px;
+  background: var(--surface-2, #fafafa);
+}
+.cls-roster__moi-hd { display: grid; gap: 2px; margin-bottom: 10px; }
