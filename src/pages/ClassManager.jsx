@@ -286,7 +286,7 @@ export default function ClassManager() {
         setNotice(
           `Đã cập nhật lớp ${payload.class_code || payload.name}.`
           + (kq?.ma_da_nhuong?.length
-            ? ` Mã này trước thuộc lớp đã giải tán — lớp cũ đã đổi mã thành ${kq.ma_da_nhuong.join(", ")}.`
+            ? ` Mã/tên này trước thuộc lớp đã giải tán — lớp cũ đã đổi thành: ${kq.ma_da_nhuong.join(", ")}.`
             : ""),
         );
       } else {
@@ -294,7 +294,7 @@ export default function ClassManager() {
         setNotice(
           `Đã tạo lớp ${payload.class_code || payload.name}.`
           + (kq?.ma_da_nhuong?.length
-            ? ` Lớp đã giải tán từng giữ mã này đã đổi mã thành ${kq.ma_da_nhuong.join(", ")}.`
+            ? ` Mã/tên này trước thuộc lớp đã giải tán — lớp cũ đã đổi thành: ${kq.ma_da_nhuong.join(", ")}.`
             : ""),
         );
       }
