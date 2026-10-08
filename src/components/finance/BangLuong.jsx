@@ -4,6 +4,17 @@ import { layBangLuong, layCoCauLuong, nhapChamCong, taiMauChamCong } from "../..
 import { Button, Card, CardHead, NoteStrip, Num, Pill, StatCard, Table } from "./v3/ui";
 import { DonGiaTheoLop, HopDieuChinhThang } from "./DieuChinhLuong";
 import CauHinhLuong from "./CauHinhLuong";
+import { DuyetCongBoSung, GanNguoiChamCong } from "./MayChamCong";
+import { VAI_QUAN_TRI } from "../../auth/permissions";
+
+const vaiHienTai = () => {
+  try {
+    const r = JSON.parse(localStorage.getItem("vista_user") || "{}").role;
+    return (typeof r === "string" ? r : r?.name) || "";
+  } catch {
+    return "";
+  }
+};
 import { color } from "./v3/theme";
 
 /**
@@ -55,7 +66,7 @@ function NhapChamCong({ thang, nam, onDaGhi }) {
       setXem(null);
       setTep(null);
       if (oFile.current) oFile.current.value = "";
-      onDaGhi?.(`Đã ghi chấm công tháng ${thang}/${nam} cho ${kq.matched_count} nhân sự.`);
+      onDaGhi?.(`Đã gửi chấm công bổ sung tháng ${thang}/${nam} của ${kq.matched_count} nhân sự — chờ quản lý hoặc super admin duyệt mới tính công.`);
     } catch (e) {
       setLoi(loiApi(e, "Không ghi được chấm công."));
     } finally {
@@ -67,7 +78,7 @@ function NhapChamCong({ thang, nam, onDaGhi }) {
     <Card>
       <CardHead
         title="Nhập file chấm công"
-        sub={`Bảng công tháng ${String(thang).padStart(2, "0")}/${nam}: X = đi làm, T = ca trực, trống = nghỉ. Nhập lại cùng tháng sẽ thay dữ liệu đã nhập trước.`}
+        sub={`Bổ sung công tháng ${String(thang).padStart(2, "0")}/${nam} cho ngày máy chấm công lỗi / mất điện và ca trực: X = đi làm, T = ca trực, trống = không bổ sung. File phải được quản lý hoặc super admin duyệt mới tính.`}
       />
       <div style={{ padding: "14px 22px 20px", display: "grid", gap: 12 }}>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
@@ -124,6 +135,7 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
   const [loi, setLoi] = useState("");
   const [dangChinh, setDangChinh] = useState(null);
   const [cauHinh, setCauHinh] = useState(undefined); // undefined = đóng, null = thêm mới, id = sửa
+  const laQuanTri = VAI_QUAN_TRI.includes(vaiHienTai());
 
   useEffect(() => {
     let huy = false;
@@ -168,6 +180,12 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
         <div style={{ fontSize: 12, color: color.muted, marginTop: 2 }}>
           {x.position_label || LOAI[x.employment_type] || x.employment_type}
           {x.position_label ? ` · ${LOAI[x.employment_type] || x.employment_type}` : ""}
+        </div>
+        <div style={{ fontSize: 11.5, color: color.faint, marginTop: 2 }}>
+          {cc.attendance_days || 0} công
+          {Number(cc.single_punch_days) ? ` · ${cc.single_punch_days} ngày chỉ 1 lượt quẹt (không tính)` : ""}
+          {Number(cc.pending_file_days) ? ` · ${cc.pending_file_days} ngày chờ duyệt` : ""}
+          {Number(cc.teaching_sessions_total) ? ` · ${cc.teaching_sessions_with_punch || 0}/${cc.teaching_sessions_total} ca dạy có quẹt máy` : ""}
         </div>
       </div>,
       <div key="cd">
@@ -245,6 +263,14 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
         đạt ngưỡng điểm. Khấu trừ BHXH, thuế thu nhập 2 nguồn, phạt chỉnh tay từng tháng bằng nút "Chỉnh".
       </NoteStrip>
 
+      <DuyetCongBoSung
+        thang={thang}
+        nam={nam}
+        duocDuyet={laQuanTri}
+        taiLai={taiLai}
+        onDaDuyet={(tb) => { onNotice?.(tb); setTaiLai((v) => v + 1); }}
+      />
+
       {coTheGhi ? (
         <NhapChamCong
           thang={thang}
@@ -282,6 +308,10 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
           )}
         </div>
       </Card>
+
+      {coTheGhi || laQuanTri ? (
+        <GanNguoiChamCong onDaGan={(tb) => { onNotice?.(tb); setTaiLai((v) => v + 1); }} />
+      ) : null}
 
       <DonGiaTheoLop
         coTheGhi={coTheGhi}

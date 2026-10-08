@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { dinhDangTien, loiApi } from "../../services/financeService";
-import { listTeachers } from "../../services/calendarService";
-import { layCauHinhLuong, luuCauHinhLuong } from "../../services/payrollService";
+import { layCauHinhLuong, layNhanSuChuaCoLuong, luuCauHinhLuong, themNhanSuLuong } from "../../services/payrollService";
 import { Button, Field, Input, Modal } from "./v3/ui";
 import { color } from "./v3/theme";
 
@@ -70,9 +69,8 @@ export default function CauHinhLuong({ teacherId, onDong, onDaLuu }) {
           if (!c) setLoi("Không tìm thấy cấu hình lương.");
           return;
         }
-        const co = new Set(ds.map((x) => Number(x.teacher)));
-        const gv = await listTeachers({ page_size: 500 });
-        setDsGv((gv?.results || []).filter((t) => !co.has(Number(t.id))));
+        // Giáo viên chưa có cấu hình + nhân sự khác (QLCS, thiết kế…) chưa có hồ sơ.
+        setDsGv(await layNhanSuChuaCoLuong());
         setF({ teacher: "", employment_type: "part_time", position: "", base_salary: 0,
           class_revenue_share_percent: 30, rate_per_session: 0, insurance_salary: 0,
           student_management_rate: 0, allowance: 0 });
@@ -90,8 +88,10 @@ export default function CauHinhLuong({ teacherId, onDong, onDaLuu }) {
     try {
       const { id, teacher, employment_type, position, base_salary, class_revenue_share_percent,
         rate_per_session, insurance_salary, student_management_rate, allowance } = f;
-      await luuCauHinhLuong(moi ? null : id, {
-        ...(moi ? { teacher: Number(teacher) } : {}),
+      const [loaiNs, idNs] = String(teacher || "").split(":");
+      const luu = moi ? themNhanSuLuong : (payload) => luuCauHinhLuong(id, payload);
+      await luu({
+        ...(moi ? { [loaiNs]: Number(idNs) } : {}),
         employment_type, position, class_revenue_share_percent: Number(class_revenue_share_percent) || 0,
         base_salary: nuocNgoai ? 0 : Number(base_salary) || 0, rate_per_session: Number(rate_per_session) || 0,
         insurance_salary: Number(insurance_salary) || 0, student_management_rate: Number(student_management_rate) || 0,
@@ -105,8 +105,8 @@ export default function CauHinhLuong({ teacherId, onDong, onDaLuu }) {
     }
   };
 
-  const tenGv = (t) => (t.user?.full_name || `${t.user?.last_name || ""} ${t.user?.first_name || ""}`).trim()
-    || t.user?.email || `#${t.id}`;
+  const VAI = { center_manager: "QL cơ sở", training_manager: "QL đào tạo", teacher: "Giáo viên", accountant: "Kế toán", admin: "Admin", staff: "Nhân viên" };
+  const tenNs = (t) => `${t.ten}${t.vai ? ` · ${VAI[t.vai] || t.vai}` : ""}${t.email ? ` · ${t.email}` : ""}`;
 
   return (
     <Modal
@@ -129,7 +129,7 @@ export default function CauHinhLuong({ teacherId, onDong, onDaLuu }) {
             <div style={{ gridColumn: "1 / -1" }}>
               <Field label="Nhân sự (chưa có trong bảng lương)">
                 <Chon value={f.teacher} onChange={doi("teacher")}
-                      options={[["", "— Chọn —"], ...dsGv.map((t) => [String(t.id), tenGv(t)])]} />
+                      options={[["", "— Chọn —"], ...dsGv.map((t) => [`${t.loai}:${t.id}`, tenNs(t)])]} />
               </Field>
             </div>
           ) : null}

@@ -78,3 +78,39 @@ export async function luuCauHinhLuong(id, payload) {
     : await apiClient.post("/payroll/configs/teachers/", payload);
   return data;
 }
+
+/** Máy chấm công: mã trên máy + gợi ý gán người (attendance/gan_nguoi.py). */
+export async function layNguoiTrenMay() {
+  const { data } = await apiClient.get("/payroll/may-cham-cong/nguoi/");
+  return data;
+}
+
+/** Gán một mã máy (loai: teacher | user | student | null = bỏ gán) hoặc { tat_ca_chac_chan: true }. */
+export async function ganNguoiMay(payload) {
+  const { data } = await apiClient.post("/payroll/may-cham-cong/gan/", payload);
+  return data;
+}
+
+/** File chấm công bổ sung đang chờ duyệt của tháng. */
+export async function layCongChoDuyet({ thang, nam }) {
+  const { data } = await apiClient.get("/payroll/cham-cong/duyet/", { params: { month: thang, year: nam } });
+  return Array.isArray(data) ? data : [];
+}
+
+export async function duyetCong({ thang, nam }, quyetDinh, teacherIds) {
+  const { data } = await apiClient.post("/payroll/cham-cong/duyet/", {
+    month: thang, year: nam, quyet_dinh: quyetDinh, teacher_ids: teacherIds,
+  });
+  return data;
+}
+
+/** Nhân sự chưa có cấu hình lương (giáo viên + QLCS, thiết kế… chưa có hồ sơ). */
+export async function layNhanSuChuaCoLuong() {
+  const { data } = await apiClient.get("/payroll/nhan-su-luong/");
+  return Array.isArray(data) ? data : [];
+}
+
+export async function themNhanSuLuong(payload) {
+  const { data } = await apiClient.post("/payroll/nhan-su-luong/", payload);
+  return data;
+}
