@@ -540,6 +540,21 @@ export default function ClassDetail() {
     return [...scoreAgg.entries()].map(([id, e]) => ({ id, name: e.name || `HS #${id}`, agg: e }));
   }, [students, scoreAgg]);
 
+  // Bảng "Kết quả học tập chi tiết": bấm một em -> màn PHIẾU BÁO CÁO HỌC TẬP
+  // (/phieu-bao-cao/:id) của kỳ đang xem; em chưa có phiếu kỳ đó thì mở phiếu
+  // gần nhất của em trong lớp.
+  const phieuTheoHs = useMemo(() => {
+    const m = new Map();
+    [...phieuDiem]
+      .sort((a, b) => (a.period_year - b.period_year) || (a.period_month - b.period_month))
+      .forEach((p) => {
+        const khoa = `${p.period_year}-${String(p.period_month).padStart(2, "0")}`;
+        const cu = m.get(Number(p.student));
+        if (!cu || cu.khoa !== kyDangXem) m.set(Number(p.student), { id: p.id, khoa });
+      });
+    return m;
+  }, [phieuDiem, kyDangXem]);
+
   // Bấm một học sinh -> phiếu kết quả học tập của em đó trong lớp này, in được
   // (08/10/2026: trước đây bấm là nhảy sang hồ sơ, không có bản để in).
   const [hsXem, setHsXem] = useState(null);
@@ -859,9 +874,15 @@ export default function ClassDetail() {
                       const agg = row.agg;
                       const band = agg ? bandOf(agg.avg, agg.grade_label) : null;
                       const follow = band ? FOLLOW[band] : null;
+                      const phieu = phieuTheoHs.get(Number(row.id));
                       return (
-                        <tr key={row.id}>
-                          <td className="bold">{row.name}</td>
+                        <tr
+                          key={row.id}
+                          style={phieu ? { cursor: "pointer" } : undefined}
+                          title={phieu ? "Mở phiếu báo cáo học tập" : "Em chưa có phiếu báo cáo học tập"}
+                          onClick={phieu ? () => navigate(`/phieu-bao-cao/${phieu.id}`) : undefined}
+                        >
+                          <td className="bold">{row.name}{phieu ? <span className="small muted" style={{ fontWeight: 400 }}> · Phiếu ›</span> : null}</td>
                           <td className="t-center bold">{agg ? `${Math.round(agg.avg)}%` : "—"}</td>
                           {skills.map((label) => {
                             const v = agg && agg.skills ? agg.skills[label] : undefined;
