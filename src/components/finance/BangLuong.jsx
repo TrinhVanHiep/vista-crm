@@ -3,6 +3,7 @@ import { dinhDangTien, loiApi, rutGonM } from "../../services/financeService";
 import { layBangLuong, layCoCauLuong, nhapChamCong, taiMauChamCong } from "../../services/payrollService";
 import { Button, Card, CardHead, NoteStrip, Num, Pill, StatCard, Table } from "./v3/ui";
 import { DonGiaTheoLop, HopDieuChinhThang } from "./DieuChinhLuong";
+import CauHinhLuong from "./CauHinhLuong";
 import { color } from "./v3/theme";
 
 /**
@@ -14,7 +15,7 @@ import { color } from "./v3/theme";
  * (cấu hình, buổi dạy, chấm công), để con số luôn truy ngược được.
  */
 
-const LOAI = { full_time: "Full-time", part_time: "Part-time", director: "Giám đốc" };
+const LOAI = { full_time: "Full-time", part_time: "Part-time", director: "Giám đốc", foreign: "GV nước ngoài" };
 
 const tien = (v) => dinhDangTien(Math.round(Number(v || 0)));
 
@@ -122,6 +123,7 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
   const [dangTai, setDangTai] = useState(true);
   const [loi, setLoi] = useState("");
   const [dangChinh, setDangChinh] = useState(null);
+  const [cauHinh, setCauHinh] = useState(undefined); // undefined = đóng, null = thêm mới, id = sửa
 
   useEffect(() => {
     let huy = false;
@@ -180,7 +182,11 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
       </div>,
       <div key="d">
         <Num>{tien(c.teaching_salary)}</Num>
-        {Number(c.teaching_salary) > 0 || Number(c.share_percent) > 0 ? (
+        {x.employment_type === "foreign" ? (
+          <div style={{ fontSize: 11.5, color: color.faint }}>
+            {x.teaching_summary?.approved_sessions_count || 0} ca × {tien(c.rate_per_session)}
+          </div>
+        ) : Number(c.teaching_salary) > 0 || Number(c.share_percent) > 0 ? (
           <div style={{ fontSize: 11.5, color: color.faint }}>
             {c.share_percent || 0}% × {rutGonM(c.salary_basis_revenue_total)}
           </div>
@@ -216,7 +222,10 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
       </div>,
       <Num key="n" bold>{tien(c.net_salary)}</Num>,
       ...(coTheGhi ? [
-        <Button key="c" variant="ghost" onClick={() => setDangChinh(x)}>Chỉnh</Button>,
+        <div key="c" style={{ display: "flex", gap: 6 }}>
+          <Button variant="ghost" onClick={() => setDangChinh(x)}>Chỉnh</Button>
+          <Button variant="ghost" onClick={() => setCauHinh(x.teacher_id)}>Cấu hình</Button>
+        </div>,
       ] : []),
     ];
   });
@@ -245,7 +254,12 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
       ) : null}
 
       <Card>
-        <CardHead title="Bảng lương tạm tính" sub={`Tháng ${String(thang).padStart(2, "0")}/${nam}`} />
+        <CardHead
+          title="Bảng lương tạm tính"
+          sub={`Tháng ${String(thang).padStart(2, "0")}/${nam}`}
+          action={coTheGhi ? "+ Thêm nhân sự vào bảng lương" : undefined}
+          onAction={coTheGhi ? () => setCauHinh(null) : undefined}
+        />
         <div style={{ padding: "14px 0 6px" }}>
           {dangTai ? (
             <p style={{ padding: "0 22px", color: color.muted }}>Đang tải...</p>
@@ -273,6 +287,14 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
         coTheGhi={coTheGhi}
         onDaLuu={(tb) => { onNotice?.(tb); setTaiLai((v) => v + 1); }}
       />
+
+      {cauHinh !== undefined ? (
+        <CauHinhLuong
+          teacherId={cauHinh}
+          onDong={() => setCauHinh(undefined)}
+          onDaLuu={(tb) => { setCauHinh(undefined); onNotice?.(tb); setTaiLai((v) => v + 1); }}
+        />
+      ) : null}
 
       {dangChinh ? (
         <HopDieuChinhThang

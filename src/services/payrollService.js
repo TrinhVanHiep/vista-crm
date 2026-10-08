@@ -65,3 +65,16 @@ export async function luuDonGiaLop(classroomId, gia) {
   const { data } = await apiClient.put(`/payroll/don-gia-lop/${classroomId}/`, { teacher_rate_per_student: gia });
   return data;
 }
+
+/** Cấu hình lương cố định của từng người (TeacherPayrollConfig). */
+export async function layCauHinhLuong() {
+  const { data } = await apiClient.get("/payroll/configs/teachers/", { params: { page_size: 500 } });
+  return Array.isArray(data) ? data : data?.results || [];
+}
+
+export async function luuCauHinhLuong(id, payload) {
+  const { data } = id
+    ? await apiClient.patch(`/payroll/configs/teachers/${id}/`, payload)
+    : await apiClient.post("/payroll/configs/teachers/", payload);
+  return data;
+}
