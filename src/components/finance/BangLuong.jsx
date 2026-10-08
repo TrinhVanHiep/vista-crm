@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { dinhDangTien, loiApi, rutGonM } from "../../services/financeService";
 import { layBangLuong, layCoCauLuong, nhapChamCong, taiMauChamCong } from "../../services/payrollService";
 import { Button, Card, CardHead, NoteStrip, Num, Pill, StatCard, Table } from "./v3/ui";
+import { DonGiaTheoLop, HopDieuChinhThang } from "./DieuChinhLuong";
 import { color } from "./v3/theme";
 
 /**
@@ -120,6 +121,7 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
   const [coCau, setCoCau] = useState(null);
   const [dangTai, setDangTai] = useState(true);
   const [loi, setLoi] = useState("");
+  const [dangChinh, setDangChinh] = useState(null);
 
   useEffect(() => {
     let huy = false;
@@ -141,17 +143,23 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
       const c = x.salary_components || {};
       a.thucNhan += Number(c.net_salary || 0);
       a.day += Number(c.teaching_salary || 0);
-      a.bhxh += Number(c.insurance_deduction || 0);
+      a.khauTru += Number(c.total_deduction ?? c.insurance_deduction ?? 0);
       return a;
     },
-    { thucNhan: 0, day: 0, bhxh: 0 },
+    { thucNhan: 0, day: 0, khauTru: 0 },
   );
 
   const dong = ds.map((x) => {
     const c = x.salary_components || {};
     const cc = x.attendance || {};
     const khac = Number(c.sale_commission || 0) + Number(c.allowance || 0)
-      + Number(c.manual_adjustment || 0);
+      + Number(c.manual_adjustment || 0) + Number(c.other_adjustment || 0);
+    const khauTru = Number(c.total_deduction ?? c.insurance_deduction ?? 0);
+    const chiTietTru = [
+      Number(c.insurance_deduction) > 0 ? `BHXH ${rutGonM(c.insurance_deduction)}${c.insurance_overridden ? " (tay)" : ""}` : "",
+      Number(c.tax_deduction) > 0 ? `Thuế ${rutGonM(c.tax_deduction)}` : "",
+      Number(c.penalty) > 0 ? `Phạt ${rutGonM(c.penalty)}` : "",
+    ].filter(Boolean).join(" · ");
     return [
       <div key="t">
         <div style={{ fontWeight: 700 }}>{x.teacher_name}</div>
@@ -164,7 +172,9 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
         <Num>{tien(c.prorated_base_salary)}</Num>
         {Number(c.base_salary) > 0 ? (
           <div style={{ fontSize: 11.5, color: color.faint }}>
-            {cc.attendance_days || 0}/{cc.base_salary_standard_days || 30} công · {rutGonM(c.base_salary)}
+            {cc.payable_workdays ?? cc.attendance_days ?? 0}/{cc.base_salary_standard_days || 26} công
+            {Number(cc.payable_workdays) > Number(cc.attendance_days) ? ` (thực ${cc.attendance_days}, tối thiểu 15)` : ""}
+            {" · "}{rutGonM(c.base_salary)}
           </div>
         ) : null}
       </div>,
@@ -193,11 +203,21 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
         ) : null}
       </div>,
       <Num key="s">{tien(khac)}</Num>,
-      <Num key="th">{tien(c.monthly_bonus)}</Num>,
-      <Num key="b" tone={Number(c.insurance_deduction) > 0 ? "red" : undefined}>
-        {Number(c.insurance_deduction) > 0 ? `-${tien(c.insurance_deduction)}` : 0}
-      </Num>,
+      <div key="th" title={c.kpi_bonus_reason || ""}>
+        <Num>{tien(c.monthly_bonus)}</Num>
+        <div style={{ fontSize: 11.5, color: color.faint }}>
+          {c.kpi_score != null ? `Thi đua ${c.kpi_score} đ` : "Chưa có phiếu"}
+          {c.kpi_score != null && c.kpi_status !== "approved" ? " · chưa duyệt" : ""}
+        </div>
+      </div>,
+      <div key="b" title={c.penalty_note || ""}>
+        <Num tone={khauTru > 0 ? "red" : undefined}>{khauTru > 0 ? `-${tien(khauTru)}` : 0}</Num>
+        {chiTietTru ? <div style={{ fontSize: 11.5, color: color.faint }}>{chiTietTru}</div> : null}
+      </div>,
       <Num key="n" bold>{tien(c.net_salary)}</Num>,
+      ...(coTheGhi ? [
+        <Button key="c" variant="ghost" onClick={() => setDangChinh(x)}>Chỉnh</Button>,
+      ] : []),
     ];
   });
 
@@ -206,14 +226,14 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
         <StatCard label="Tổng thực nhận (tạm tính)" value={rutGonM(tong.thucNhan)} note={`Tháng ${thang}/${nam}`} icon="wallet" />
         <StatCard label="Lương dạy theo doanh thu lớp" value={rutGonM(tong.day)} note="Buổi dạy đã duyệt" icon="doc" tone="blue" />
-        <StatCard label="BHXH người lao động" value={rutGonM(tong.bhxh)} note="Trừ vào lương" icon="doc" tone="amber" />
+        <StatCard label="Khấu trừ" value={rutGonM(tong.khauTru)} note="BHXH, thuế 2 nguồn, phạt" icon="doc" tone="amber" />
         <StatCard label="Số người có cấu hình lương" value={ds.length} note="Theo cấu hình từng nhân sự" icon="doc" tone="green" />
       </div>
 
       <NoteStrip>
-        Lương tạm tính: chỉ tính buổi dạy có báo cáo đã duyệt và đủ điều kiện tính lương, học sinh vắng
-        không tính doanh thu; ca trực lấy từ chấm công (T2–T6, T7, CN tính giá khác nhau). Thưởng năm theo
-        LNST và các khoản chưa đối soát không nằm trong bảng này.
+        Lương cứng = lương × công ÷ 26 (quản lý đào tạo tính ít nhất 15 công). Lương dạy = đơn giá lớp ×
+        lượt học sinh của ca đã duyệt × % chia. Thưởng thi đua = 10% tổng lương khi phiếu thi đua đã duyệt và
+        đạt ngưỡng điểm. Khấu trừ BHXH, thuế thu nhập 2 nguồn, phạt chỉnh tay từng tháng bằng nút "Chỉnh".
       </NoteStrip>
 
       {coTheGhi ? (
@@ -239,7 +259,8 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
             <Table
               columns={[
                 "Nhân sự", "Lương cố định", "Lương dạy", "Trực / demo", "Khoán QLHS",
-                "Sale, phụ cấp, điều chỉnh", "Thưởng tháng", "BHXH", "Thực nhận",
+                "Sale, phụ cấp, điều chỉnh", "Thưởng thi đua", "Khấu trừ", "Thực nhận",
+                ...(coTheGhi ? [""] : []),
               ]}
               rows={dong}
               align={{ 1: "right", 2: "right", 3: "right", 4: "right", 5: "right", 6: "right", 7: "right", 8: "right" }}
@@ -247,6 +268,21 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
           )}
         </div>
       </Card>
+
+      <DonGiaTheoLop
+        coTheGhi={coTheGhi}
+        onDaLuu={(tb) => { onNotice?.(tb); setTaiLai((v) => v + 1); }}
+      />
+
+      {dangChinh ? (
+        <HopDieuChinhThang
+          nguoi={dangChinh}
+          thang={thang}
+          nam={nam}
+          onDong={() => setDangChinh(null)}
+          onDaLuu={(tb) => { setDangChinh(null); onNotice?.(tb); setTaiLai((v) => v + 1); }}
+        />
+      ) : null}
 
       {coCau ? (
         <Card>

@@ -43,3 +43,25 @@ export async function nhapChamCong(tep, { thang, nam, ghi = false }) {
   const { data } = await apiClient.post("/payroll/cham-cong/nhap/", fd);
   return data;
 }
+
+/** Khấu trừ / điều chỉnh tay của một người trong một tháng (BHXH, thuế 2 nguồn, phạt…). */
+export async function layDieuChinh(teacherId, { thang, nam }) {
+  const { data } = await apiClient.get(`/payroll/dieu-chinh/${teacherId}/`, { params: { month: thang, year: nam } });
+  return data;
+}
+
+export async function luuDieuChinh(teacherId, { thang, nam }, payload) {
+  const { data } = await apiClient.put(`/payroll/dieu-chinh/${teacherId}/`, { ...payload, month: thang, year: nam });
+  return data;
+}
+
+/** Đơn giá trả giáo viên / lượt học sinh của từng lớp (mặc định + set tay). */
+export async function layDonGiaLop() {
+  const { data } = await apiClient.get("/payroll/don-gia-lop/");
+  return Array.isArray(data) ? data : [];
+}
+
+export async function luuDonGiaLop(classroomId, gia) {
+  const { data } = await apiClient.put(`/payroll/don-gia-lop/${classroomId}/`, { teacher_rate_per_student: gia });
+  return data;
+}
