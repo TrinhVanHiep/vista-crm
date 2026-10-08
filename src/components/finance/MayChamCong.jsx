@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { loiApi } from "../../services/financeService";
 import { listStudents, listTeachers } from "../../services/calendarService";
-import { duyetCong, ganNguoiMay, layCongChoDuyet, layNguoiTrenMay } from "../../services/payrollService";
+import { duyetCong, ganNguoiMay, layCongChoDuyet, layNguoiTrenMay, layNhanSuChuaCoLuong } from "../../services/payrollService";
 import { Button, Card, CardHead, Table } from "./v3/ui";
 import { color } from "./v3/theme";
 
@@ -28,13 +28,17 @@ function ChonNguoi({ dong, onGan, dangGan }) {
     const t = tim.trim();
     if (t.length < 2) { setKq([]); return undefined; }
     const h = setTimeout(async () => {
-      const [gv, hs] = await Promise.all([
+      const [gv, hs, ns] = await Promise.all([
         listTeachers({ search: t, page_size: 10 }).catch(() => ({ results: [] })),
         listStudents({ search: t, page_size: 10 }).catch(() => ({ results: [] })),
+        // Nhân sự chưa có hồ sơ (QLCS, kế toán…) — tài khoản có thể đặt tên khác tên trên máy.
+        layNhanSuChuaCoLuong().catch(() => []),
       ]);
+      const khop = (x) => `${x.ten} ${x.email}`.toLowerCase().includes(t.toLowerCase());
       const ten = (u) => (u?.full_name || `${u?.last_name || ""} ${u?.first_name || ""}`).trim() || u?.email;
       setKq([
         ...(gv?.results || []).map((x) => ({ loai: "teacher", id: x.id, ten: ten(x.user) })),
+        ...ns.filter((x) => x.loai === "user" && khop(x)).map((x) => ({ loai: "user", id: x.id, ten: `${x.ten} (${x.email})`, vai: x.vai })),
         ...(hs?.results || []).map((x) => ({ loai: "student", id: x.id, ten: ten(x.user), lop: x.classroom?.class_code || "" })),
       ]);
     }, 350);
@@ -60,7 +64,7 @@ function ChonNguoi({ dong, onGan, dangGan }) {
       </select>
       {mo ? (
         <div style={{ display: "grid", gap: 4 }}>
-          <input autoFocus value={tim} onChange={(e) => setTim(e.target.value)} placeholder="Gõ tên giáo viên / học sinh…"
+          <input autoFocus value={tim} onChange={(e) => setTim(e.target.value)} placeholder="Gõ tên / email giáo viên, nhân sự, học sinh…"
                  style={{ padding: "7px 10px", borderRadius: 8, border: `1px solid ${color.borderStrong}`, fontSize: 13 }} />
           {kq.map((g) => (
             <button key={giaTri(g)} type="button" onClick={() => { setMo(false); setTim(""); onGan(g); }}
