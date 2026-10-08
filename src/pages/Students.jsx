@@ -137,9 +137,16 @@ function TheoNhomMoRong({ nhom, giaTri, giaTriLop, nhanLop, mau = "" }) {
   });
 }
 
-function Kpi({ ico, icoClass, label, value, trend, demo }) {
+function Kpi({ ico, icoClass, label, value, trend, demo, onClick, active }) {
   return (
-    <div className="kpi">
+    <div
+      className="kpi"
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } : undefined}
+      style={onClick ? { cursor: "pointer", outline: active ? "2px solid var(--primary)" : undefined } : undefined}
+    >
       <div className={`ico ${icoClass}`} style={{ fontSize: 18 }}>{ico}</div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div className="kpi-label">
@@ -147,7 +154,7 @@ function Kpi({ ico, icoClass, label, value, trend, demo }) {
           {demo ? <span className="badge gray" style={{ marginLeft: 6, padding: "1px 7px", fontSize: 9 }}>Demo</span> : null}
         </div>
         <div className="kpi-value">{value}</div>
-        {trend ? <span className="trend up">▲ {trend}</span> : null}
+        {trend ? <span className={onClick ? "small muted" : "trend up"}>{onClick ? trend : `▲ ${trend}`}</span> : null}
       </div>
     </div>
   );
@@ -192,6 +199,7 @@ function Students() {
   const [scores, setScores] = useState([]);
   const [tq, setTq] = useState(null); // /classrooms/classrooms/tong-quan/
   const [hoatDong, setHoatDong] = useState([]);
+  const [moTienDo, setMoTienDo] = useState(false);
   const [aggLoading, setAggLoading] = useState(true);
   const homNay = new Date();
   const thang = homNay.getMonth() + 1;
@@ -536,18 +544,24 @@ function Students() {
             <Kpi ico="✅" icoClass="green" label={`Chuyên cần T${thang}`} value={tq?.chuyen_can != null ? `${vnPct(tq.chuyen_can)}%` : "—"} />
             <Kpi ico="📈" icoClass="orange" label="Hoàn thành lộ trình" value={loTrinhChung != null ? `${vnPct(loTrinhChung)}%` : "—"} />
             {tongNo != null ? <Kpi ico="💰" icoClass="blue" label="Học phí phải thu" value={rutGon(tongNo)} /> : null}
+            {/* Ô bấm đóng / mở bảng tiến độ lộ trình + hoạt động tháng (08/10/2026). */}
+            <Kpi
+              ico="🗓️" icoClass="yellow" label="Tiến độ & hoạt động tháng"
+              value={`${hoatDong.length} việc`}
+              trend={moTienDo ? "▾ Bấm để đóng" : "▸ Bấm để xem"}
+              onClick={() => setMoTienDo((v) => !v)} active={moTienDo}
+            />
           </div>
 
           <div className="stack">
-            {/* Tiến độ lộ trình + hoạt động tháng — MỘT khối đóng mở ngay dưới dải KPI
-                (08/10/2026), mặc định đóng cho gọn. */}
-            <details className="card fold">
-              <summary>
+            {/* Bảng tiến độ lộ trình + hoạt động tháng — chỉ hiện khi bấm ô KPI
+                "Tiến độ & hoạt động tháng" ở dải trên. */}
+            {moTienDo ? (
+            <div className="card">
+              <div className="card-head">
                 <h3>Tiến độ lộ trình &amp; hoạt động tháng {thang}/{nam}</h3>
-                <span className="small muted">
-                  Hoàn thành {loTrinhChung != null ? `${vnPct(loTrinhChung)}%` : "—"} lộ trình · {hoatDong.length} việc trong tháng
-                </span>
-              </summary>
+                <button type="button" className="btn ghost sm" onClick={() => setMoTienDo(false)}>Đóng ✕</button>
+              </div>
               <div className="grid c2">
                 <div>
                   <div className="small muted bold mb12">Tiến độ theo lộ trình — buổi đã dạy theo lịch báo giảng / tổng buổi</div>
@@ -575,7 +589,8 @@ function Students() {
               <button type="button" className="btn ghost sm mt12" onClick={() => navigate("/calendar-detail")}>Mở Lịch làm việc →</button>
                 </div>
               </div>
-            </details>
+            </div>
+            ) : null}
 
             {/* 1. Tổng quan sĩ số */}
             <div className="card">
