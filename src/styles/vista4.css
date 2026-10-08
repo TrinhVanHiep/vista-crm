@@ -917,3 +917,11 @@ input.dshv-o[type=search]{min-width:230px;flex:1 1 230px}
    cuộn bên trong; Esc hoặc nút "Thoát" để trở lại. */
 .v4page .card.cal-full { position: fixed; inset: 10px; z-index: 250; margin: 0;
   overflow: auto; box-shadow: 0 24px 60px rgba(40, 26, 12, 0.28); }
+
+/* Khối đóng mở (Học sinh - Lớp học, Chi tiết chương trình — 08/10/2026). */
+.v4page details.fold > summary{display:flex;align-items:center;gap:10px;flex-wrap:wrap;cursor:pointer;list-style:none;margin:-2px 0 0;user-select:none}
+.v4page details.fold > summary::-webkit-details-marker{display:none}
+.v4page details.fold > summary::before{content:"▸";color:var(--primary);font-weight:800;transition:transform .15s}
+.v4page details.fold[open] > summary::before{transform:rotate(90deg)}
+.v4page details.fold > summary h3{margin:0}
+.v4page details.fold[open] > summary{margin-bottom:14px}

@@ -2340,6 +2340,23 @@ function CalendarDetail() {
     }
   };
 
+  // Khoá chống bấm đúp (08/10/2026: bấm "Lưu" 2 lần nhanh tạo ra 2 lịch trùng).
+  // Nút đã disabled theo state, nhưng state chỉ đổi ở lần vẽ sau — cú bấm thứ
+  // hai lọt vào trước đó. Ref đổi ngay lập tức nên chặn được.
+  const dangGuiRef = useRef(false);
+  const motLan = (fn) => async (...args) => {
+    if (dangGuiRef.current) {
+      args[0]?.preventDefault?.();
+      return undefined;
+    }
+    dangGuiRef.current = true;
+    try {
+      return await fn(...args);
+    } finally {
+      dangGuiRef.current = false;
+    }
+  };
+
   const handleCreateSession = async (event) => {
     event.preventDefault();
     // Cùng một form phục vụ 5 loại lịch; 4 loại lịch công tác đi đường khác.
@@ -3227,7 +3244,7 @@ function CalendarDetail() {
 
   const handleReportFormSubmit = (event) => {
     event.preventDefault();
-    saveSessionReport({ thenSubmit: false });
+    return saveSessionReport({ thenSubmit: false });
   };
 
   const handleSubmitMonthPlan = async () => {
@@ -3455,7 +3472,7 @@ function CalendarDetail() {
                 )}
                 {canManageSessions && (<button className="btn ghost sm" onClick={handleOpenReviewPlan}>Duyệt lịch báo giảng tháng{planStatusCounts.submitted ? ` (${planStatusCounts.submitted})` : ""}</button>)}
                 <button className="btn ghost sm" onClick={() => openStaffCreateModal("leave")}>Tạo đơn nhân sự</button>
-                {canSubmitTeachingPlan && (<button className="btn ghost sm" onClick={handleSubmitMonthPlan} disabled={Boolean(planActionLoading) || !sessions.length || !isSubmitWindowOpen}>{planActionLoading === "submit" ? "Đang gửi..." : "Gửi duyệt lịch tháng"}</button>)}
+                {canSubmitTeachingPlan && (<button className="btn ghost sm" onClick={motLan(handleSubmitMonthPlan)} disabled={Boolean(planActionLoading) || !sessions.length || !isSubmitWindowOpen}>{planActionLoading === "submit" ? "Đang gửi..." : "Gửi duyệt lịch tháng"}</button>)}
               </div>
             </div>
 
@@ -4572,7 +4589,7 @@ function CalendarDetail() {
                 KHÔNG hiện gì cả — bấm "Tạo ca dạy" không có phản ứng nào, đúng
                 triệu chứng "bấm không thêm được". Tắt đi để thông báo của mình
                 hiện ra thay vì im lặng. */}
-            <form className={styles.modalBody} onSubmit={handleCreateSession} noValidate>
+            <form className={styles.modalBody} onSubmit={motLan(handleCreateSession)} noValidate>
               <div className={styles.formGrid}>
                 <label className={`${styles.formGroup} ${styles.formGroupFull}`}>
                   <span>Loại lịch</span>
@@ -4939,7 +4956,7 @@ function CalendarDetail() {
                 </svg>
               </button>
             </header>
-            <form className={styles.modalBody} onSubmit={handleCreateStaffRequest}>
+            <form className={styles.modalBody} onSubmit={motLan(handleCreateStaffRequest)}>
               <p className={styles.note}>
                 Đơn xin nghỉ / đổi ca do quản lý đào tạo duyệt; đề xuất - yêu cầu do quản lý cơ sở duyệt.
               </p>
@@ -5270,7 +5287,7 @@ function CalendarDetail() {
                 </svg>
               </button>
             </header>
-            <form className={styles.modalBody} onSubmit={handleImportSubmit}>
+            <form className={styles.modalBody} onSubmit={motLan(handleImportSubmit)}>
               {canManageSessions && <div className={styles.tabs} aria-label="Loại file nhập">
                 <button
                   type="button"
@@ -5401,7 +5418,7 @@ function CalendarDetail() {
                 </svg>
               </button>
             </header>
-            <form className={styles.modalBody} onSubmit={handleReportFormSubmit}>
+            <form className={styles.modalBody} onSubmit={motLan(handleReportFormSubmit)}>
               <div className={styles.formGrid}>
                 <label className={styles.formGroup}>
                   <span>Tên lớp</span>
@@ -5556,7 +5573,7 @@ function CalendarDetail() {
                   type="button"
                   className={styles.primaryButton}
                   disabled={reportSaving || (activeReport && !["draft", "revision_required"].includes(activeReport.report_status))}
-                  onClick={() => saveSessionReport({ thenSubmit: true })}
+                  onClick={motLan(() => saveSessionReport({ thenSubmit: true }))}
                 >
                   {reportSaving ? "Đang gửi..." : "Đã báo cáo — Gửi duyệt"}
                 </button>

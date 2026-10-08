@@ -540,6 +540,15 @@ export default function ClassDetail() {
     return [...scoreAgg.entries()].map(([id, e]) => ({ id, name: e.name || `HS #${id}`, agg: e }));
   }, [students, scoreAgg]);
 
+  // Bấm một học sinh -> phiếu kết quả học tập của em đó trong lớp này, in được
+  // (08/10/2026: trước đây bấm là nhảy sang hồ sơ, không có bản để in).
+  const [hsXem, setHsXem] = useState(null);
+  const phieuCuaHs = useMemo(() => (hsXem
+    ? phieuDiem
+      .filter((p) => Number(p.student) === Number(hsXem.id))
+      .sort((a, b) => (a.period_year - b.period_year) || (a.period_month - b.period_month))
+    : []), [hsXem, phieuDiem]);
+
   const groupPct = (n) => (scoredCount ? Math.round((n / scoredCount) * 100) : 0);
   const groupAvg = (arr) => (arr.length ? arr.reduce((s, x) => s + x.avg, 0) / arr.length : 0);
 
@@ -567,6 +576,62 @@ export default function ClassDetail() {
           }
         }
       `}</style>
+      {hsXem ? (
+        <>
+          <style>{`
+            @media print {
+              .cd-print * { visibility: hidden !important; }
+              .kq-hs, .kq-hs * { visibility: visible !important; }
+              .kq-hs-nen { position: static !important; background: none !important; padding: 0 !important; }
+              .kq-hs { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; box-shadow: none !important; }
+            }
+          `}</style>
+          <div className="kq-hs-nen" onClick={() => setHsXem(null)}
+            style={{ position: "fixed", inset: 0, background: "rgba(40,26,12,0.42)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "40px 16px" }}>
+            <div className="card kq-hs" onClick={(e) => e.stopPropagation()} style={{ width: 860, maxWidth: "100%" }}>
+              <div className="card-head">
+                <div>
+                  <h3 style={{ margin: 0 }}>Kết quả học tập — {studentName(hsXem)}</h3>
+                  <div className="small muted">
+                    Lớp {info.code || info.name} · {info.program || "—"}{hsXem.student_code ? ` · Mã HV ${hsXem.student_code}` : ""}
+                    {hsXem.date_of_birth ? ` · Ngày sinh ${fmtDate(hsXem.date_of_birth)}` : ""}
+                  </div>
+                </div>
+                <div className="no-print" style={{ display: "flex", gap: 8 }}>
+                  <button type="button" className="btn primary sm" onClick={() => window.print()}>🖨 In kết quả</button>
+                  <button type="button" className="btn ghost sm" onClick={() => navigate(`/students/${hsXem.id}`, { state: { student: hsXem } })}>Hồ sơ</button>
+                  <button type="button" className="btn ghost sm" onClick={() => setHsXem(null)}>✕</button>
+                </div>
+              </div>
+              {phieuLoading ? (
+                <div className="small muted" style={{ padding: 12 }}>Đang tải…</div>
+              ) : phieuCuaHs.length ? (
+                <div className="tbl-wrap">
+                  <table className="tbl">
+                    <thead>
+                      <tr><th>Kỳ</th><th className="t-center">Chuyên cần</th><th className="t-center">Kết quả</th><th className="t-center">Xếp loại</th><th>Nhận xét của giáo viên</th></tr>
+                    </thead>
+                    <tbody>
+                      {phieuCuaHs.map((p) => (
+                        <tr key={p.id}>
+                          <td className="bold">{p.period_label || `Tháng ${p.period_month}/${p.period_year}`}</td>
+                          <td className="t-center">{p.attendance_total ? `${p.attendance_present}/${p.attendance_total}` : "—"}</td>
+                          <td className="t-center">{Number.isFinite(Number(p.total_percent)) && p.total_percent !== null ? `${String(Math.round(Number(p.total_percent) * 10) / 10).replace(".", ",")}%` : "—"}</td>
+                          <td className="t-center">{p.grade_label || "—"}</td>
+                          <td className="small">{p.teacher_comment || "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="small muted" style={{ padding: 12 }}>Em chưa có bảng điểm nào trong lớp này.</div>
+              )}
+              <div className="small muted" style={{ marginTop: 14 }}>In ngày {new Date().toLocaleDateString("vi-VN")} · VISTA Academy</div>
+            </div>
+          </div>
+        </>
+      ) : null}
       <div className="content-col">
         {/* 1. Header + breadcrumb + hành động */}
         <div className="page-head">
@@ -853,8 +918,8 @@ export default function ClassDetail() {
                         <tr
                           key={s.id}
                           style={{ cursor: "pointer" }}
-                          onClick={() => navigate(`/students/${s.id}`, { state: { student: s } })}
-                          title="Xem chi tiết học sinh"
+                          onClick={() => setHsXem(s)}
+                          title="Xem và in kết quả học tập"
                         >
                           <td className="bold">{dash(s.student_code)}</td>
                           <td className="bold">{studentName(s)}</td>

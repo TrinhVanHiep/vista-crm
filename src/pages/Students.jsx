@@ -1,6 +1,5 @@
 import BulkImportModal from "../components/bulk/BulkImportModal";
 import { VAI_QUAN_TRI } from "../auth/permissions";
-import DanhSachHocVien from "../components/students/DanhSachHocVien";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -8,17 +7,15 @@ import {
   listCentersAll,
   listClassroomsAll,
   listClassroomsByCenter,
-  listClassesOverview,
   listMonthlyScorecards,
   listStudentScores,
-  listEvaluationItems,
-  listAttendanceSummary,
+  listSchedules,
+  layTongQuanLop,
   createStudent,
   importStudentsFile,
   importRosterFile,
   exportStudentsFile,
 } from "../services/calendarService";
-import { skillsFor } from "../utils/skills";
 import { CenterField, useAutoCenter } from "../utils/centerField";
 import "../styles/vista4.css";
 
@@ -27,8 +24,6 @@ const fmt = (n) => (Number(n) || 0).toLocaleString("vi-VN");
 const pct1 = (part, total) => (total ? Math.round((part / total) * 1000) / 10 : 0);
 const vnPct = (v) => String(v).replace(".", ",");
 const toNum = (v) => { const n = Number(v); return Number.isFinite(n) ? n : null; };
-// Tổng số buổi của chương trình suy từ tên, vd "60 BUỔI STARTER" -> 60.
-const buoiOf = (p) => { const m = /(\d+)\s*BUỔI/i.exec(p || ""); return m ? Number(m[1]) : null; };
 
 const DELIVERY = { online: "Online", offline: "Trực tiếp", hybrid: "Kết hợp" };
 const STUDENT_STATUS = {
@@ -59,26 +54,88 @@ const bandFromLabel = (label) => {
 // Cùng ngưỡng với xếp loại trên phiếu điểm (Giỏi ≥ 8.5, Khá ≥ 7 thang 10).
 const bandFromPercent = (p) => (p == null ? null : p >= 85 ? "gioi" : p >= 70 ? "kha" : "tb");
 
-// ---- Demo data for the analytics sections that have no backend source yet ----
-const PROGRESS_TOP5 = [["FP3-A1", 85, "Sắp cuối lộ trình"], ["Cambridge KET 01", 72, "Đang học"], ["GS Starter 02", 68, "Sắp kiểm tra giữa kỳ"], ["IELTS 4.0 Pre 01", 66, "Đang học"], ["FP2-B3", 62, "Đang học"]];
-const ACTIVITIES = [
-  ["10/05/2025", "Kiểm tra giữa kỳ", "Finger Print + Phonics (12 lớp)", "Hoàn thành", "green"],
-  ["17/05/2025", "Cambridge Progress Test", "KET & PET (6 lớp)", "Hoàn thành", "green"],
-  ["24/05/2025", "IELTS 4.0 Mock Test", "Pre 01, Pre 02 (2 lớp)", "Sắp diễn ra", "orange"],
-  ["31/05/2025", "Global Success Speaking Day", "Starter, Movers (8 lớp)", "Sắp diễn ra", "orange"],
-];
 const HONORS = [
   ["Khánh An", "FP3-A1 · Finger Print + Phonics", "🥇 Chuyên cần 100% · Tiến bộ vượt bậc", "#E0538D"],
   ["Minh Khoa", "KET 01 · Cambridge", "🏅 Điểm TB 91/100 · Tư duy phản biện tốt", "#0E9F8F"],
   ["Khả Hân", "IELTS 4.0 Pre 01 · Global Success", "⭐ Kỹ năng Speaking xuất sắc", "#7C5CFA"],
 ];
-const REMINDERS = [
-  ["📋", "Điểm danh lớp sáng nay", "12 lớp chưa chấm điểm danh"],
-  ["📝", "Kiểm tra bài tập về nhà", "23 lớp đang chờ đánh giá"],
-  ["📅", "Lịch kiểm tra giữa kỳ", "08 lớp trong tuần tới"],
-  ["🎓", "Xét học sinh tốt nghiệp", "05 lớp cuối lộ trình"],
-];
-const WATCH_CLASSES = [["FP1-C2 · Chuyên cần thấp", "82%", "red"], ["GS Movers 03 · Chuyên cần thấp", "61%", "red"], ["Cambridge PET 02 · Tiến độ chậm", "78%", "orange"], ["IELTS 4.0 Pre 02 · Tiến độ chậm", "70%", "orange"]];
+const TRANG_THAI_VIEC = {
+  todo: { label: "Chưa bắt đầu", cls: "gray" },
+  in_progress: { label: "Đang làm", cls: "orange" },
+  done: { label: "Hoàn thành", cls: "green" },
+  delay: { label: "Chậm", cls: "red" },
+  cancel: { label: "Đã huỷ", cls: "gray" },
+};
+const rutGon = (v) => {
+  const n = Number(v) || 0;
+  if (Math.abs(n) >= 1e9) return `${vnPct(Math.round(n / 1e8) / 10)} tỷ`;
+  if (Math.abs(n) >= 1e6) return `${vnPct(Math.round(n / 1e5) / 10)} tr`;
+  return fmt(n);
+};
+
+/** Thanh ngang: tên · thanh · số (dùng cho cấp học, chương trình, khu vực, xếp loại). */
+function ThanhNgang({ rows, donVi = "" }) {
+  const max = Math.max(1, ...rows.map((r) => r.so || 0));
+  const tong = rows.reduce((a, r) => a + (r.so || 0), 0) || 1;
+  if (!rows.length) return <div className="small muted">Chưa có dữ liệu.</div>;
+  return rows.map((r, i) => (
+    <div className="hbar-row" key={r.ten}>
+      <span className="hb-label">{r.ten}</span>
+      <span className="hb-bar"><i style={{ width: `${Math.round(((r.so || 0) / max) * 100)}%`, background: r.mau || PROGRAM_COLORS[i % PROGRAM_COLORS.length] }} /></span>
+      <span className="hb-val">{fmt(r.so)}{donVi ? ` ${donVi}` : ""} ({vnPct(pct1(r.so || 0, tong))}%)</span>
+    </div>
+  ));
+}
+
+/** Cột đứng cuộn ngang được khi nhiều cột (sĩ số các lớp, doanh thu theo tháng). */
+function CotDung({ rows, cao = 140 }) {
+  const max = Math.max(1, ...rows.map((r) => r.so || 0));
+  if (!rows.length) return <div className="small muted">Chưa có dữ liệu.</div>;
+  return (
+    <div style={{ overflowX: "auto" }}>
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: cao + 34, minWidth: rows.length * 34 }}>
+        {rows.map((r) => (
+          <div key={r.ten} style={{ flex: "1 0 28px", textAlign: "center" }} title={`${r.ten}: ${r.nhan || fmt(r.so)}`}>
+            <div className="small" style={{ fontSize: 10, fontWeight: 700 }}>{r.nhan || fmt(r.so)}</div>
+            <div style={{ height: `${((r.so || 0) / max) * cao}px`, minHeight: r.so ? 2 : 0, background: "#F26522", borderRadius: "5px 5px 0 0" }} />
+            <div className="small muted" style={{ fontSize: 10, marginTop: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.ten}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Theo chương trình (Kid → TACB → Cambridge → IELTS); bấm một chương trình để xem từng lớp. */
+function TheoNhomMoRong({ nhom, giaTri, giaTriLop, nhanLop, mau = "" }) {
+  const [mo, setMo] = useState("");
+  if (!nhom.length) return <div className="small muted">Chưa có dữ liệu.</div>;
+  return nhom.map((n) => {
+    const v = giaTri(n);
+    return (
+      <div key={n.ma} style={{ marginBottom: 10 }}>
+        <button type="button" onClick={() => setMo((x) => (x === n.ma ? "" : n.ma))}
+          style={{ all: "unset", cursor: "pointer", display: "block", width: "100%" }}>
+          <div className="flex-between"><span className="small bold">{mo === n.ma ? "▾" : "▸"} {n.ten} <span className="muted" style={{ fontWeight: 400 }}>({n.lop.length} lớp)</span></span><span className="small muted">{v == null ? "—" : `${vnPct(v)}%`}</span></div>
+          {v == null ? null : <div className={`prog ${mau}`} style={{ marginTop: 4 }}><i style={{ width: `${v}%` }} /></div>}
+        </button>
+        {mo === n.ma ? (
+          <div style={{ margin: "8px 0 4px 16px" }}>
+            {n.lop.map((l) => {
+              const lv = giaTriLop(l);
+              return (
+                <div key={l.id} style={{ marginBottom: 6 }}>
+                  <div className="flex-between"><span className="small">{l.class_code || l.name}</span><span className="small muted">{lv == null ? "—" : `${vnPct(lv)}%`} · {nhanLop(l)}</span></div>
+                  {lv == null ? null : <div className={`prog ${mau}`} style={{ marginTop: 3, height: 5 }}><i style={{ width: `${lv}%` }} /></div>}
+                </div>
+              );
+            })}
+          </div>
+        ) : null}
+      </div>
+    );
+  });
+}
 
 function Kpi({ ico, icoClass, label, value, trend, demo }) {
   return (
@@ -96,29 +153,6 @@ function Kpi({ ico, icoClass, label, value, trend, demo }) {
   );
 }
 
-function GenderDonut({ male, female, total }) {
-  const t = total || male + female || 1;
-  const size = 108, thick = 17, r = (size - thick) / 2, c = size / 2, circ = 2 * Math.PI * r;
-  const maleDash = (male / t) * circ;
-  const femaleDash = (female / t) * circ;
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ flexShrink: 0 }}>
-      <circle cx={c} cy={c} r={r} fill="none" stroke="#EFE7DB" strokeWidth={thick} />
-      {female > 0 && (
-        <circle cx={c} cy={c} r={r} fill="none" stroke="#C0392B" strokeWidth={thick}
-          strokeDasharray={`${femaleDash} ${circ - femaleDash}`} strokeDashoffset={-maleDash}
-          transform={`rotate(-90 ${c} ${c})`} />
-      )}
-      {male > 0 && (
-        <circle cx={c} cy={c} r={r} fill="none" stroke="#F26522" strokeWidth={thick}
-          strokeDasharray={`${maleDash} ${circ - maleDash}`} transform={`rotate(-90 ${c} ${c})`} />
-      )}
-      <text x={c} y={c - 1} textAnchor="middle" fontSize="19" fontWeight="800" fill="#43301F">{fmt(t)}</text>
-      <text x={c} y={c + 15} textAnchor="middle" fontSize="10" fill="#8a7a66">học sinh</text>
-    </svg>
-  );
-}
-
 function Modal({ title, onClose, children, width = 620 }) {
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(40,26,12,0.42)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "40px 16px" }}>
@@ -130,27 +164,6 @@ function Modal({ title, onClose, children, width = 620 }) {
         {children}
       </div>
     </div>
-  );
-}
-
-// Nhận xét + trạng thái theo dõi suy TỪ phân bố điểm THẬT của lớp.
-const classReview = (g) => {
-  if (!g || !g.graded) return { note: "Chưa có điểm đánh giá", status: { label: "Chưa đánh giá", cls: "gray" } };
-  const good = g.gioi + g.kha; // đạt Khá trở lên
-  const ratio = good / g.graded;
-  if (ratio >= 0.8) return { note: `${good}/${g.graded} HS đạt Khá–Giỏi`, status: { label: "Tốt", cls: "green" } };
-  if (ratio >= 0.5) return { note: `${good}/${g.graded} HS đạt Khá–Giỏi`, status: { label: "Ổn định", cls: "blue" } };
-  return { note: `${g.tb}/${g.graded} HS ở mức Trung bình`, status: { label: "Cần theo dõi", cls: "orange" } };
-};
-
-// Ô hiển thị 1 nhóm điểm: số HS đạt loại + tỉ lệ trên tổng sĩ số lớp.
-function GradeCell({ count, size, band }) {
-  if (count == null) return <td className="t-center muted">—</td>;
-  return (
-    <td className="t-center">
-      <b style={{ color: GRADE_COLOR[band] }}>{count}</b>
-      <span className="small muted"> ({size ? Math.round((count / size) * 100) : 0}%)</span>
-    </td>
   );
 }
 
@@ -173,22 +186,20 @@ function Students() {
 
   // Aggregates / overview
   const [totalStudents, setTotalStudents] = useState(0);
-  const [genderCounts, setGenderCounts] = useState({ male: 0, female: 0 });
   const [classes, setClasses] = useState([]);
-  const [overview, setOverview] = useState([]);
   const [centers, setCenters] = useState([]);
   const [scorecards, setScorecards] = useState([]);
   const [scores, setScores] = useState([]);
-  const [evalItems, setEvalItems] = useState([]);
-  const [attendance, setAttendance] = useState([]); // [{classroom_id, classroom_name, program_name, rate, ...}]
-  const [attendanceOverall, setAttendanceOverall] = useState(null); // overall_rate (0-100) hoặc null
+  const [tq, setTq] = useState(null); // /classrooms/classrooms/tong-quan/
+  const [hoatDong, setHoatDong] = useState([]);
   const [aggLoading, setAggLoading] = useState(true);
+  const homNay = new Date();
+  const thang = homNay.getMonth() + 1;
+  const nam = homNay.getFullYear();
 
-  // Section 6 filters
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [filterCenter, setFilterCenter] = useState("");
-  const [classPage, setClassPage] = useState(1);
 
   // Modals / actions
   const [modal, setModal] = useState(null); // 'create' | 'import'
@@ -224,52 +235,41 @@ function Students() {
     return () => clearTimeout(t);
   }, [searchInput]);
 
-  // Reset paging when filters change
-  useEffect(() => { setClassPage(1); }, [search, filterCenter]);
-
-  // Aggregates: total, gender, classrooms, per-class overview, centers, scorecards, scores
+  // Số liệu tổng hợp. Sĩ số / chuyên cần / lộ trình / học phí lấy từ một
+  // endpoint (classrooms/tong_quan.py) để mọi con số cùng một luật.
   useEffect(() => {
     let active = true;
     setAggLoading(true);
     (async () => {
       try {
-        const now = new Date();
-        const month = now.getMonth() + 1;
-        const year = now.getFullYear();
-        const [all, male, female, classAll, ovw, ctrs, cards, rawScores, evItems, attend] = await Promise.all([
-          // Sĩ số thực: em đang học VÀ đang ở một lớp chưa giải tán. Đếm cả hồ sơ
-          // nghỉ / mất lớp là sĩ số "ảo" cao hơn thực tế (students/filters.py).
+        const [all, classAll, ctrs, cards, rawScores, tongQuan, viec] = await Promise.all([
           listStudents({ dang_hoc: true, page_size: 1 }),
-          listStudents({ dang_hoc: true, gender: "male", page_size: 1 }).catch(() => ({ count: 0 })),
-          listStudents({ dang_hoc: true, gender: "female", page_size: 1 }).catch(() => ({ count: 0 })),
           listClassroomsAll().catch(() => []),
-          listClassesOverview({ month, year }).catch(() => ({ results: [] })),
           listCentersAll().catch(() => []),
-          // 1000 chứ không phải 100: một tháng có cỡ 20 em x 23 lớp phiếu, trần
-          // 100 cắt mất phần lớn các lớp khỏi bảng phân loại.
-          listMonthlyScorecards({ month, year, page_size: 1000 }).catch(() => ({ results: [] })),
+          // 1000 chứ không phải 100: một tháng có cỡ 20 em x 23 lớp phiếu.
+          listMonthlyScorecards({ month: thang, year: nam, page_size: 1000 }).catch(() => ({ results: [] })),
           listStudentScores({ page_size: 100 }).catch(() => ({ results: [] })),
-          listEvaluationItems().catch(() => []),
-          listAttendanceSummary().catch(() => ({ results: [], overall_rate: null })),
+          layTongQuanLop({ month: thang, year: nam }).catch(() => null),
+          listSchedules({ year: nam, month: thang, page_size: 200 }).catch(() => []),
         ]);
         if (!active) return;
         setTotalStudents(all.count || 0);
-        setGenderCounts({ male: male.count || 0, female: female.count || 0 });
         setClasses(Array.isArray(classAll) ? classAll : []);
-        setOverview(Array.isArray(ovw?.results) ? ovw.results : []);
         setCenters(Array.isArray(ctrs) ? ctrs : []);
         setScorecards(Array.isArray(cards?.results) ? cards.results : []);
         setScores(Array.isArray(rawScores?.results) ? rawScores.results : []);
-        setEvalItems(Array.isArray(evItems) ? evItems : []);
-        setAttendance(Array.isArray(attend?.results) ? attend.results : []);
-        setAttendanceOverall(attend?.overall_rate ?? null);
+        setTq(tongQuan);
+        const dsViec = Array.isArray(viec) ? viec : viec?.results || [];
+        setHoatDong(dsViec.filter((v) => v.category === "student")
+          .sort((a, b) => String(a.event_date || "").localeCompare(String(b.event_date || ""))));
       } catch (error) {
-        if (active) { setClasses([]); setOverview([]); setCenters([]); setScorecards([]); setScores([]); setEvalItems([]); setAttendance([]); setAttendanceOverall(null); }
+        if (active) { setClasses([]); setCenters([]); setScorecards([]); setScores([]); setTq(null); setHoatDong([]); }
       } finally {
         if (active) setAggLoading(false);
       }
     })();
     return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reloadKey]);
 
   // Chỉ có 1 trung tâm -> mặc định chọn sẵn để khỏi phải chọn khi nhập/thêm.
@@ -291,40 +291,7 @@ function Students() {
 
   // Derived aggregates
   const activeClasses = useMemo(() => classes.filter((c) => c.status === "active").length, [classes]);
-  const countById = useMemo(() => {
-    const m = {};
-    overview.forEach((o) => { m[o.id] = o.student_count; });
-    return m;
-  }, [overview]);
-  const programAgg = useMemo(() => {
-    const map = new Map();
-    overview.forEach((o) => {
-      const key = o.program_name || "Chưa phân loại";
-      map.set(key, (map.get(key) || 0) + (o.student_count || 0));
-    });
-    const rows = [...map.entries()].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
-    const sum = rows.reduce((s, r) => s + r.count, 0) || 1;
-    const max = rows[0]?.count || 1;
-    return { rows: rows.slice(0, 5), sum, max };
-  }, [overview]);
-
-  // Tiến độ buổi học THẬT theo chương trình = tổng buổi đã học / tổng buổi kế hoạch
-  // (số buổi kế hoạch suy từ tên chương trình "N BUỔI...").
-  const progressByProgram = useMemo(() => {
-    const map = new Map();
-    overview.forEach((o) => {
-      const key = o.program_name || "Chưa phân loại";
-      const total = buoiOf(o.program_name);
-      const e = map.get(key) || { classes: 0, done: 0, total: 0 };
-      e.classes += 1;
-      if (total) { e.done += (o.session_count || 0); e.total += total; }
-      map.set(key, e);
-    });
-    return [...map.entries()]
-      .map(([name, e]) => ({ name, classes: e.classes, pct: e.total ? Math.min(100, Math.round((e.done / e.total) * 100)) : null }))
-      .sort((a, b) => b.classes - a.classes)
-      .slice(0, 6);
-  }, [overview]);
+  const lopDong = useMemo(() => tq?.lop || [], [tq]);
 
   // Phân bố xếp loại Giỏi/Khá/TB theo lớp — ưu tiên bảng điểm tháng, fallback điểm thô.
   const gradeByClass = useMemo(() => {
@@ -358,46 +325,60 @@ function Students() {
     });
     return byClass;
   }, [scorecards, scores]);
-  const hasGradeData = Object.keys(gradeByClass).length > 0;
 
-  // Chuyên cần THẬT (chỉ vài lớp có dữ liệu) — tổng hợp từ /attendance-summary/.
-  const hasAttendance = attendance.length > 0;
-  // Tỷ lệ chuyên cần trung bình theo chương trình (từ program_name + rate).
-  const attendByProgram = useMemo(() => {
-    const map = new Map(); // program_name -> { sum, n }
-    attendance.forEach((a) => {
-      const rate = toNum(a.rate);
-      if (rate == null) return;
-      const key = a.program_name || "Chưa phân loại";
-      const e = map.get(key) || { sum: 0, n: 0 };
-      e.sum += rate; e.n += 1;
-      map.set(key, e);
+  // Xếp loại toàn trung tâm (tháng này) từ các lớp đã có điểm.
+  const xepLoaiChung = useMemo(() => {
+    const o = { gioi: 0, kha: 0, tb: 0, tong: 0 };
+    Object.values(gradeByClass).forEach((g) => { o.gioi += g.gioi; o.kha += g.kha; o.tb += g.tb; o.tong += g.graded; });
+    return o;
+  }, [gradeByClass]);
+
+  // Nhóm chương trình theo thứ tự chuẩn Kid → TACB → Cambridge → IELTS.
+  const theoNhom = useMemo(() => {
+    const thuTu = ["kid", "tacb", "cam", "ielts", ""];
+    const m = new Map();
+    lopDong.forEach((l) => {
+      const e = m.get(l.nhom) || { ma: l.nhom || "khac", ten: l.ten_nhom, lop: [], siSo: 0, ccCoMat: 0, ccTong: 0, daHoc: 0, tongBuoi: 0 };
+      e.lop.push(l);
+      e.siSo += l.si_so;
+      if (l.chuyen_can != null) { e.ccCoMat += l.chuyen_can * (l.so_ca_chuyen_can || 1); e.ccTong += (l.so_ca_chuyen_can || 1); }
+      if (l.tong_buoi) { e.daHoc += Math.min(l.buoi_da_hoc, l.tong_buoi); e.tongBuoi += l.tong_buoi; }
+      m.set(l.nhom, e);
     });
-    const out = new Map();
-    map.forEach((e, k) => out.set(k, Math.round((e.sum / e.n) * 10) / 10));
-    return out;
-  }, [attendance]);
-  // Top 5 lớp theo tỉ lệ chuyên cần THẬT.
-  const attendTop5 = useMemo(() => (
-    attendance
-      .filter((a) => toNum(a.rate) != null && a.classroom_name)
-      .map((a) => ({ name: a.classroom_name, rate: Math.round(toNum(a.rate) * 10) / 10 }))
-      .sort((x, y) => y.rate - x.rate)
-      .slice(0, 5)
-  ), [attendance]);
+    return thuTu.filter((k) => m.has(k)).map((k) => {
+      const e = m.get(k);
+      return {
+        ...e,
+        chuyenCan: e.ccTong ? Math.round((e.ccCoMat / e.ccTong) * 10) / 10 : null,
+        loTrinh: e.tongBuoi ? Math.round((e.daHoc / e.tongBuoi) * 1000) / 10 : null,
+      };
+    });
+  }, [lopDong]);
 
-  const classesFiltered = useMemo(() => {
+  const loTrinhChung = useMemo(() => {
+    const da = theoNhom.reduce((a, n) => a + n.daHoc, 0);
+    const tong = theoNhom.reduce((a, n) => a + n.tongBuoi, 0);
+    return tong ? Math.round((da / tong) * 1000) / 10 : null;
+  }, [theoNhom]);
+  const tongNo = lopDong.length && lopDong[0].hoc_phi_phai_thu !== null
+    ? lopDong.reduce((a, l) => a + (l.hoc_phi_phai_thu || 0), 0) : null;
+
+  const luuY = (l, g) => [
+    l.chuyen_can != null && l.chuyen_can < 90 ? `Chuyên cần ${vnPct(l.chuyen_can)}%` : "",
+    !l.tong_buoi ? "Chưa khai tổng số buổi" : "",
+    g && g.graded && g.tb / g.graded > 0.5 ? "Nhiều HS mức TB" : "",
+    l.hoc_phi_phai_thu ? "Còn nợ học phí" : "",
+    !l.si_so ? "Chưa có học sinh" : "",
+  ].filter(Boolean);
+
+  const canTheoDoi = useMemo(() => lopDong
+    .map((l) => ({ ...l, lyDo: luuY(l, gradeByClass[l.id]).filter((x) => x !== "Chưa khai tổng số buổi").join(" · ") }))
+    .filter((l) => l.lyDo), [lopDong, gradeByClass]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const lopLoc = useMemo(() => {
     const q = search.toLowerCase();
-    return classes.filter((c) => {
-      if (filterCenter && String(c.center?.id) !== String(filterCenter)) return false;
-      if (q && !`${c.name || ""} ${c.class_code || ""} ${c.program_name || ""}`.toLowerCase().includes(q)) return false;
-      return true;
-    });
-  }, [classes, filterCenter, search]);
-
-  const classPages = Math.max(1, Math.ceil(classesFiltered.length / PAGE_SIZE));
-  const classPageRows = classesFiltered.slice((classPage - 1) * PAGE_SIZE, classPage * PAGE_SIZE);
-  useEffect(() => { if (classPage > classPages) setClassPage(classPages); }, [classPages, classPage]);
+    return lopDong.filter((l) => !q || `${l.name || ""} ${l.class_code || ""} ${l.program_name || ""}`.toLowerCase().includes(q));
+  }, [lopDong, search]);
 
   const submitCreate = async (e) => {
     e.preventDefault();
@@ -548,263 +529,183 @@ function Students() {
             </div>
           ) : null}
 
-          {/* KPI row */}
+          {/* KPI row — toàn số thật (08/10/2026: bỏ các ô demo "File đã nhập/xuất"…). */}
           <div className="kpi-grid">
-            <Kpi ico="👥" icoClass="orange" label="Tổng sĩ số" value={fmt(totalStudents)} />
+            <Kpi ico="👥" icoClass="orange" label="Tổng sĩ số" value={fmt(tq?.tong_si_so ?? totalStudents)} />
             <Kpi ico="🏫" icoClass="orange" label="Lớp đang hoạt động" value={fmt(activeClasses)} />
-            {attendanceOverall != null
-              ? <Kpi ico="✅" icoClass="green" label="Tỷ lệ chuyên cần" value={`${vnPct(Math.round(attendanceOverall * 10) / 10)}%`} />
-              : <Kpi ico="✅" icoClass="green" label="Tỷ lệ chuyên cần" value="—" demo />}
-            <Kpi ico="📈" icoClass="orange" label="Hoàn thành lộ trình" value="72,3%" trend="3,8% so với T4" demo />
-            <Kpi ico="⭐" icoClass="yellow" label="Học sinh nổi bật tháng" value="18" trend="20,0% so với T4" demo />
-            <Kpi ico="🗂️" icoClass="blue" label="File đã nhập/xuất" value="24 / 18" trend="15,2% so với T4" demo />
+            <Kpi ico="✅" icoClass="green" label={`Chuyên cần T${thang}`} value={tq?.chuyen_can != null ? `${vnPct(tq.chuyen_can)}%` : "—"} />
+            <Kpi ico="📈" icoClass="orange" label="Hoàn thành lộ trình" value={loTrinhChung != null ? `${vnPct(loTrinhChung)}%` : "—"} />
+            {tongNo != null ? <Kpi ico="💰" icoClass="blue" label="Học phí phải thu" value={rutGon(tongNo)} /> : null}
           </div>
 
           <div className="stack">
-            {/* 1. Tổng quan nhập học */}
+            {/* 1. Tổng quan sĩ số */}
             <div className="card">
-              <div className="card-head"><h3>1. Tổng quan nhập học</h3></div>
+              <div className="card-head"><h3>1. Tổng quan sĩ số</h3><span className="small muted">Học sinh đang học, theo lớp đang chạy</span></div>
               <div className="grid c3">
                 <div>
-                  <div className="small muted bold">Tổng sĩ số</div>
-                  <div className="big-num">{fmt(totalStudents)} <span className="small muted" style={{ fontWeight: 600 }}>học sinh</span></div>
-                  <div className="donut-wrap mt12" style={{ display: "flex", gap: 14, alignItems: "center" }}>
-                    <GenderDonut male={genderCounts.male} female={genderCounts.female} total={totalStudents} />
-                    <div className="donut-legend">
-                      <div className="dl" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, marginBottom: 6 }}>
-                        <i style={{ width: 10, height: 10, borderRadius: 3, background: "#F26522", display: "inline-block" }} />
-                        Nam <b style={{ marginLeft: 4 }}>{vnPct(pct1(genderCounts.male, totalStudents))}% ({fmt(genderCounts.male)})</b>
-                      </div>
-                      <div className="dl" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, marginBottom: 6 }}>
-                        <i style={{ width: 10, height: 10, borderRadius: 3, background: "#C0392B", display: "inline-block" }} />
-                        Nữ <b style={{ marginLeft: 4 }}>{vnPct(pct1(genderCounts.female, totalStudents))}% ({fmt(genderCounts.female)})</b>
-                      </div>
-                      {totalStudents - genderCounts.male - genderCounts.female > 0 ? (
-                        <div className="dl" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5 }}>
-                          <i style={{ width: 10, height: 10, borderRadius: 3, background: "#EFE7DB", display: "inline-block" }} />
-                          Chưa rõ <b style={{ marginLeft: 4 }}>{vnPct(pct1(totalStudents - genderCounts.male - genderCounts.female, totalStudents))}% ({fmt(totalStudents - genderCounts.male - genderCounts.female)})</b>
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
+                  <div className="small muted bold mb12">Theo cấp học</div>
+                  <ThanhNgang rows={(tq?.cap_hoc || []).map((c) => ({ ten: c.ten, so: c.so }))} donVi="HS" />
                 </div>
                 <div>
-                  <div className="small muted bold mb12">Sĩ số theo chương trình</div>
-                  {programAgg.rows.length ? programAgg.rows.map((r, i) => (
-                    <div className="hbar-row" key={r.name}>
-                      <span className="hb-label">{r.name}</span>
-                      <span className="hb-bar"><i style={{ width: `${Math.round((r.count / programAgg.max) * 100)}%`, background: PROGRAM_COLORS[i % PROGRAM_COLORS.length] }} /></span>
-                      <span className="hb-val">{fmt(r.count)} ({vnPct(pct1(r.count, programAgg.sum))}%)</span>
-                    </div>
-                  )) : <div className="small muted">Chưa có dữ liệu sĩ số theo chương trình.</div>}
-                  <div className="chart-note small muted mt8">Tổng: {fmt(programAgg.sum)} học sinh (đang học)</div>
+                  <div className="small muted bold mb12">Theo chương trình</div>
+                  <ThanhNgang rows={theoNhom.map((n) => ({ ten: n.ten, so: n.siSo }))} donVi="HS" />
                 </div>
                 <div>
-                  <div className="flex-between mb12">
-                    <span className="small muted bold">Biến động học sinh</span>
-                    <span className="badge gray" style={{ fontSize: 9 }}>Demo</span>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 120, padding: "0 4px" }}>
-                    {[980, 1020, 1110, 1108, totalStudents || 1248].map((v, i, arr) => {
-                      const mx = Math.max(...arr);
-                      return (
-                        <div key={i} style={{ flex: 1, textAlign: "center" }}>
-                          <div style={{ height: `${(v / mx) * 92}px`, background: i === arr.length - 1 ? "#F26522" : "#F2C9A8", borderRadius: "6px 6px 0 0" }} />
-                          <div className="small muted" style={{ fontSize: 10, marginTop: 3 }}>T{i + 1}/25</div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                  <div className="small muted bold mb12">Theo khu vực</div>
+                  <ThanhNgang rows={(tq?.khu_vuc || []).map((k) => ({ ten: k.ten, so: k.so }))} donVi="HS" />
                 </div>
               </div>
             </div>
 
-            {/* 2 & 3 */}
-            <div className="grid c2">
+            {/* 2. Biểu đồ: sĩ số các lớp · phân loại học lực · doanh thu */}
+            <div className={`grid ${tq?.doanh_thu?.length ? "c3" : "c2"}`}>
               <div className="card">
-                <div className="card-head"><h3>2. Chuyên cần</h3>{hasAttendance ? null : <span className="badge gray" style={{ fontSize: 9 }}>Demo</span>}</div>
-                <div className="small muted bold mb12">Theo chương trình</div>
-                {programAgg.rows.length ? programAgg.rows.map((r) => {
-                  const rate = attendByProgram.get(r.name);
-                  return (
-                    <div key={r.name} style={{ marginBottom: 9 }}>
-                      <div className="flex-between"><span className="small bold">{r.name}</span><span className="small muted">{rate == null ? "—" : `${vnPct(rate)}%`}</span></div>
-                      {rate == null ? null : <div className="prog green" style={{ marginTop: 4 }}><i style={{ width: `${rate}%` }} /></div>}
-                    </div>
-                  );
-                }) : <div className="small muted">Chưa có dữ liệu.</div>}
-                <div className="hr" style={{ margin: "12px 0" }} />
-                <div className="small muted bold mb12">Theo lớp (Top 5)</div>
-                <div className="list">
-                  {attendTop5.length ? attendTop5.map((c) => (
-                    <div className="li" key={c.name}>
-                      <div className="ico-sm" style={{ background: "var(--success-soft)", color: "var(--success)" }}>✅</div>
-                      <div className="li-body"><div className="li-title">{c.name}</div></div>
-                      <span className="badge green">{vnPct(c.rate)}%</span>
-                    </div>
-                  )) : <div className="small muted">Chưa có dữ liệu chuyên cần.</div>}
+                <div className="card-head"><h3>Sĩ số học sinh các lớp</h3></div>
+                <CotDung rows={lopDong.map((l) => ({ ten: l.class_code || l.name, so: l.si_so }))} cao={150} />
+              </div>
+              <div className="card">
+                <div className="card-head"><h3>Phân loại học sinh</h3><span className="small muted">Giỏi ≥ 85% · Khá ≥ 70%</span></div>
+                {xepLoaiChung.tong ? (
+                  <ThanhNgang
+                    rows={[
+                      { ten: "Giỏi", so: xepLoaiChung.gioi, mau: GRADE_COLOR.gioi },
+                      { ten: "Khá", so: xepLoaiChung.kha, mau: GRADE_COLOR.kha },
+                      { ten: "Trung bình", so: xepLoaiChung.tb, mau: GRADE_COLOR.tb },
+                    ]}
+                    donVi="HS"
+                  />
+                ) : <div className="small muted">Chưa có bảng điểm tháng này.</div>}
+              </div>
+              {tq?.doanh_thu?.length ? (
+                <div className="card">
+                  <div className="card-head"><h3>Tổng doanh thu</h3><span className="small muted">Tiền đã thu theo tháng</span></div>
+                  <CotDung rows={tq.doanh_thu.map((d) => ({ ten: `T${d.thang}`, so: d.da_thu, nhan: rutGon(d.da_thu) }))} cao={150} />
                 </div>
-              </div>
-              <div className="card">
-                <div className="card-head"><h3>3. Tiến độ học tập theo lộ trình</h3></div>
-                <div className="flex-between mb12"><span className="small muted bold">Theo chương trình</span><span className="small muted">Buổi đã học / kế hoạch</span></div>
-                {progressByProgram.length ? progressByProgram.map((r) => (
-                  <div key={r.name} style={{ marginBottom: 10 }}>
-                    <div className="flex-between"><span className="small bold">{r.name} <span className="muted" style={{ fontWeight: 400 }}>({r.classes} lớp)</span></span><span className="small muted">{r.pct == null ? "—" : `${r.pct}%`}</span></div>
-                    <div className="prog" style={{ marginTop: 4 }}><i style={{ width: `${r.pct || 0}%` }} /></div>
-                  </div>
-                )) : <div className="small muted">Chưa có dữ liệu.</div>}
-                <div className="hr" style={{ margin: "12px 0" }} />
-                <div className="flex-between mb12"><span className="small muted bold">Theo lớp (Top 5)</span><span className="badge gray" style={{ fontSize: 9 }}>Demo</span></div>
-                {PROGRESS_TOP5.map(([name, val, note]) => (
-                  <div key={name} style={{ marginBottom: 10 }}>
-                    <div className="flex-between"><span className="small bold">{name}</span><span className="small muted">{note}</span></div>
-                    <div className="prog" style={{ marginTop: 4 }}><i style={{ width: `${val}%` }} /></div>
-                  </div>
-                ))}
-              </div>
+              ) : null}
             </div>
 
-            {/* 4 & 5 */}
-            <div className="grid c2">
-              <div className="card">
-                <div className="card-head"><h3>4. Hoạt động tháng</h3><span className="badge gray" style={{ fontSize: 9 }}>Demo</span></div>
-                <div className="list">
-                  {ACTIVITIES.map(([date, title, sub, status, cls]) => (
-                    <div className="li" key={title}>
-                      <div className="ico-sm" style={{ background: "var(--primary-soft)", color: "var(--primary)" }}>📅</div>
-                      <div className="li-body"><div className="li-title">{title}</div><div className="li-sub">{date} · {sub}</div></div>
-                      <span className={`badge ${cls}`}>{status}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="card">
-                <div className="card-head"><h3>5. Vinh danh học sinh tiêu biểu</h3><span className="badge gray" style={{ fontSize: 9 }}>Demo</span></div>
-                <div className="grid c3">
-                  {HONORS.map(([name, sub, badge, color]) => (
-                    <div className="honor" key={name} style={{ textAlign: "center" }}>
-                      <div style={{ width: 44, height: 44, borderRadius: "50%", background: color, color: "#fff", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 6px" }}>
-                        {name.split(" ").map((w) => w[0]).slice(-2).join("")}
-                      </div>
-                      <b style={{ fontSize: 12.5 }}>{name}</b>
-                      <small className="muted" style={{ display: "block", fontSize: 11 }}>{sub}</small>
-                      <span className="badge orange" style={{ marginTop: 8, fontSize: 10 }}>{badge}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            {/* 3. Chuyên cần — đóng mở; theo chương trình, bấm để xem từng lớp */}
+            <details className="card fold" open>
+              <summary><h3>Tỷ lệ chuyên cần tháng {thang}/{nam}</h3><span className="small muted">Có mặt ÷ sĩ số mỗi ca dạy đã báo cáo</span></summary>
+              <TheoNhomMoRong
+                nhom={theoNhom}
+                giaTri={(n) => n.chuyenCan}
+                giaTriLop={(l) => l.chuyen_can}
+                nhanLop={(l) => (l.so_ca_chuyen_can ? `${l.so_ca_chuyen_can} ca` : "chưa có ca")}
+                mau="green"
+              />
+            </details>
 
-            {/* Danh sách TỪNG học viên. Trước đây màn này chỉ có thống kê theo
-                LỚP, nên không có chỗ nào để sửa hay cho nghỉ một em. */}
-            <DanhSachHocVien
-              lops={classes}
-              coQuyenChoNghi={["superadmin", "admin", "center_manager"].includes(role)}
-              onNotice={setNotice}
-            />
+            {/* 4. Tiến độ học tập theo lộ trình — đóng mở; buổi đã dạy thực tế / tổng buổi */}
+            <details className="card fold">
+              <summary><h3>Tiến độ học tập theo lộ trình</h3><span className="small muted">Buổi đã dạy theo lịch báo giảng / tổng buổi</span></summary>
+              <TheoNhomMoRong
+                nhom={theoNhom}
+                giaTri={(n) => n.loTrinh}
+                giaTriLop={(l) => (l.tong_buoi ? Math.min(100, Math.round((l.buoi_da_hoc / l.tong_buoi) * 1000) / 10) : null)}
+                nhanLop={(l) => `${l.buoi_da_hoc}/${l.tong_buoi || "?"} buổi`}
+              />
+            </details>
 
-            {/* 6. Kết quả học tập (Tổng quan) — theo lớp */}
+            {/* 5. Hoạt động tháng — đóng mở; lấy từ Lịch làm việc mảng Học sinh - Lớp học */}
+            <details className="card fold">
+              <summary><h3>Hoạt động tháng {thang}/{nam}</h3><span className="small muted">Từ Lịch làm việc · {hoatDong.length} việc</span></summary>
+              <div className="list">
+                {hoatDong.length ? hoatDong.map((h) => (
+                  <div className="li" key={h.id}>
+                    <div className="ico-sm" style={{ background: "var(--primary-soft)", color: "var(--primary)" }}>📅</div>
+                    <div className="li-body">
+                      <div className="li-title">{h.title}</div>
+                      <div className="li-sub">{h.event_date ? new Date(h.event_date).toLocaleDateString("vi-VN") : ""}{h.assigned_to?.name ? ` · ${h.assigned_to.name}` : ""}</div>
+                    </div>
+                    <span className={`badge ${TRANG_THAI_VIEC[h.status]?.cls || "gray"}`}>{TRANG_THAI_VIEC[h.status]?.label || h.status}</span>
+                  </div>
+                )) : <div className="small muted">Tháng này chưa có việc nào ở mảng Học sinh - Lớp học trên Lịch làm việc.</div>}
+              </div>
+              <button type="button" className="btn ghost sm mt12" onClick={() => navigate("/calendar-detail")}>Mở Lịch làm việc →</button>
+            </details>
+
+            {/* 6. Tổng quan lớp học — thay cho danh sách học viên + bảng kết quả cũ */}
             <div className="card">
               <div className="card-head" style={{ flexWrap: "wrap", gap: 8 }}>
-                <h3>6. Kết quả học tập (Tổng quan)</h3>
-                <span className="small muted">Giỏi ≥ 80% · Khá 65–79% · TB &lt; 65% (trên tổng sĩ số lớp)</span>
-              </div>
-
-              {/* Filters */}
-              <div className="flex" style={{ gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+                <h3>Tổng quan lớp học</h3>
                 <input placeholder="Tìm lớp, mã lớp, chương trình..." value={searchInput} onChange={(e) => setSearchInput(e.target.value)}
-                  style={{ flex: "1 1 220px", padding: "8px 12px", border: "1px solid var(--border)", borderRadius: 9, fontSize: 13 }} />
-                <CenterField centers={centers} value={filterCenter} onChange={(e) => setFilterCenter(e.target.value)} placeholder="Tất cả cơ sở" />
+                  style={{ flex: "0 1 260px", padding: "8px 12px", border: "1px solid var(--border)", borderRadius: 9, fontSize: 13 }} />
               </div>
-
-              {!aggLoading && !hasGradeData ? (
-                <div className="alert orange" style={{ marginBottom: 12 }}>Chưa có dữ liệu điểm số để tổng hợp xếp loại. Bảng hiển thị sĩ số lớp; cột Giỏi/Khá/TB sẽ có khi có điểm.</div>
-              ) : null}
-
-              {/* Table */}
               <div className="tbl-wrap">
                 <table className="tbl">
                   <thead>
                     <tr>
-                      <th>Chương trình</th><th>Lớp</th><th className="t-center">Sĩ số</th>
-                      <th className="t-center">Giỏi</th><th className="t-center">Khá</th><th className="t-center">Trung bình</th>
-                      <th>Kỹ năng / đầu mục</th><th>Nhận xét</th><th className="t-center">Trạng thái</th>
+                      <th>Lớp</th><th className="t-center">Sĩ số</th><th>Lộ trình học</th><th className="t-center">Trạng thái</th>
+                      <th>Tình hình học tập</th><th>Lưu ý</th>{tongNo != null ? <th className="t-right">Học phí phải thu</th> : null}
                     </tr>
                   </thead>
                   <tbody>
-                    {aggLoading ? (
-                      <tr><td colSpan={9} className="muted" style={{ padding: 16, textAlign: "center" }}>Đang tải...</td></tr>
-                    ) : classPageRows.length ? classPageRows.map((c) => {
-                      const g = gradeByClass[c.id];
-                      const active = countById[c.id];
-                      // Tổng sĩ số = sĩ số đang học, nhưng ít nhất bằng số HS có điểm
-                      // (có thể có HS đã nghỉ nhưng vẫn còn điểm) -> tránh vượt 100%.
-                      const size = active != null || (g && g.graded) ? Math.max(active || 0, g ? g.graded : 0) : null;
-                      const rv = classReview(g);
+                    {aggLoading && !tq ? (
+                      <tr><td colSpan={7} className="muted" style={{ padding: 16, textAlign: "center" }}>Đang tải...</td></tr>
+                    ) : lopLoc.length ? lopLoc.map((l) => {
+                      const g = gradeByClass[l.id];
+                      const st = CLASS_STATUS[l.status] || { label: l.status, cls: "gray" };
+                      const pt = l.tong_buoi ? Math.min(100, Math.round((l.buoi_da_hoc / l.tong_buoi) * 100)) : null;
                       return (
-                        <tr key={c.id}>
-                          <td className="muted">{c.program_name || "—"}</td>
-                          <td className="bold">{c.class_code || c.name}<div className="small muted" style={{ fontWeight: 400 }}>{c.class_code ? c.name : (c.center?.name || "")}</div></td>
-                          <td className="t-center">{size != null ? fmt(size) : "—"}</td>
-                          <GradeCell count={g ? g.gioi : null} size={size} band="gioi" />
-                          <GradeCell count={g ? g.kha : null} size={size} band="kha" />
-                          <GradeCell count={g ? g.tb : null} size={size} band="tb" />
-                          <td className="small muted">{skillsFor(c.program_name, evalItems).join(" · ")}</td>
-                          <td className="small muted">{rv.note}</td>
-                          <td className="t-center"><span className={`badge ${rv.status.cls}`}>{rv.status.label}</span></td>
+                        <tr key={l.id} style={{ cursor: "pointer" }} onClick={() => navigate(`/classrooms/${l.id}`)}>
+                          <td className="bold">{l.class_code || l.name}<div className="small muted" style={{ fontWeight: 400 }}>{l.ten_nhom}{l.level_name ? ` · ${l.level_name}` : ""}</div></td>
+                          <td className="t-center">{fmt(l.si_so)}</td>
+                          <td style={{ minWidth: 140 }}>
+                            <div className="small">{l.buoi_da_hoc}/{l.tong_buoi || "?"} buổi</div>
+                            {pt != null ? <div className="prog" style={{ marginTop: 4 }}><i style={{ width: `${pt}%` }} /></div> : null}
+                          </td>
+                          <td className="t-center"><span className={`badge ${st.cls}`}>{st.label}</span></td>
+                          <td className="small">
+                            {g && g.graded ? (
+                              <>
+                                <b style={{ color: GRADE_COLOR.gioi }}>{g.gioi}</b> Giỏi · <b style={{ color: GRADE_COLOR.kha }}>{g.kha}</b> Khá · <b style={{ color: GRADE_COLOR.tb }}>{g.tb}</b> TB
+                              </>
+                            ) : <span className="muted">Chưa có điểm</span>}
+                          </td>
+                          <td className="small">{luuY(l, g).join(" · ") || <span className="muted">—</span>}</td>
+                          {tongNo != null ? <td className="t-right">{l.hoc_phi_phai_thu ? <b style={{ color: "var(--danger)" }}>{fmt(Math.round(l.hoc_phi_phai_thu))}</b> : <span className="muted">0</span>}</td> : null}
                         </tr>
                       );
                     }) : (
-                      <tr><td colSpan={9} className="muted" style={{ padding: 16, textAlign: "center" }}>Không có lớp học phù hợp.</td></tr>
+                      <tr><td colSpan={7} className="muted" style={{ padding: 16, textAlign: "center" }}>Không có lớp học phù hợp.</td></tr>
                     )}
                   </tbody>
                 </table>
               </div>
+            </div>
 
-              {/* Pagination */}
-              <div className="flex-between mt12" style={{ flexWrap: "wrap", gap: 8 }}>
-                <span className="small muted">{classesFiltered.length ? `Hiển thị ${(classPage - 1) * PAGE_SIZE + 1}–${Math.min(classPage * PAGE_SIZE, classesFiltered.length)} / ${fmt(classesFiltered.length)} lớp` : "0 lớp"}</span>
-                {classPages > 1 ? (
-                  <div className="flex" style={{ gap: 8 }}>
-                    <button type="button" className="btn ghost sm" disabled={classPage <= 1} onClick={() => setClassPage((p) => p - 1)}>‹ Trước</button>
-                    <span className="small" style={{ alignSelf: "center" }}>Trang {classPage}/{classPages}</span>
-                    <button type="button" className="btn ghost sm" disabled={classPage >= classPages} onClick={() => setClassPage((p) => p + 1)}>Sau ›</button>
+            <div className="card">
+              <div className="card-head"><h3>Vinh danh học sinh tiêu biểu</h3><span className="badge gray" style={{ fontSize: 9 }}>Demo</span></div>
+              <div className="grid c3">
+                {HONORS.map(([name, sub, badge, color]) => (
+                  <div className="honor" key={name} style={{ textAlign: "center" }}>
+                    <div style={{ width: 44, height: 44, borderRadius: "50%", background: color, color: "#fff", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 6px" }}>
+                      {name.split(" ").map((w) => w[0]).slice(-2).join("")}
+                    </div>
+                    <b style={{ fontSize: 12.5 }}>{name}</b>
+                    <small className="muted" style={{ display: "block", fontSize: 11 }}>{sub}</small>
+                    <span className="badge orange" style={{ marginTop: 8, fontSize: 10 }}>{badge}</span>
                   </div>
-                ) : null}
+                ))}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Right sidebar */}
+        {/* Right sidebar — lớp cần theo dõi suy từ số thật */}
         <div className="rightbar">
           <div className="card">
-            <div className="card-head"><h3>Nhắc việc học vụ</h3><span className="badge gray" style={{ fontSize: 9 }}>Demo</span></div>
+            <div className="card-head"><h3>Lớp cần theo dõi</h3><span className="small muted">{canTheoDoi.length} lớp</span></div>
             <div className="list">
-              {REMINDERS.map(([ico, title, sub]) => (
-                <div className="li" key={title}>
-                  <div className="ico-sm" style={{ background: "var(--warn-soft)", color: "var(--warn)" }}>{ico}</div>
-                  <div className="li-body"><div className="li-title">{title}</div><div className="li-sub">{sub}</div></div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="card">
-            <div className="card-head"><h3>Lớp cần theo dõi</h3><span className="badge gray" style={{ fontSize: 9 }}>Demo</span></div>
-            <div className="list">
-              {WATCH_CLASSES.map(([title, val, cls]) => (
-                <div className="li" key={title}>
+              {canTheoDoi.length ? canTheoDoi.slice(0, 12).map((l) => (
+                <div className="li" key={l.id} style={{ cursor: "pointer" }} onClick={() => navigate(`/classrooms/${l.id}`)}>
                   <div className="ico-sm" style={{ background: "var(--danger-soft)", color: "var(--danger)" }}>⚠️</div>
-                  <div className="li-body"><div className="li-title" style={{ fontSize: 12 }}>{title}</div></div>
-                  <span className={`badge ${cls}`}>{val}</span>
+                  <div className="li-body"><div className="li-title" style={{ fontSize: 12.5 }}>{l.class_code || l.name}</div><div className="li-sub">{l.lyDo}</div></div>
                 </div>
-              ))}
+              )) : <div className="small muted">Không có lớp nào cần chú ý.</div>}
             </div>
-          </div>
-          <div className="stack">
-            <div className="alert red"><div>Cần theo dõi và nhắc nhở <b>12 lớp chuyên cần dưới 90%</b></div></div>
-            <div className="alert orange"><div>Cần hỗ trợ học tập kịp thời <b>18 lớp tiến độ dưới 65%</b></div></div>
           </div>
         </div>
       </div>

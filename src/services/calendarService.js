@@ -647,3 +647,9 @@ export async function timHocSinhHocBu(sessionId, q) {
   const { data } = await apiClient.get(`/teaching-sessions/${sessionId}/diem-danh/tim-hoc-sinh/`, { params: { q } });
   return data?.results || [];
 }
+
+/** Tổng quan lớp học: cấp học, khu vực, lộ trình, chuyên cần, học phí phải thu (classrooms/tong_quan.py). */
+export async function layTongQuanLop(params = {}) {
+  const { data } = await apiClient.get("/classrooms/classrooms/tong-quan/", { params });
+  return data;
+}
