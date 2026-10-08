@@ -283,8 +283,11 @@ export default function KpiSheet({
                         <span className={`kpi2-row__t${(c.title || "").length > 26 ? " kpi2-row__t--wrap" : ""}`}>{c.title}</span>
                         <span className="kpi2-row__d">{c.description || "—"}</span>
                         <span>{soGon(c.max_score)} điểm</span>
-                        <span className="kpi2-row__got">
-                          {suaDuocQuanLy ? (
+                        <span className="kpi2-row__got" title={dong?.tu_dong ? dong.note || "" : undefined}>
+                          {dong?.tu_dong ? (
+                            // Tính từ lịch báo giảng / báo cáo ca dạy — không chấm tay.
+                            <><b>{hienSo(dat)}</b>{dat != null ? " điểm" : ""} <small className="kpi2-row__gv">Tự động</small></>
+                          ) : suaDuocQuanLy ? (
                             <input
                               className="kpi2-inp"
                               type="number"
@@ -311,7 +314,7 @@ export default function KpiSheet({
                               nuốt mất — giáo viên không biết mình bị hạ bao
                               nhiêu, mà đối chiếu hai cột mới là mục đích chính
                               của màn này. */}
-                          {dong?.manager_score != null && dong?.self_score != null ? (
+                          {!dong?.tu_dong && dong?.manager_score != null && dong?.self_score != null ? (
                             <small className="kpi2-row__gv">GV: {soGon(dong.self_score)}</small>
                           ) : null}
                         </span>

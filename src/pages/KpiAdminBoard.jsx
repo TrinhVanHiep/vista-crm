@@ -786,12 +786,14 @@ export default function KpiAdminBoard({ nhungTrongTrang = false, month, year } =
                                         backend từ chối CẢ lượt lưu, mất luôn mọi ô khác
                                         vừa sửa. Ô trống hiển thị điểm tự chấm mờ làm gợi
                                         ý — đúng con số hệ thống sẽ dùng nếu không chấm lại. */}
+                                    {/* Tiêu chí tự động (lịch báo giảng / báo cáo): khoá, không chấm tay. */}
                                     <input type="number" min="0" max={toiDa} step="0.5"
-                                           value={v ?? ""} disabled={!duocSua}
+                                           value={v ?? ""} disabled={!duocSua || s?.tu_dong}
+                                           title={s?.tu_dong ? `Tự động: ${s.note || ""}` : undefined}
                                            placeholder={laSo(s?.self_score) ? g1(s.self_score) : ""}
                                            aria-label={`Điểm admin chấm cho ${tc.title}`}
                                            onChange={(e) => setDiemNhap((c) => ({ ...c, [tc.id]: kepDiem(e.target.value, toiDa) }))} />
-                                    <span>/ {g1(toiDa)}</span>
+                                    <span>/ {g1(toiDa)}{s?.tu_dong ? " · Tự động" : ""}</span>
                                   </td>
                                   <td>
                                     {!laSo(v) ? (

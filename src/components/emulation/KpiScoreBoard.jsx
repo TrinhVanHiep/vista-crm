@@ -835,7 +835,13 @@ export default function KpiScoreBoard({
                               hiện ngay bên dưới làm tham chiếu — chỗ hai bên lệch
                               nhau vẫn nhìn ra, mà bảng không phải phình thêm cột. */}
                           <td className="t-center">
-                            {suaDuocQuanLy ? (
+                            {dong?.tu_dong ? (
+                              // Tính từ lịch báo giảng / báo cáo ca dạy — không chấm tay.
+                              <span title={dong.note || ""}>
+                                <b>{hienSo(dong.final_score)}</b>
+                                <span className="kpi-refgv">Tự động</span>
+                              </span>
+                            ) : suaDuocQuanLy ? (
                               <>
                                 <input
                                   className="kpi-inp"
