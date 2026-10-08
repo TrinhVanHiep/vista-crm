@@ -539,6 +539,44 @@ function Students() {
           </div>
 
           <div className="stack">
+            {/* Tiến độ lộ trình + hoạt động tháng — MỘT khối đóng mở ngay dưới dải KPI
+                (08/10/2026), mặc định đóng cho gọn. */}
+            <details className="card fold">
+              <summary>
+                <h3>Tiến độ lộ trình &amp; hoạt động tháng {thang}/{nam}</h3>
+                <span className="small muted">
+                  Hoàn thành {loTrinhChung != null ? `${vnPct(loTrinhChung)}%` : "—"} lộ trình · {hoatDong.length} việc trong tháng
+                </span>
+              </summary>
+              <div className="grid c2">
+                <div>
+                  <div className="small muted bold mb12">Tiến độ theo lộ trình — buổi đã dạy theo lịch báo giảng / tổng buổi</div>
+                  <TheoNhomMoRong
+                nhom={theoNhom}
+                giaTri={(n) => n.loTrinh}
+                giaTriLop={(l) => (l.tong_buoi ? Math.min(100, Math.round((l.buoi_da_hoc / l.tong_buoi) * 1000) / 10) : null)}
+                nhanLop={(l) => `${l.buoi_da_hoc}/${l.tong_buoi || "?"} buổi`}
+              />
+                </div>
+                <div>
+                  <div className="small muted bold mb12">Hoạt động tháng — từ Lịch làm việc</div>
+                  <div className="list">
+                {hoatDong.length ? hoatDong.map((h) => (
+                  <div className="li" key={h.id}>
+                    <div className="ico-sm" style={{ background: "var(--primary-soft)", color: "var(--primary)" }}>📅</div>
+                    <div className="li-body">
+                      <div className="li-title">{h.title}</div>
+                      <div className="li-sub">{h.event_date ? new Date(h.event_date).toLocaleDateString("vi-VN") : ""}{h.assigned_to?.name ? ` · ${h.assigned_to.name}` : ""}</div>
+                    </div>
+                    <span className={`badge ${TRANG_THAI_VIEC[h.status]?.cls || "gray"}`}>{TRANG_THAI_VIEC[h.status]?.label || h.status}</span>
+                  </div>
+                )) : <div className="small muted">Tháng này chưa có việc nào ở mảng Học sinh - Lớp học trên Lịch làm việc.</div>}
+              </div>
+              <button type="button" className="btn ghost sm mt12" onClick={() => navigate("/calendar-detail")}>Mở Lịch làm việc →</button>
+                </div>
+              </div>
+            </details>
+
             {/* 1. Tổng quan sĩ số */}
             <div className="card">
               <div className="card-head"><h3>1. Tổng quan sĩ số</h3><span className="small muted">Học sinh đang học, theo lớp đang chạy</span></div>
@@ -595,35 +633,6 @@ function Students() {
                 nhanLop={(l) => (l.so_ca_chuyen_can ? `${l.so_ca_chuyen_can} ca` : "chưa có ca")}
                 mau="green"
               />
-            </details>
-
-            {/* 4. Tiến độ học tập theo lộ trình — đóng mở; buổi đã dạy thực tế / tổng buổi */}
-            <details className="card fold">
-              <summary><h3>Tiến độ học tập theo lộ trình</h3><span className="small muted">Buổi đã dạy theo lịch báo giảng / tổng buổi</span></summary>
-              <TheoNhomMoRong
-                nhom={theoNhom}
-                giaTri={(n) => n.loTrinh}
-                giaTriLop={(l) => (l.tong_buoi ? Math.min(100, Math.round((l.buoi_da_hoc / l.tong_buoi) * 1000) / 10) : null)}
-                nhanLop={(l) => `${l.buoi_da_hoc}/${l.tong_buoi || "?"} buổi`}
-              />
-            </details>
-
-            {/* 5. Hoạt động tháng — đóng mở; lấy từ Lịch làm việc mảng Học sinh - Lớp học */}
-            <details className="card fold">
-              <summary><h3>Hoạt động tháng {thang}/{nam}</h3><span className="small muted">Từ Lịch làm việc · {hoatDong.length} việc</span></summary>
-              <div className="list">
-                {hoatDong.length ? hoatDong.map((h) => (
-                  <div className="li" key={h.id}>
-                    <div className="ico-sm" style={{ background: "var(--primary-soft)", color: "var(--primary)" }}>📅</div>
-                    <div className="li-body">
-                      <div className="li-title">{h.title}</div>
-                      <div className="li-sub">{h.event_date ? new Date(h.event_date).toLocaleDateString("vi-VN") : ""}{h.assigned_to?.name ? ` · ${h.assigned_to.name}` : ""}</div>
-                    </div>
-                    <span className={`badge ${TRANG_THAI_VIEC[h.status]?.cls || "gray"}`}>{TRANG_THAI_VIEC[h.status]?.label || h.status}</span>
-                  </div>
-                )) : <div className="small muted">Tháng này chưa có việc nào ở mảng Học sinh - Lớp học trên Lịch làm việc.</div>}
-              </div>
-              <button type="button" className="btn ghost sm mt12" onClick={() => navigate("/calendar-detail")}>Mở Lịch làm việc →</button>
             </details>
 
             {/* 6. Tổng quan lớp học — thay cho danh sách học viên + bảng kết quả cũ */}
