@@ -89,9 +89,20 @@ export default function CauHinhLuong({ teacherId, onDong, onDaLuu }) {
       const { id, teacher, employment_type, position, base_salary, class_revenue_share_percent,
         rate_per_session, insurance_salary, student_management_rate, allowance } = f;
       const [loaiNs, idNs] = String(teacher || "").split(":");
+      const ns = dsGv.find((x) => `${x.loai}:${x.id}` === teacher);
+      let xacNhanTrung = false;
+      if (moi && ns?.trung_voi) {
+        // eslint-disable-next-line no-alert
+        xacNhanTrung = window.confirm(
+          `“${ns.ten}” trùng tên với ${ns.trung_voi} đã có trong bảng lương.\n`
+          + "Nếu đây là tài khoản thứ hai của CÙNG một người thì bấm Huỷ — thêm vào sẽ tính lương 2 lần.\n"
+          + "Bấm OK chỉ khi đây là người khác.",
+        );
+        if (!xacNhanTrung) { setDang(false); return; }
+      }
       const luu = moi ? themNhanSuLuong : (payload) => luuCauHinhLuong(id, payload);
       await luu({
-        ...(moi ? { [loaiNs]: Number(idNs) } : {}),
+        ...(moi ? { [loaiNs]: Number(idNs), ...(xacNhanTrung ? { xac_nhan_trung: true } : {}) } : {}),
         employment_type, position, class_revenue_share_percent: Number(class_revenue_share_percent) || 0,
         base_salary: nuocNgoai ? 0 : Number(base_salary) || 0, rate_per_session: Number(rate_per_session) || 0,
         insurance_salary: Number(insurance_salary) || 0, student_management_rate: Number(student_management_rate) || 0,
@@ -106,7 +117,7 @@ export default function CauHinhLuong({ teacherId, onDong, onDaLuu }) {
   };
 
   const VAI = { center_manager: "QL cơ sở", training_manager: "QL đào tạo", teacher: "Giáo viên", accountant: "Kế toán", admin: "Admin", staff: "Nhân viên" };
-  const tenNs = (t) => `${t.ten}${t.vai ? ` · ${VAI[t.vai] || t.vai}` : ""}${t.email ? ` · ${t.email}` : ""}`;
+  const tenNs = (t) => `${t.trung_voi ? "⚠ " : ""}${t.ten}${t.vai ? ` · ${VAI[t.vai] || t.vai}` : ""}${t.email ? ` · ${t.email}` : ""}${t.trung_voi ? ` — TRÙNG TÊN với ${t.trung_voi} đã có lương` : ""}`;
 
   return (
     <Modal
