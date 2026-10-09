@@ -3,7 +3,7 @@ import { loiApi } from "../../services/financeService";
 import { listStudents, listTeachers } from "../../services/calendarService";
 import {
   duyetCong, duyetDiemDanhHs, ganNguoiMay, layCongChoDuyet, layDiemDanhHsChoDuyet, layNguoiTrenMay,
-  layNhanSuChuaCoLuong, nhapDiemDanhHs, taiMauDiemDanhHs,
+  layNhanSuChuaCoLuong, nhapDiemDanhHs, nhapSoDiemDanh, taiMauDiemDanhHs,
 } from "../../services/payrollService";
 import { Button, Card, CardHead, Table } from "./v3/ui";
 import { color } from "./v3/theme";
@@ -339,6 +339,90 @@ export function DiemDanhHsBoSung({ thang, nam, coTheNhap, duocDuyet, onXong }) {
             {duocDuyet ? <div><Button disabled={!!dang} onClick={() => quyet("approve")}>Duyệt tất cả</Button></div>
               : <div style={{ fontSize: 13, color: color.muted }}>Chờ quản lý hoặc super admin duyệt.</div>}
           </>
+        ) : null}
+        {loi ? <div style={{ color: color.red, fontSize: 13.5 }}>{loi}</div> : null}
+      </div>
+    </Card>
+  );
+}
+
+/**
+ * Nhập SỔ ĐIỂM DANH GỐC của trung tâm (mỗi lớp một sheet, cột = ca có ngày + tên GV,
+ * ô 1/0/mp/tl). Quản lý đã điểm danh nên ghi thẳng thành điểm danh của ca. Xem
+ * trước trước khi ghi: ca nào CRM chưa có, em nào không khớp, GV nào khác lịch.
+ */
+export function SoDiemDanhGoc({ thang, nam, onXong }) {
+  const [tep, setTep] = useState(null);
+  const [xem, setXem] = useState(null);
+  const [dang, setDang] = useState("");
+  const [loi, setLoi] = useState("");
+  const [moCanhBao, setMoCanhBao] = useState(false);
+
+  const chon = async (f) => {
+    setTep(f);
+    setXem(null);
+    setLoi("");
+    if (!f) return;
+    setDang("xem");
+    try {
+      setXem(await nhapSoDiemDanh(f, { thang, nam }));
+    } catch (e) {
+      setLoi(loiApi(e, "Không đọc được sổ điểm danh."));
+    } finally {
+      setDang("");
+    }
+  };
+  const ghi = async () => {
+    setDang("ghi");
+    try {
+      const kq = await nhapSoDiemDanh(tep, { thang, nam, ghi: true });
+      setXem(null);
+      setTep(null);
+      onXong?.(`Đã ghi ${kq.so_luot} lượt điểm danh (${kq.co_mat} có mặt) từ sổ điểm danh tháng ${thang}/${nam}.`);
+    } catch (e) {
+      setLoi(loiApi(e, "Không ghi được."));
+    } finally {
+      setDang("");
+    }
+  };
+
+  return (
+    <Card>
+      <CardHead
+        title="Nhập sổ điểm danh gốc (theo ca dạy)"
+        sub={`File sổ điểm danh trung tâm đang dùng: mỗi lớp một sheet, cột là từng ca (ngày + giáo viên), ô 1 = có mặt, 0 = vắng, mp = có phép. Ghi vào tháng ${thang}/${nam}; ghi đè điểm danh máy / tay của cùng ca.`}
+      />
+      <div style={{ padding: "14px 22px 18px", display: "grid", gap: 12 }}>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <input type="file" accept=".xlsx" onChange={(e) => chon(e.target.files?.[0] || null)} />
+          {dang === "xem" ? <span style={{ color: color.muted, fontSize: 13 }}>Đang đọc sổ...</span> : null}
+        </div>
+        {xem ? (
+          <div style={{ display: "grid", gap: 10, fontSize: 13.5 }}>
+            <div>Xem trước: <b>{xem.so_luot}</b> lượt điểm danh (<b>{xem.co_mat}</b> có mặt) của {xem.theo_lop.length} lớp. Chưa ghi gì.</div>
+            <Table
+              columns={["Sheet", "Lớp CRM", "Ca ghép được", "Lượt", "Có mặt"]}
+              align={{ 2: "right", 3: "right", 4: "right" }}
+              rows={xem.theo_lop.map((l) => [l.sheet, <b key="l">{l.lop}</b>, l.so_ca, l.so_luot, l.co_mat])}
+            />
+            {xem.canh_bao?.length ? (
+              <div>
+                <button type="button" onClick={() => setMoCanhBao((v) => !v)}
+                        style={{ border: 0, background: "none", color: color.orange, fontWeight: 700, cursor: "pointer", padding: 0 }}>
+                  {moCanhBao ? "▾" : "▸"} {xem.canh_bao.length} điểm cần xem (ca CRM chưa có, em không khớp, GV khác lịch…)
+                </button>
+                {moCanhBao ? (
+                  <ul style={{ margin: "6px 0 0", paddingLeft: 18, fontSize: 12.5, display: "grid", gap: 2, maxHeight: 280, overflowY: "auto" }}>
+                    {xem.canh_bao.map((c, i) => <li key={i}>{c}</li>)}
+                  </ul>
+                ) : null}
+              </div>
+            ) : null}
+            <div style={{ display: "flex", gap: 10 }}>
+              <Button disabled={!xem.so_luot || dang === "ghi"} onClick={ghi}>{dang === "ghi" ? "Đang ghi..." : "Ghi vào CRM"}</Button>
+              <Button variant="ghost" onClick={() => chon(null)}>Huỷ</Button>
+            </div>
+          </div>
         ) : null}
         {loi ? <div style={{ color: color.red, fontSize: 13.5 }}>{loi}</div> : null}
       </div>
