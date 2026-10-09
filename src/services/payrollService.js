@@ -87,7 +87,8 @@ export async function layNguoiTrenMay() {
 
 /** Gán một mã máy (loai: teacher | user | student | null = bỏ gán) hoặc { tat_ca_chac_chan: true }. */
 export async function ganNguoiMay(payload) {
-  const { data } = await apiClient.post("/payroll/may-cham-cong/gan/", payload);
+  // Gán hàng loạt nối lại hàng nghìn lượt quẹt cũ: mặc định 15 giây là không đủ.
+  const { data } = await apiClient.post("/payroll/may-cham-cong/gan/", payload, { timeout: 180000 });
   return data;
 }
 
