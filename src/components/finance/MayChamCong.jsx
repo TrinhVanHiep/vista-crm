@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { loiApi } from "../../services/financeService";
 import { listStudents, listTeachers } from "../../services/calendarService";
-import { duyetCong, ganNguoiMay, layCongChoDuyet, layNguoiTrenMay, layNhanSuChuaCoLuong } from "../../services/payrollService";
+import {
+  duyetCong, duyetDiemDanhHs, ganNguoiMay, layCongChoDuyet, layDiemDanhHsChoDuyet, layNguoiTrenMay,
+  layNhanSuChuaCoLuong, nhapDiemDanhHs, taiMauDiemDanhHs,
+} from "../../services/payrollService";
 import { Button, Card, CardHead, Table } from "./v3/ui";
 import { color } from "./v3/theme";
 
@@ -224,6 +227,119 @@ export function DuyetCongBoSung({ thang, nam, duocDuyet, taiLai, onDaDuyet }) {
         {duocDuyet ? (
           <div><Button disabled={dang} onClick={() => quyet("approve")}>Duyệt tất cả</Button></div>
         ) : <div style={{ fontSize: 13, color: color.muted }}>Chờ quản lý hoặc super admin duyệt.</div>}
+        {loi ? <div style={{ color: color.red, fontSize: 13.5 }}>{loi}</div> : null}
+      </div>
+    </Card>
+  );
+}
+
+/**
+ * Điểm danh HỌC SINH bổ sung từ file (hôm máy chấm công lỗi / mất mạng / mất điện).
+ * Mẫu theo lớp: mỗi sheet một lớp, cột là các ngày lớp có ca. Tải lên -> chờ quản
+ * lý hoặc super admin duyệt -> mới tính chuyên cần và lương dạy.
+ */
+export function DiemDanhHsBoSung({ thang, nam, coTheNhap, duocDuyet, onXong }) {
+  const [tep, setTep] = useState(null);
+  const [xem, setXem] = useState(null);
+  const [cho, setCho] = useState([]);
+  const [dang, setDang] = useState("");
+  const [loi, setLoi] = useState("");
+  const [khoa, setKhoa] = useState(0);
+
+  useEffect(() => {
+    layDiemDanhHsChoDuyet({ thang, nam }).then(setCho).catch(() => setCho([]));
+  }, [thang, nam, khoa]);
+
+  const chon = async (f) => {
+    setTep(f);
+    setXem(null);
+    setLoi("");
+    if (!f) return;
+    setDang("xem");
+    try {
+      setXem(await nhapDiemDanhHs(f, { thang, nam }));
+    } catch (e) {
+      setLoi(loiApi(e, "Không đọc được file."));
+    } finally {
+      setDang("");
+    }
+  };
+  const ghi = async () => {
+    setDang("ghi");
+    try {
+      const kq = await nhapDiemDanhHs(tep, { thang, nam, ghi: true });
+      setXem(null);
+      setTep(null);
+      setKhoa((k) => k + 1);
+      onXong?.(`Đã gửi ${kq.so_luot} lượt điểm danh bổ sung — chờ quản lý hoặc super admin duyệt.`);
+    } catch (e) {
+      setLoi(loiApi(e, "Không ghi được."));
+    } finally {
+      setDang("");
+    }
+  };
+  const quyet = async (qd, ids) => {
+    setDang("duyet");
+    setLoi("");
+    try {
+      const kq = await duyetDiemDanhHs({ thang, nam }, qd, ids);
+      setKhoa((k) => k + 1);
+      onXong?.(`${qd === "approve" ? "Đã duyệt" : "Đã từ chối"} ${kq.so_luot} lượt điểm danh bổ sung.`);
+    } catch (e) {
+      setLoi(loiApi(e, "Không duyệt được."));
+    } finally {
+      setDang("");
+    }
+  };
+
+  if (!coTheNhap && !cho.length) return null;
+  return (
+    <Card>
+      <CardHead
+        title="Điểm danh học sinh bổ sung"
+        sub={`Cho những hôm máy chấm công lỗi / mất mạng / mất điện trong tháng ${thang}/${nam}. X = có mặt. Phải được quản lý hoặc super admin duyệt mới tính chuyên cần và lương dạy.`}
+      />
+      <div style={{ padding: "14px 22px 18px", display: "grid", gap: 12 }}>
+        {coTheNhap ? (
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+            <Button variant="ghost" onClick={() => taiMauDiemDanhHs({ thang, nam }).catch((e) => setLoi(loiApi(e, "Không tải được mẫu.")))}>
+              Tải mẫu theo lớp tháng {thang}
+            </Button>
+            <input type="file" accept=".xlsx" onChange={(e) => chon(e.target.files?.[0] || null)} />
+            {dang === "xem" ? <span style={{ color: color.muted, fontSize: 13 }}>Đang đọc...</span> : null}
+          </div>
+        ) : null}
+        {xem ? (
+          <div style={{ display: "grid", gap: 8, fontSize: 13.5 }}>
+            <div>Xem trước: <b>{xem.so_luot}</b> lượt có mặt — {xem.theo_lop.filter((x) => x.so_luot).map((x) => `${x.lop}: ${x.so_luot}`).join(" · ") || "không có ô X nào"}. Chưa ghi gì.</div>
+            {xem.loi?.length ? (
+              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: color.red }}>{xem.loi.map((l) => <li key={l}>{l}</li>)}</ul>
+            ) : null}
+            <div style={{ display: "flex", gap: 10 }}>
+              <Button disabled={!xem.so_luot || dang === "ghi"} onClick={ghi}>{dang === "ghi" ? "Đang gửi..." : "Gửi duyệt"}</Button>
+              <Button variant="ghost" onClick={() => chon(null)}>Huỷ</Button>
+            </div>
+          </div>
+        ) : null}
+        {cho.length ? (
+          <>
+            <div style={{ fontWeight: 700, fontSize: 13.5 }}>Đang chờ duyệt</div>
+            <Table
+              columns={["Lớp", "Số lượt có mặt", "Các ngày", ...(duocDuyet ? [""] : [])]}
+              rows={cho.map((c) => [
+                <b key="l">{c.lop}</b>, c.so_luot, c.ngay.join(", "),
+                ...(duocDuyet ? [
+                  <div key="b" style={{ display: "flex", gap: 6 }}>
+                    <Button disabled={!!dang} onClick={() => quyet("approve", [c.lop_id])}>Duyệt</Button>
+                    <Button variant="ghost" disabled={!!dang} onClick={() => quyet("reject", [c.lop_id])}>Từ chối</Button>
+                  </div>,
+                ] : []),
+              ])}
+            />
+            {duocDuyet ? <div><Button disabled={!!dang} onClick={() => quyet("approve")}>Duyệt tất cả</Button></div>
+              : <div style={{ fontSize: 13, color: color.muted }}>Chờ quản lý hoặc super admin duyệt.</div>}
+          </>
+        ) : null}
         {loi ? <div style={{ color: color.red, fontSize: 13.5 }}>{loi}</div> : null}
       </div>
     </Card>

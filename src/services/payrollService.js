@@ -115,3 +115,38 @@ export async function themNhanSuLuong(payload) {
   const { data } = await apiClient.post("/payroll/nhan-su-luong/", payload);
   return data;
 }
+
+/** Điểm danh học sinh bổ sung (hôm máy lỗi): mẫu theo lớp, nhập, duyệt. */
+export async function taiMauDiemDanhHs({ thang, nam }) {
+  const res = await apiClient.get("/payroll/diem-danh-hs/mau/", { responseType: "blob", params: { month: thang, year: nam } });
+  const url = URL.createObjectURL(new Blob([res.data]));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `Diem-danh-bo-sung-${String(thang).padStart(2, "0")}-${nam}.xlsx`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
+export async function nhapDiemDanhHs(tep, { thang, nam, ghi = false }) {
+  const fd = new FormData();
+  fd.append("file", tep);
+  fd.append("month", thang);
+  fd.append("year", nam);
+  if (ghi) fd.append("ghi", "1");
+  const { data } = await apiClient.post("/payroll/diem-danh-hs/nhap/", fd);
+  return data;
+}
+
+export async function layDiemDanhHsChoDuyet({ thang, nam }) {
+  const { data } = await apiClient.get("/payroll/diem-danh-hs/duyet/", { params: { month: thang, year: nam } });
+  return Array.isArray(data) ? data : [];
+}
+
+export async function duyetDiemDanhHs({ thang, nam }, quyetDinh, lopIds) {
+  const { data } = await apiClient.post("/payroll/diem-danh-hs/duyet/", {
+    month: thang, year: nam, quyet_dinh: quyetDinh, lop_ids: lopIds,
+  });
+  return data;
+}

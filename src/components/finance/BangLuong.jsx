@@ -4,7 +4,7 @@ import { layBangLuong, layCoCauLuong, nhapChamCong, taiMauChamCong } from "../..
 import { Button, Card, CardHead, NoteStrip, Num, Pill, StatCard, Table } from "./v3/ui";
 import { DonGiaTheoLop, HopDieuChinhThang } from "./DieuChinhLuong";
 import CauHinhLuong from "./CauHinhLuong";
-import { DuyetCongBoSung, GanNguoiChamCong } from "./MayChamCong";
+import { DiemDanhHsBoSung, DuyetCongBoSung, GanNguoiChamCong } from "./MayChamCong";
 import { VAI_QUAN_TRI } from "../../auth/permissions";
 
 const vaiHienTai = () => {
@@ -308,6 +308,14 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
           )}
         </div>
       </Card>
+
+      <DiemDanhHsBoSung
+        thang={thang}
+        nam={nam}
+        coTheNhap={coTheGhi || laQuanTri}
+        duocDuyet={laQuanTri}
+        onXong={(tb) => { onNotice?.(tb); setTaiLai((v) => v + 1); }}
+      />
 
       {coTheGhi || laQuanTri ? (
         <GanNguoiChamCong onDaGan={(tb) => { onNotice?.(tb); setTaiLai((v) => v + 1); }} />
