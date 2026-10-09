@@ -1,5 +1,6 @@
 import BulkImportModal from "../components/bulk/BulkImportModal";
 import { VAI_QUAN_TRI } from "../auth/permissions";
+import DanhSachHocVien from "../components/students/DanhSachHocVien";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -72,6 +73,106 @@ const rutGon = (v) => {
   if (Math.abs(n) >= 1e6) return `${vnPct(Math.round(n / 1e5) / 10)} tr`;
   return fmt(n);
 };
+
+/** "↑ +18 so với T9" — xanh khi tăng, đỏ khi giảm. */
+const soSanh = (chenh, sau, donVi = "") => {
+  if (chenh == null || Number.isNaN(chenh)) return null;
+  const tang = chenh >= 0;
+  return (
+    <span className="small" style={{ color: tang ? "var(--success)" : "var(--danger)", fontWeight: 700 }}>
+      {tang ? "↑" : "↓"} {tang ? "+" : ""}{vnPct(chenh)}{donVi} <span className="muted" style={{ fontWeight: 400 }}>{sau}</span>
+    </span>
+  );
+};
+
+const MAU_VONG = ["#F26522", "#C0392B", "#2E9E5B", "#3B82F6", "#8B5CF6", "#D9822B"];
+
+/** Vòng tròn có tổng ở giữa + chú thích (cấp học, chương trình). */
+function VongTron({ rows, tong }) {
+  const t = rows.reduce((a, r) => a + (r.so || 0), 0) || 1;
+  const size = 130, day = 22, r = (size - day) / 2, c = size / 2, chuVi = 2 * Math.PI * r;
+  let lech = 0;
+  return (
+    <div style={{ display: "grid", justifyItems: "center", gap: 10 }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <circle cx={c} cy={c} r={r} fill="none" stroke="#EFE7DB" strokeWidth={day} />
+        {rows.map((x, i) => {
+          const dai = ((x.so || 0) / t) * chuVi;
+          const el = (
+            <circle key={x.ten} cx={c} cy={c} r={r} fill="none" stroke={MAU_VONG[i % MAU_VONG.length]} strokeWidth={day}
+              strokeDasharray={`${dai} ${chuVi - dai}`} strokeDashoffset={-lech} transform={`rotate(-90 ${c} ${c})`} />
+          );
+          lech += dai;
+          return el;
+        })}
+        <text x={c} y={c} textAnchor="middle" fontSize="22" fontWeight="800" fill="#43301F">{fmt(tong ?? t)}</text>
+        <text x={c} y={c + 16} textAnchor="middle" fontSize="10.5" fill="#8a7a66">học sinh</text>
+      </svg>
+      <div style={{ width: "100%" }}>
+        {rows.map((x, i) => (
+          <div key={x.ten} className="flex-between small" style={{ marginBottom: 3 }}>
+            <span><i style={{ display: "inline-block", width: 9, height: 9, borderRadius: 2, background: MAU_VONG[i % MAU_VONG.length], marginRight: 6 }} />{x.ten}</span>
+            <b>{fmt(x.so)} ({vnPct(pct1(x.so || 0, t))}%)</b>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Học sinh vào / ra theo tháng: hai cột + đường biến động ròng. */
+function BieuDoVaoRa({ rows }) {
+  if (!rows.length) return <div className="small muted">Chưa có dữ liệu.</div>;
+  const W = 360, H = 150, dem = 22, cot = (W - dem) / rows.length;
+  const max = Math.max(1, ...rows.flatMap((r) => [r.vao, r.ra, Math.abs(r.vao - r.ra)]));
+  const y = (v) => H - 18 - (v / max) * (H - 34);
+  const diem = rows.map((r, i) => `${dem + i * cot + cot / 2},${y(Math.max(0, r.vao - r.ra))}`).join(" ");
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto" }}>
+      {rows.map((r, i) => {
+        const x0 = dem + i * cot + cot * 0.18;
+        const w = cot * 0.3;
+        return (
+          <g key={`${r.nam}-${r.thang}`}>
+            <rect x={x0} y={y(r.vao)} width={w} height={H - 18 - y(r.vao)} rx="3" fill="#F26522"><title>{`Vào: ${r.vao}`}</title></rect>
+            <rect x={x0 + w + 2} y={y(r.ra)} width={w} height={H - 18 - y(r.ra)} rx="3" fill="#F8C9A8"><title>{`Ra: ${r.ra}`}</title></rect>
+            <text x={dem + i * cot + cot / 2} y={H - 4} textAnchor="middle" fontSize="10" fill="#8a7a66">T{r.thang}</text>
+          </g>
+        );
+      })}
+      <polyline points={diem} fill="none" stroke="#C0392B" strokeWidth="2" />
+      {rows.map((r, i) => <circle key={i} cx={dem + i * cot + cot / 2} cy={y(Math.max(0, r.vao - r.ra))} r="3.5" fill="#C0392B" />)}
+      <g fontSize="10" fill="#8a7a66">
+        <rect x={dem} y="2" width="9" height="9" fill="#F26522" /><text x={dem + 13} y="10">Vào</text>
+        <rect x={dem + 48} y="2" width="9" height="9" fill="#F8C9A8" /><text x={dem + 61} y="10">Ra</text>
+        <line x1={dem + 92} y1="6" x2={dem + 108} y2="6" stroke="#C0392B" strokeWidth="2" /><text x={dem + 112} y="10">Biến động ròng</text>
+      </g>
+    </svg>
+  );
+}
+
+/** Sĩ số từng lớp (cam) cạnh sức chứa tối đa (cam nhạt, nếu lớp có khai). */
+function SiSoCacLop({ rows }) {
+  if (!rows.length) return <div className="small muted">Chưa có lớp.</div>;
+  const max = Math.max(1, ...rows.map((r) => Math.max(r.si_so, r.max_students || 0)));
+  const cao = 130;
+  return (
+    <div style={{ overflowX: "auto" }}>
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 8, minWidth: rows.length * 40, height: cao + 40 }}>
+        {rows.map((r) => (
+          <div key={r.id} style={{ flex: "1 0 32px", textAlign: "center" }} title={`${r.class_code || r.name}: ${r.si_so}${r.max_students ? `/${r.max_students}` : ""} HS`}>
+            <div className="small" style={{ fontSize: 10.5, fontWeight: 800 }}>{r.si_so}</div>
+            <div style={{ position: "relative", height: cao, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+              {r.max_students ? <div style={{ position: "absolute", bottom: 0, width: "70%", height: `${(r.max_students / max) * cao}px`, background: "#F8D2B8", borderRadius: "5px 5px 0 0" }} /> : null}
+              <div style={{ position: "relative", width: "48%", height: `${(r.si_so / max) * cao}px`, background: "#F26522", borderRadius: "5px 5px 0 0" }} />
+            </div>
+            <div className="small muted" style={{ fontSize: 10, marginTop: 3, whiteSpace: "nowrap" }}>{r.class_code || r.name}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 /** Thanh ngang: tên · thanh · số (dùng cho cấp học, chương trình, khu vực, xếp loại). */
 function ThanhNgang({ rows, donVi = "" }) {
@@ -154,7 +255,9 @@ function Kpi({ ico, icoClass, label, value, trend, demo, onClick, active }) {
           {demo ? <span className="badge gray" style={{ marginLeft: 6, padding: "1px 7px", fontSize: 9 }}>Demo</span> : null}
         </div>
         <div className="kpi-value">{value}</div>
-        {trend ? <span className={onClick ? "small muted" : "trend up"}>{onClick ? trend : `▲ ${trend}`}</span> : null}
+        {trend == null || trend === "" ? null
+          : typeof trend === "string" ? <span className="small muted">{trend}</span>
+            : trend}
       </div>
     </div>
   );
@@ -200,10 +303,14 @@ function Students() {
   const [tq, setTq] = useState(null); // /classrooms/classrooms/tong-quan/
   const [hoatDong, setHoatDong] = useState([]);
   const [moTienDo, setMoTienDo] = useState(false);
+  const [tab, setTab] = useState("tq"); // tq = Tổng quan phân tích, ds = Danh sách & Quản lý
+  const [nhomLoc, setNhomLoc] = useState("");
+  const [trangThaiLoc, setTrangThaiLoc] = useState("");
   const [aggLoading, setAggLoading] = useState(true);
   const homNay = new Date();
   const thang = homNay.getMonth() + 1;
   const nam = homNay.getFullYear();
+  const thangTruoc = thang === 1 ? 12 : thang - 1;
 
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
@@ -385,8 +492,13 @@ function Students() {
 
   const lopLoc = useMemo(() => {
     const q = search.toLowerCase();
-    return lopDong.filter((l) => !q || `${l.name || ""} ${l.class_code || ""} ${l.program_name || ""}`.toLowerCase().includes(q));
-  }, [lopDong, search]);
+    return lopDong.filter((l) => (!q || `${l.name || ""} ${l.class_code || ""} ${l.program_name || ""}`.toLowerCase().includes(q))
+      && (!trangThaiLoc || l.status === trangThaiLoc));
+  }, [lopDong, search, trangThaiLoc]);
+  const lopTheoNhom = useMemo(
+    () => lopDong.filter((l) => l.status === "active" && (!nhomLoc || (l.nhom || "khac") === nhomLoc)),
+    [lopDong, nhomLoc],
+  );
 
   const submitCreate = async (e) => {
     e.preventDefault();
@@ -514,10 +626,14 @@ function Students() {
             <div className="flex-between" style={{ alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
               <div>
                 <h1>Học sinh - Lớp học</h1>
-                <p>Quản lý sĩ số, chuyên cần, tiến độ học tập và kết quả đào tạo toàn trung tâm</p>
+                <p>Quản trị đào tạo • Student &amp; Class Management</p>
+                <div className="flex" style={{ gap: 8, marginTop: 12 }}>
+                  <button type="button" className={`btn ${tab === "tq" ? "primary" : "ghost"}`} onClick={() => setTab("tq")}>Tổng quan phân tích</button>
+                  <button type="button" className={`btn ${tab === "ds" ? "primary" : "ghost"}`} onClick={() => setTab("ds")}>Danh sách &amp; Quản lý</button>
+                </div>
               </div>
               <div className="flex" style={{ gap: 8, flexWrap: "wrap" }}>
-                <button type="button" className="btn ghost" onClick={() => navigate("/chuong-trinh")}>📚 Chi tiết theo chương trình →</button>
+                <button type="button" className="btn ghost" onClick={() => navigate("/chuong-trinh")}>📊 Chi tiết theo chương trình</button>
                 {canManage ? (
                   <>
                     <button type="button" className="btn ghost" onClick={() => navigate("/quan-ly-lop")}>⚙️ Quản lý lớp</button>
@@ -537,110 +653,123 @@ function Students() {
             </div>
           ) : null}
 
-          {/* KPI row — toàn số thật (08/10/2026: bỏ các ô demo "File đã nhập/xuất"…). */}
-          <div className="kpi-grid">
-            <Kpi ico="👥" icoClass="orange" label="Tổng sĩ số" value={fmt(tq?.tong_si_so ?? totalStudents)} />
-            <Kpi ico="🏫" icoClass="orange" label="Lớp đang hoạt động" value={fmt(activeClasses)} />
-            <Kpi ico="✅" icoClass="green" label={`Chuyên cần T${thang}`} value={tq?.chuyen_can != null ? `${vnPct(tq.chuyen_can)}%` : "—"} />
-            <Kpi ico="📈" icoClass="orange" label="Hoàn thành lộ trình" value={loTrinhChung != null ? `${vnPct(loTrinhChung)}%` : "—"} />
-            {tongNo != null ? <Kpi ico="💰" icoClass="blue" label="Học phí phải thu" value={rutGon(tongNo)} /> : null}
-            {/* Ô bấm đóng / mở bảng tiến độ lộ trình + hoạt động tháng (08/10/2026). */}
+          {tab === "ds" ? (
+            <DanhSachHocVien
+              lops={classes}
+              coQuyenChoNghi={["superadmin", "admin", "center_manager"].includes(role)}
+              onNotice={setNotice}
+            />
+          ) : (
+          <>
+          {/* KPI — theo mẫu thiết kế 09/10/2026, có so với tháng trước. */}
+          <div className="kpi-grid hs-kpi">
+            <Kpi ico="👥" icoClass="orange" label="Tổng số HS" value={fmt(tq?.tong_si_so ?? totalStudents)}
+              trend={tq ? soSanh(tq.tong_si_so - tq.tong_si_so_truoc, `so với T${thangTruoc}`) : null} />
+            <Kpi ico="🏫" icoClass="orange" label="Lớp đang hoạt động" value={fmt(activeClasses)}
+              trend={`/ ${fmt(classes.length)} lớp trên hệ thống`} />
+            <Kpi ico="✅" icoClass="green" label={`Chuyên cần T${thang}`} value={tq?.chuyen_can != null ? `${vnPct(tq.chuyen_can)}%` : "—"}
+              trend={tq?.chuyen_can != null && tq?.chuyen_can_truoc != null
+                ? soSanh(Math.round((tq.chuyen_can - tq.chuyen_can_truoc) * 10) / 10, `so với T${thangTruoc}`, "%") : null} />
+            <Kpi ico="📊" icoClass="blue" label="Biến động HS" value={tq ? `+${tq.vao_thang} / -${tq.ra_thang}` : "—"} trend="HS vào / HS ra" />
+            {tongNo != null ? <Kpi ico="💰" icoClass="yellow" label="Học phí phải thu" value={rutGon(tongNo)} trend={`${lopDong.filter((l) => l.hoc_phi_phai_thu > 0).length} lớp còn nợ`} /> : null}
             <Kpi
-              ico="🗓️" icoClass="yellow" label="Tiến độ & hoạt động tháng"
-              value={`${hoatDong.length} việc`}
-              trend={moTienDo ? "▾ Bấm để đóng" : "▸ Bấm để xem"}
+              ico="🗓️" icoClass="orange" label="Công việc cần theo dõi" value={`${tq?.viec_can_theo_doi ?? hoatDong.length} việc`}
+              trend={moTienDo ? "▾ Bấm để đóng" : "▸ Tiến độ & hoạt động tháng"}
               onClick={() => setMoTienDo((v) => !v)} active={moTienDo}
             />
           </div>
 
-          <div className="stack">
-            {/* Bảng tiến độ lộ trình + hoạt động tháng — chỉ hiện khi bấm ô KPI
-                "Tiến độ & hoạt động tháng" ở dải trên. */}
-            {moTienDo ? (
-            <div className="card">
+          {moTienDo ? (
+            <div className="card" style={{ marginBottom: 14 }}>
               <div className="card-head">
                 <h3>Tiến độ lộ trình &amp; hoạt động tháng {thang}/{nam}</h3>
+                <span className="small muted">Hoàn thành lộ trình chung: {loTrinhChung != null ? `${vnPct(loTrinhChung)}%` : "—"}</span>
                 <button type="button" className="btn ghost sm" onClick={() => setMoTienDo(false)}>Đóng ✕</button>
               </div>
               <div className="grid c2">
                 <div>
                   <div className="small muted bold mb12">Tiến độ theo lộ trình — buổi đã dạy theo lịch báo giảng / tổng buổi</div>
                   <TheoNhomMoRong
-                nhom={theoNhom}
-                giaTri={(n) => n.loTrinh}
-                giaTriLop={(l) => (l.tong_buoi ? Math.min(100, Math.round((l.buoi_da_hoc / l.tong_buoi) * 1000) / 10) : null)}
-                nhanLop={(l) => `${l.buoi_da_hoc}/${l.tong_buoi || "?"} buổi`}
-              />
+                    nhom={theoNhom}
+                    giaTri={(n) => n.loTrinh}
+                    giaTriLop={(l) => (l.tong_buoi ? Math.min(100, Math.round((l.buoi_da_hoc / l.tong_buoi) * 1000) / 10) : null)}
+                    nhanLop={(l) => `${l.buoi_da_hoc}/${l.tong_buoi || "?"} buổi`}
+                  />
                 </div>
                 <div>
                   <div className="small muted bold mb12">Hoạt động tháng — từ Lịch làm việc</div>
                   <div className="list">
-                {hoatDong.length ? hoatDong.map((h) => (
-                  <div className="li" key={h.id}>
-                    <div className="ico-sm" style={{ background: "var(--primary-soft)", color: "var(--primary)" }}>📅</div>
-                    <div className="li-body">
-                      <div className="li-title">{h.title}</div>
-                      <div className="li-sub">{h.event_date ? new Date(h.event_date).toLocaleDateString("vi-VN") : ""}{h.assigned_to?.name ? ` · ${h.assigned_to.name}` : ""}</div>
-                    </div>
-                    <span className={`badge ${TRANG_THAI_VIEC[h.status]?.cls || "gray"}`}>{TRANG_THAI_VIEC[h.status]?.label || h.status}</span>
+                    {hoatDong.length ? hoatDong.map((h) => (
+                      <div className="li" key={h.id}>
+                        <div className="ico-sm" style={{ background: "var(--primary-soft)", color: "var(--primary)" }}>📅</div>
+                        <div className="li-body">
+                          <div className="li-title">{h.title}</div>
+                          <div className="li-sub">{h.event_date ? new Date(h.event_date).toLocaleDateString("vi-VN") : ""}{h.assigned_to?.name ? ` · ${h.assigned_to.name}` : ""}</div>
+                        </div>
+                        <span className={`badge ${TRANG_THAI_VIEC[h.status]?.cls || "gray"}`}>{TRANG_THAI_VIEC[h.status]?.label || h.status}</span>
+                      </div>
+                    )) : <div className="small muted">Tháng này chưa có việc nào ở mảng Học sinh - Lớp học trên Lịch làm việc.</div>}
                   </div>
-                )) : <div className="small muted">Tháng này chưa có việc nào ở mảng Học sinh - Lớp học trên Lịch làm việc.</div>}
-              </div>
-              <button type="button" className="btn ghost sm mt12" onClick={() => navigate("/calendar-detail")}>Mở Lịch làm việc →</button>
+                  <button type="button" className="btn ghost sm mt12" onClick={() => navigate("/calendar-detail")}>Mở Lịch làm việc →</button>
                 </div>
               </div>
             </div>
+          ) : null}
+
+          {/* Hàng biểu đồ 1 + cột "Cần theo dõi" bên phải */}
+          <div className="hs-grid">
+            <div className="card hs-a">
+              <div className="card-head"><h3>Biến động học sinh vào / ra</h3><span className="small muted">6 tháng gần nhất</span></div>
+              <BieuDoVaoRa rows={tq?.bien_dong || []} />
+              <div className="small muted" style={{ marginTop: 6 }}>Vào = hồ sơ mới tạo trong tháng (kể cả đợt nhập file) · Ra = ngày cho nghỉ.</div>
+            </div>
+            <div className="card hs-b">
+              <div className="card-head"><h3>Phân tích theo cấp học</h3></div>
+              <VongTron tong={tq?.tong_si_so} rows={(tq?.cap_hoc || []).map((c) => ({ ten: c.ten, so: c.so }))} />
+            </div>
+            <div className="card hs-c">
+              <div className="card-head"><h3>Phân tích theo chương trình</h3></div>
+              <VongTron tong={tq?.tong_si_so} rows={theoNhom.map((n) => ({ ten: n.ten, so: n.siSo }))} />
+            </div>
+            <div className="card hs-d">
+              <div className="card-head"><h3>Phân tích theo khu vực</h3></div>
+              <CotDung rows={(tq?.khu_vuc || []).filter((k) => k.ten !== "Khác" && k.ten !== "Chưa có địa chỉ").slice(0, 6).map((k) => ({ ten: k.ten, so: k.so }))} cao={110} />
+              <div className="small muted" style={{ marginTop: 4 }}>
+                {(tq?.khu_vuc || []).filter((k) => k.ten === "Khác" || k.ten === "Chưa có địa chỉ").map((k) => `${k.ten}: ${k.so}`).join(" · ")}
+              </div>
+            </div>
+            <div className="card hs-e">
+              <div className="card-head"><h3>Cần theo dõi</h3><span className="small muted">{canTheoDoi.length} lớp</span></div>
+              <div className="list" style={{ maxHeight: 420, overflowY: "auto" }}>
+                {canTheoDoi.length ? canTheoDoi.map((l) => (
+                  <div className="li" key={l.id} style={{ cursor: "pointer" }} onClick={() => navigate(`/classrooms/${l.id}`)}>
+                    <div className="ico-sm" style={{ background: "var(--warn-soft)", color: "var(--warn)" }}>⚠️</div>
+                    <div className="li-body"><div className="li-title" style={{ fontSize: 12.5 }}>{l.class_code || l.name}</div><div className="li-sub">{l.lyDo}</div></div>
+                    <span className="muted">›</span>
+                  </div>
+                )) : <div className="small muted">Không có lớp nào cần chú ý.</div>}
+              </div>
+            </div>
+            <div className="card hs-f">
+              <div className="card-head"><h3>Phân loại học sinh</h3></div>
+              <ThanhNgang
+                rows={[
+                  { ten: "Giỏi", so: xepLoaiChung.gioi, mau: GRADE_COLOR.gioi },
+                  { ten: "Khá", so: xepLoaiChung.kha, mau: GRADE_COLOR.kha },
+                  { ten: "Trung bình", so: xepLoaiChung.tb, mau: GRADE_COLOR.tb },
+                  { ten: "Chưa đánh giá", so: Math.max(0, (tq?.tong_si_so || 0) - xepLoaiChung.tong), mau: "#C9BBA8" },
+                ]}
+                donVi="HS"
+              />
+            </div>
+            {tq?.doanh_thu?.length ? (
+              <div className="card hs-g">
+                <div className="card-head"><h3>Doanh thu theo tháng</h3><span className="small muted">Đơn vị: triệu đồng</span></div>
+                <CotDung rows={tq.doanh_thu.map((d) => ({ ten: `T${d.thang}`, so: d.da_thu, nhan: vnPct(Math.round(d.da_thu / 1e5) / 10) }))} cao={110} />
+              </div>
             ) : null}
-
-            {/* 1. Tổng quan sĩ số */}
-            <div className="card">
-              <div className="card-head"><h3>1. Tổng quan sĩ số</h3><span className="small muted">Học sinh đang học, theo lớp đang chạy</span></div>
-              <div className="grid c3">
-                <div>
-                  <div className="small muted bold mb12">Theo cấp học</div>
-                  <ThanhNgang rows={(tq?.cap_hoc || []).map((c) => ({ ten: c.ten, so: c.so }))} donVi="HS" />
-                </div>
-                <div>
-                  <div className="small muted bold mb12">Theo chương trình</div>
-                  <ThanhNgang rows={theoNhom.map((n) => ({ ten: n.ten, so: n.siSo }))} donVi="HS" />
-                </div>
-                <div>
-                  <div className="small muted bold mb12">Theo khu vực</div>
-                  <ThanhNgang rows={(tq?.khu_vuc || []).map((k) => ({ ten: k.ten, so: k.so }))} donVi="HS" />
-                </div>
-              </div>
-            </div>
-
-            {/* 2. Biểu đồ: sĩ số các lớp · phân loại học lực · doanh thu */}
-            <div className={`grid ${tq?.doanh_thu?.length ? "c3" : "c2"}`}>
-              <div className="card">
-                <div className="card-head"><h3>Sĩ số học sinh các lớp</h3></div>
-                <CotDung rows={lopDong.map((l) => ({ ten: l.class_code || l.name, so: l.si_so }))} cao={150} />
-              </div>
-              <div className="card">
-                <div className="card-head"><h3>Phân loại học sinh</h3><span className="small muted">Giỏi ≥ 85% · Khá ≥ 70%</span></div>
-                {xepLoaiChung.tong ? (
-                  <ThanhNgang
-                    rows={[
-                      { ten: "Giỏi", so: xepLoaiChung.gioi, mau: GRADE_COLOR.gioi },
-                      { ten: "Khá", so: xepLoaiChung.kha, mau: GRADE_COLOR.kha },
-                      { ten: "Trung bình", so: xepLoaiChung.tb, mau: GRADE_COLOR.tb },
-                    ]}
-                    donVi="HS"
-                  />
-                ) : <div className="small muted">Chưa có bảng điểm tháng này.</div>}
-              </div>
-              {tq?.doanh_thu?.length ? (
-                <div className="card">
-                  <div className="card-head"><h3>Tổng doanh thu</h3><span className="small muted">Tiền đã thu theo tháng</span></div>
-                  <CotDung rows={tq.doanh_thu.map((d) => ({ ten: `T${d.thang}`, so: d.da_thu, nhan: rutGon(d.da_thu) }))} cao={150} />
-                </div>
-              ) : null}
-            </div>
-
-            {/* 3. Chuyên cần — đóng mở; theo chương trình, bấm để xem từng lớp */}
-            <details className="card fold" open>
-              <summary><h3>Tỷ lệ chuyên cần tháng {thang}/{nam}</h3><span className="small muted">Có mặt ÷ sĩ số mỗi ca dạy đã báo cáo</span></summary>
+            <div className="card hs-h">
+              <div className="card-head"><h3>Tỷ lệ chuyên cần theo chương trình</h3><span className="small muted">Bấm để xem từng lớp</span></div>
               <TheoNhomMoRong
                 nhom={theoNhom}
                 giaTri={(n) => n.chuyenCan}
@@ -648,89 +777,105 @@ function Students() {
                 nhanLop={(l) => (l.so_ca_chuyen_can ? `${l.so_ca_chuyen_can} ca` : "chưa có ca")}
                 mau="green"
               />
-            </details>
+            </div>
+          </div>
 
-            {/* 6. Tổng quan lớp học — thay cho danh sách học viên + bảng kết quả cũ */}
-            <div className="card">
-              <div className="card-head" style={{ flexWrap: "wrap", gap: 8 }}>
-                <h3>Tổng quan lớp học</h3>
+          {/* Sĩ số các lớp đang hoạt động — so với sức chứa tối đa của lớp */}
+          <div className="card" style={{ marginTop: 14 }}>
+            <div className="card-head" style={{ flexWrap: "wrap", gap: 8 }}>
+              <h3 style={{ color: "var(--primary)" }}>👥 Sĩ số {lopTheoNhom.length} lớp đang hoạt động</h3>
+              <div className="flex" style={{ gap: 12, alignItems: "center" }}>
+                <span className="small"><i style={{ display: "inline-block", width: 9, height: 9, borderRadius: 9, background: "#F26522", marginRight: 5 }} />Sĩ số hiện tại</span>
+                <span className="small"><i style={{ display: "inline-block", width: 9, height: 9, borderRadius: 9, background: "#F8D2B8", marginRight: 5 }} />Sức chứa tối đa</span>
+                <select value={nhomLoc} onChange={(e) => setNhomLoc(e.target.value)} style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid var(--border)" }}>
+                  <option value="">Tất cả chương trình</option>
+                  {theoNhom.map((n) => <option key={n.ma} value={n.ma}>{n.ten}</option>)}
+                </select>
+              </div>
+            </div>
+            <SiSoCacLop rows={lopTheoNhom} />
+            {!lopTheoNhom.some((l) => l.max_students) ? (
+              <div className="small muted">Chưa lớp nào khai sức chứa tối đa — điền ở Quản lý lớp → Sửa lớp.</div>
+            ) : null}
+          </div>
+
+          {/* Tổng quan lớp học */}
+          <div className="card" style={{ marginTop: 14 }}>
+            <div className="card-head" style={{ flexWrap: "wrap", gap: 8 }}>
+              <h3>Tổng quan lớp học</h3>
+              <div className="flex" style={{ gap: 8 }}>
                 <input placeholder="Tìm lớp, mã lớp, chương trình..." value={searchInput} onChange={(e) => setSearchInput(e.target.value)}
-                  style={{ flex: "0 1 260px", padding: "8px 12px", border: "1px solid var(--border)", borderRadius: 9, fontSize: 13 }} />
-              </div>
-              <div className="tbl-wrap">
-                <table className="tbl">
-                  <thead>
-                    <tr>
-                      <th>Lớp</th><th className="t-center">Sĩ số</th><th>Lộ trình học</th><th className="t-center">Trạng thái</th>
-                      <th>Tình hình học tập</th><th>Lưu ý</th>{tongNo != null ? <th className="t-right">Học phí phải thu</th> : null}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {aggLoading && !tq ? (
-                      <tr><td colSpan={7} className="muted" style={{ padding: 16, textAlign: "center" }}>Đang tải...</td></tr>
-                    ) : lopLoc.length ? lopLoc.map((l) => {
-                      const g = gradeByClass[l.id];
-                      const st = CLASS_STATUS[l.status] || { label: l.status, cls: "gray" };
-                      const pt = l.tong_buoi ? Math.min(100, Math.round((l.buoi_da_hoc / l.tong_buoi) * 100)) : null;
-                      return (
-                        <tr key={l.id} style={{ cursor: "pointer" }} onClick={() => navigate(`/classrooms/${l.id}`)}>
-                          <td className="bold">{l.class_code || l.name}<div className="small muted" style={{ fontWeight: 400 }}>{l.ten_nhom}{l.level_name ? ` · ${l.level_name}` : ""}</div></td>
-                          <td className="t-center">{fmt(l.si_so)}</td>
-                          <td style={{ minWidth: 140 }}>
-                            <div className="small">{l.buoi_da_hoc}/{l.tong_buoi || "?"} buổi</div>
-                            {pt != null ? <div className="prog" style={{ marginTop: 4 }}><i style={{ width: `${pt}%` }} /></div> : null}
-                          </td>
-                          <td className="t-center"><span className={`badge ${st.cls}`}>{st.label}</span></td>
-                          <td className="small">
-                            {g && g.graded ? (
-                              <>
-                                <b style={{ color: GRADE_COLOR.gioi }}>{g.gioi}</b> Giỏi · <b style={{ color: GRADE_COLOR.kha }}>{g.kha}</b> Khá · <b style={{ color: GRADE_COLOR.tb }}>{g.tb}</b> TB
-                              </>
-                            ) : <span className="muted">Chưa có điểm</span>}
-                          </td>
-                          <td className="small">{luuY(l, g).join(" · ") || <span className="muted">—</span>}</td>
-                          {tongNo != null ? <td className="t-right">{l.hoc_phi_phai_thu ? <b style={{ color: "var(--danger)" }}>{fmt(Math.round(l.hoc_phi_phai_thu))}</b> : <span className="muted">0</span>}</td> : null}
-                        </tr>
-                      );
-                    }) : (
-                      <tr><td colSpan={7} className="muted" style={{ padding: 16, textAlign: "center" }}>Không có lớp học phù hợp.</td></tr>
-                    )}
-                  </tbody>
-                </table>
+                  style={{ width: 240, padding: "8px 12px", border: "1px solid var(--border)", borderRadius: 9, fontSize: 13 }} />
+                <select value={trangThaiLoc} onChange={(e) => setTrangThaiLoc(e.target.value)} style={{ padding: "8px 10px", borderRadius: 9, border: "1px solid var(--border)" }}>
+                  <option value="">Tất cả trạng thái</option>
+                  {Object.entries(CLASS_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                </select>
               </div>
             </div>
-
-            <div className="card">
-              <div className="card-head"><h3>Vinh danh học sinh tiêu biểu</h3><span className="badge gray" style={{ fontSize: 9 }}>Demo</span></div>
-              <div className="grid c3">
-                {HONORS.map(([name, sub, badge, color]) => (
-                  <div className="honor" key={name} style={{ textAlign: "center" }}>
-                    <div style={{ width: 44, height: 44, borderRadius: "50%", background: color, color: "#fff", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 6px" }}>
-                      {name.split(" ").map((w) => w[0]).slice(-2).join("")}
-                    </div>
-                    <b style={{ fontSize: 12.5 }}>{name}</b>
-                    <small className="muted" style={{ display: "block", fontSize: 11 }}>{sub}</small>
-                    <span className="badge orange" style={{ marginTop: 8, fontSize: 10 }}>{badge}</span>
-                  </div>
-                ))}
-              </div>
+            <div className="tbl-wrap">
+              <table className="tbl">
+                <thead>
+                  <tr>
+                    <th>Lớp</th><th className="t-center">Sĩ số</th><th>Lộ trình học</th><th className="t-center">Trạng thái</th>
+                    <th>Tình hình học tập</th><th className="t-center">Chuyên cần</th>{tongNo != null ? <th className="t-center">Học phí</th> : null}
+                    <th>Ghi chú</th><th className="t-center">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {aggLoading && !tq ? (
+                    <tr><td colSpan={9} className="muted" style={{ padding: 16, textAlign: "center" }}>Đang tải...</td></tr>
+                  ) : lopLoc.length ? lopLoc.map((l) => {
+                    const g = gradeByClass[l.id];
+                    const st = CLASS_STATUS[l.status] || { label: l.status, cls: "gray" };
+                    const pt = l.tong_buoi ? Math.min(100, Math.round((l.buoi_da_hoc / l.tong_buoi) * 100)) : null;
+                    return (
+                      <tr key={l.id}>
+                        <td className="bold" style={{ cursor: "pointer" }} onClick={() => navigate(`/classrooms/${l.id}`)}>
+                          {l.class_code || l.name}<div className="small muted" style={{ fontWeight: 400 }}>{l.ten_nhom}{l.level_name ? ` - ${l.level_name}` : ""}</div>
+                        </td>
+                        <td className="t-center">{fmt(l.si_so)}{l.max_students ? <span className="small muted">/{l.max_students}</span> : null}</td>
+                        <td style={{ minWidth: 130 }}>
+                          <div className="small">{l.buoi_da_hoc}/{l.tong_buoi || "?"} buổi</div>
+                          {pt != null ? <div className="prog" style={{ marginTop: 4 }}><i style={{ width: `${pt}%` }} /></div> : null}
+                        </td>
+                        <td className="t-center"><span className={`badge ${st.cls}`}>{st.label}</span></td>
+                        <td className="small">
+                          {g && g.graded ? (
+                            <><b style={{ color: GRADE_COLOR.gioi }}>{g.gioi}</b> Giỏi · <b style={{ color: GRADE_COLOR.kha }}>{g.kha}</b> Khá · <b style={{ color: GRADE_COLOR.tb }}>{g.tb}</b> TB</>
+                          ) : <span className="muted">Chưa có điểm</span>}
+                        </td>
+                        <td className="t-center">
+                          {l.chuyen_can != null ? <span className={`badge ${l.chuyen_can >= 90 ? "green" : "orange"}`}>{vnPct(l.chuyen_can)}%</span> : <span className="muted">—</span>}
+                        </td>
+                        {tongNo != null ? (
+                          <td className="t-center">
+                            {l.hoc_phi_phai_thu > 0
+                              ? <span className="badge red" title={fmt(Math.round(l.hoc_phi_phai_thu))}>Còn nợ học phí</span>
+                              : <span className="badge green">Đã thu đủ</span>}
+                          </td>
+                        ) : null}
+                        <td className="small">{luuY(l, g).filter((x) => x !== "Còn nợ học phí").join(" · ") || <span className="muted">—</span>}</td>
+                        <td className="t-center">
+                          <select value="" onChange={(e) => {
+                            if (e.target.value === "xem") navigate(`/classrooms/${l.id}`);
+                            if (e.target.value === "sua") navigate(`/quan-ly-lop?lop=${l.id}&tab=hocvien`);
+                          }} style={{ border: "none", background: "transparent", cursor: "pointer", fontWeight: 800 }} aria-label="Thao tác">
+                            <option value="">⋯</option>
+                            <option value="xem">Xem chi tiết lớp</option>
+                            {canManage ? <option value="sua">Sửa lớp / học viên</option> : null}
+                          </select>
+                        </td>
+                      </tr>
+                    );
+                  }) : (
+                    <tr><td colSpan={9} className="muted" style={{ padding: 16, textAlign: "center" }}>Không có lớp học phù hợp.</td></tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
-        </div>
-
-        {/* Right sidebar — lớp cần theo dõi suy từ số thật */}
-        <div className="rightbar">
-          <div className="card">
-            <div className="card-head"><h3>Lớp cần theo dõi</h3><span className="small muted">{canTheoDoi.length} lớp</span></div>
-            <div className="list">
-              {canTheoDoi.length ? canTheoDoi.slice(0, 12).map((l) => (
-                <div className="li" key={l.id} style={{ cursor: "pointer" }} onClick={() => navigate(`/classrooms/${l.id}`)}>
-                  <div className="ico-sm" style={{ background: "var(--danger-soft)", color: "var(--danger)" }}>⚠️</div>
-                  <div className="li-body"><div className="li-title" style={{ fontSize: 12.5 }}>{l.class_code || l.name}</div><div className="li-sub">{l.lyDo}</div></div>
-                </div>
-              )) : <div className="small muted">Không có lớp nào cần chú ý.</div>}
-            </div>
-          </div>
+          </>
+          )}
         </div>
       </div>
 

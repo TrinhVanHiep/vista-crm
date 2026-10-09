@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { VAI_QUAN_TRI } from "../auth/permissions";
 import { useNavigate } from "react-router-dom";
-import {
+import { taiBangDiemLop,
   bulkDeleteScorecardPeriod,
   bulkReviewMonthlyScorecards,
   bulkSubmitMonthlyScorecards,
@@ -860,6 +860,16 @@ export default function StudentLearningReport() {
               một màn dựng từ trước, thiết kế khác hẳn phần còn lại của hệ thống. */}
           <Button variant="ghost" onClick={() => { setMoNhap(true); setLoiNhap(""); setKetQuaNhap(null); }}>
             Nhập bảng điểm
+          </Button>
+          {/* Bảng điểm cả lớp (Excel) — cần chọn một lớp ở bộ lọc. */}
+          <Button
+            variant="ghost"
+            disabled={!lopId}
+            title={lopId ? "" : "Chọn một lớp ở bộ lọc để tải bảng điểm cả lớp"}
+            onClick={() => taiBangDiemLop({ classroom: lopId, month: thang, year: nam })
+              .catch(() => setThongBao("Không tải được bảng điểm lớp."))}
+          >
+            ⬇ Tải bảng điểm cả lớp
           </Button>
           {/* Nhập file là phép GỘP một chiều — nhập lại KHÔNG hoàn tác được lượt
               nhập sai tháng, vì ô để trống giữ nguyên số cũ. Đây là lối thoát. */}

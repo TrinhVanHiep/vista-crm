@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { dinhDangTien, loiApi, rutGonM } from "../../services/financeService";
-import { layBangLuong, layCoCauLuong, nhapChamCong, taiMauChamCong } from "../../services/payrollService";
+import { layBangLuong, layCoCauLuong, nhapChamCong, taiMauChamCong, xuatBangLuong } from "../../services/payrollService";
 import { Button, Card, CardHead, NoteStrip, Num, Pill, StatCard, Table } from "./v3/ui";
 import { DonGiaTheoLop, HopDieuChinhThang } from "./DieuChinhLuong";
 import CauHinhLuong from "./CauHinhLuong";
@@ -135,6 +135,7 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
   const [loi, setLoi] = useState("");
   const [dangChinh, setDangChinh] = useState(null);
   const [cauHinh, setCauHinh] = useState(undefined); // undefined = đóng, null = thêm mới, id = sửa
+  const [gvMinhHoa, setGvMinhHoa] = useState("");
   const laQuanTri = VAI_QUAN_TRI.includes(vaiHienTai());
 
   useEffect(() => {
@@ -286,6 +287,11 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
           action={coTheGhi ? "+ Thêm nhân sự vào bảng lương" : undefined}
           onAction={coTheGhi ? () => setCauHinh(null) : undefined}
         />
+        <div style={{ padding: "10px 22px 0" }}>
+          <Button variant="ghost" onClick={() => xuatBangLuong({ thang, nam }).catch((e) => setLoi(loiApi(e, "Không xuất được bảng lương.")))}>
+            ⬇ Xuất bảng lương Excel (kèm lương dạy theo lớp)
+          </Button>
+        </div>
         <div style={{ padding: "14px 0 6px" }}>
           {dangTai ? (
             <p style={{ padding: "0 22px", color: color.muted }}>Đang tải...</p>
@@ -320,6 +326,8 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
       {coTheGhi || laQuanTri ? (
         <GanNguoiChamCong onDaGan={(tb) => { onNotice?.(tb); setTaiLai((v) => v + 1); }} />
       ) : null}
+
+      <MinhHoaLuongDay ds={ds} chon={gvMinhHoa} onChon={setGvMinhHoa} />
 
       <DonGiaTheoLop
         coTheGhi={coTheGhi}
@@ -373,5 +381,56 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
         </Card>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * Minh hoạ lương dạy theo lớp của một giáo viên (09/10/2026): mỗi lớp một dòng
+ * Đơn giá × Lượt HS × % chia = Lương dạy, để giáo viên / kế toán đối chiếu.
+ */
+function MinhHoaLuongDay({ ds, chon, onChon }) {
+  const coLop = ds.filter((x) => (x.classrooms || []).length);
+  if (!coLop.length) return null;
+  const x = coLop.find((g) => String(g.teacher_id) === String(chon)) || coLop[0];
+  const c = x.salary_components || {};
+  const nn = x.employment_type === "foreign";
+  const NGUON = { diem_danh: "điểm danh tay", may_cham_cong: "máy / file bổ sung", si_so_bao_cao: "sĩ số báo cáo" };
+  return (
+    <Card>
+      <CardHead
+        title="Minh hoạ lương dạy theo lớp"
+        sub={nn
+          ? "Giáo viên nước ngoài: Đơn giá 1 ca × Số ca có báo cáo đã duyệt."
+          : "Lương dạy 1 lớp = Đơn giá / lượt HS × Lượt HS có mặt (ca có báo cáo đã duyệt) × % chia của giáo viên."}
+      />
+      <div style={{ padding: "12px 22px 18px", display: "grid", gap: 12 }}>
+        <select value={String(x.teacher_id)} onChange={(e) => onChon(e.target.value)}
+                style={{ maxWidth: 320, padding: "9px 12px", borderRadius: 8, border: `1px solid ${color.borderStrong}`, fontSize: 13.5 }}>
+          {coLop.map((g) => <option key={g.teacher_id} value={g.teacher_id}>{g.teacher_name}</option>)}
+        </select>
+        <Table
+          columns={nn
+            ? ["Lớp", "Số ca đã duyệt", "Đơn giá 1 ca", "Lương dạy"]
+            : ["Lớp", "Căn cứ đơn giá", "Số ca đã duyệt", "Lượt HS", "Đơn giá / lượt", "Doanh thu tính lương", "% chia", "Lương dạy"]}
+          align={nn ? { 1: "right", 2: "right", 3: "right" } : { 2: "right", 3: "right", 4: "right", 5: "right", 6: "right", 7: "right" }}
+          rows={x.classrooms.map((l) => {
+            const nguon = [...new Set((l.session_attendance || []).map((s) => NGUON[s.payable_source]).filter(Boolean))].join(", ");
+            return nn
+              ? [<b key="l">{l.classroom_name}</b>, l.approved_sessions_count, tien(c.rate_per_session), <b key="t">{tien(l.teaching_salary)}</b>]
+              : [
+                <b key="l">{l.classroom_name}</b>,
+                l.salary_basis_label,
+                l.approved_sessions_count,
+                <span key="h" title={nguon ? `Nguồn: ${nguon}` : ""}>{l.payable_student_attendance_count}</span>,
+                tien(l.salary_basis_per_student),
+                tien(l.salary_basis_revenue),
+                `${l.teacher_revenue_share_percent}%`,
+                <b key="t">{tien(l.teaching_salary)}</b>,
+              ];
+          })}
+        />
+        <div style={{ fontSize: 13.5 }}>Tổng lương dạy: <b>{tien(c.teaching_salary)}</b></div>
+      </div>
+    </Card>
   );
 }

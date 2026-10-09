@@ -150,3 +150,16 @@ export async function duyetDiemDanhHs({ thang, nam }, quyetDinh, lopIds) {
   });
   return data;
 }
+
+/** Xuất bảng lương tháng (Excel): tổng hợp + lương dạy theo lớp + chi tiết từng ca. */
+export async function xuatBangLuong({ thang, nam }) {
+  const res = await apiClient.get("/payroll/xuat-excel/", { responseType: "blob", params: { month: thang, year: nam } });
+  const url = URL.createObjectURL(new Blob([res.data]));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `Bang-luong-${String(thang).padStart(2, "0")}-${nam}.xlsx`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}

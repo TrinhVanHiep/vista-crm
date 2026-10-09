@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useLocation, useNavigate, useOutletContext, Link } from "react-router-dom";
-import { listStudents, listClassroomsAll, listStudentScores, listMonthlyScorecards, listEvaluationItems, getTuitionSummary, listAttendanceSummary, listTeachingSessions } from "../services/calendarService";
+import { taiBangDiemLop, listStudents, listClassroomsAll, listStudentScores, listMonthlyScorecards, listEvaluationItems, getTuitionSummary, listAttendanceSummary, listTeachingSessions } from "../services/calendarService";
 import { useAuth } from "../auth/AuthProvider";
 import { skillsFor } from "../utils/skills";
 import { tuitionByNormCode, normCode } from "../utils/classCode";
@@ -843,6 +843,15 @@ export default function ClassDetail() {
           <div className="card">
             <div className="card-head">
               <h3>Kết quả học tập chi tiết</h3>
+              {kyDangXem ? (
+                <button type="button" className="btn ghost sm no-print"
+                  onClick={() => taiBangDiemLop({
+                    classroom: classroomId, month: Number(kyDangXem.slice(5, 7)), year: Number(kyDangXem.slice(0, 4)),
+                    tenLop: info.code || info.name,
+                  }).catch(() => {})}>
+                  ⬇ Tải bảng điểm cả lớp
+                </button>
+              ) : null}
               {!dangTaiDiem && !anySkillScores ? (
                 <span className="small muted">Chưa nhập điểm kỹ năng</span>
               ) : null}

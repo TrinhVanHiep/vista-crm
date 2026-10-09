@@ -56,6 +56,8 @@ const emptyForm = {
   status: "active",
   start_date: "",
   expected_end_date: "",
+  total_sessions: "",
+  max_students: "",
   center_id: "",
 };
 
@@ -255,6 +257,8 @@ export default function ClassManager() {
       status: cls.status || "active",
       start_date: cls.start_date || "",
       expected_end_date: cls.expected_end_date || "",
+      total_sessions: cls.total_sessions ?? "",
+      max_students: cls.max_students ?? "",
       center_id: cls.center?.id ? String(cls.center.id) : "",
     });
     setTabForm("thongtin");
@@ -279,6 +283,8 @@ export default function ClassManager() {
         status: form.status,
         start_date: form.start_date || null,
         expected_end_date: form.expected_end_date || null,
+        total_sessions: form.total_sessions === "" ? null : Number(form.total_sessions),
+        max_students: form.max_students === "" ? null : Number(form.max_students),
       };
       if (form.center_id) payload.center_id = Number(form.center_id);
       if (form.id) {
@@ -701,6 +707,22 @@ export default function ClassManager() {
                   type="date"
                   value={form.expected_end_date || ""}
                   onChange={(e) => setForm((p) => ({ ...p, expected_end_date: e.target.value }))}
+                />
+              </Field>
+              <Field label="Tổng số buổi của lộ trình" hint="Dùng để tính tiến độ lộ trình (buổi đã dạy / tổng buổi).">
+                <input
+                  type="number" min="0" inputMode="numeric"
+                  value={form.total_sessions}
+                  onChange={(e) => setForm((p) => ({ ...p, total_sessions: e.target.value.replace(/\D/g, "") }))}
+                  placeholder="VD: 90"
+                />
+              </Field>
+              <Field label="Sức chứa tối đa (học sinh)" hint="Biểu đồ sĩ số các lớp so sĩ số hiện tại với số này.">
+                <input
+                  type="number" min="0" inputMode="numeric"
+                  value={form.max_students}
+                  onChange={(e) => setForm((p) => ({ ...p, max_students: e.target.value.replace(/\D/g, "") }))}
+                  placeholder="VD: 20"
                 />
               </Field>
             </div>

@@ -925,3 +925,17 @@ input.dshv-o[type=search]{min-width:230px;flex:1 1 230px}
 .v4page details.fold[open] > summary::before{transform:rotate(90deg)}
 .v4page details.fold > summary h3{margin:0}
 .v4page details.fold[open] > summary{margin-bottom:14px}
+
+/* Học sinh - Lớp học: lưới biểu đồ theo mẫu thiết kế 09/10/2026. */
+.v4page .hs-kpi{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.v4page .hs-grid{display:grid;gap:14px;grid-template-columns:1.5fr 1fr 1fr 1.1fr 1.1fr;
+  grid-template-areas:"a b c d e" "f g g h e"}
+.v4page .hs-grid > .card{margin:0}
+.v4page .hs-a{grid-area:a}.v4page .hs-b{grid-area:b}.v4page .hs-c{grid-area:c}.v4page .hs-d{grid-area:d}
+.v4page .hs-e{grid-area:e}.v4page .hs-f{grid-area:f}.v4page .hs-g{grid-area:g}.v4page .hs-h{grid-area:h}
+@media (max-width:1280px){
+  .v4page .hs-grid{grid-template-columns:1fr 1fr 1fr;grid-template-areas:"a a e" "b c e" "d f h" "g g h"}
+}
+@media (max-width:760px){
+  .v4page .hs-grid{grid-template-columns:1fr;grid-template-areas:"a" "b" "c" "d" "e" "f" "g" "h"}
+}

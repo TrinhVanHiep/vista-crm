@@ -653,3 +653,18 @@ export async function layTongQuanLop(params = {}) {
   const { data } = await apiClient.get("/classrooms/classrooms/tong-quan/", { params });
   return data;
 }
+
+/** Tải bảng điểm CẢ LỚP (Excel) của một kỳ. */
+export async function taiBangDiemLop({ classroom, month, year, tenLop = "" }) {
+  const res = await apiClient.get("/monthly-scorecards/bang-diem-lop/", {
+    params: { classroom, month, year }, responseType: "blob",
+  });
+  const url = URL.createObjectURL(new Blob([res.data]));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `Bang-diem-${tenLop || classroom}-${String(month).padStart(2, "0")}-${year}.xlsx`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
