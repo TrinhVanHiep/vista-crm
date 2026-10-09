@@ -259,6 +259,9 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
       </div>
 
       <NoteStrip>
+        {ds.length && ds.every((x) => x.attendance?.machine_enabled === false) ? (
+          <b>Công đang tính THEO FILE chấm công đã duyệt (máy chấm công tạm tắt). </b>
+        ) : null}
         Lương cứng = lương × công ÷ 26 (quản lý đào tạo tính ít nhất 15 công). Lương dạy = đơn giá lớp ×
         lượt học sinh của ca đã duyệt × % chia. Thưởng thi đua = 10% tổng lương khi phiếu thi đua đã duyệt và
         đạt ngưỡng điểm. Khấu trừ BHXH, thuế thu nhập 2 nguồn, phạt chỉnh tay từng tháng bằng nút "Chỉnh".

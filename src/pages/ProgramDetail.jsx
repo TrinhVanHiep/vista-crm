@@ -14,6 +14,13 @@ import "../styles/vista4.css";
 
 const fmt = (n) => (Number(n) || 0).toLocaleString("vi-VN");
 const vnd = (n) => `${fmt(Math.round(Number(n) || 0))} đ`;
+// Số tiền gọn cho ô KPI: 19.470.000 -> "19,5 tr".
+const gon = (n) => {
+  const v = Number(n) || 0;
+  if (Math.abs(v) >= 1e9) return `${String(Math.round(v / 1e8) / 10).replace(".", ",")} tỷ`;
+  if (Math.abs(v) >= 1e6) return `${String(Math.round(v / 1e5) / 10).replace(".", ",")} tr`;
+  return fmt(v);
+};
 const pct = (part, total) => (total > 0 ? Math.round((part / total) * 100) : 0);
 
 const UNCLASSIFIED = "Chưa phân loại";
@@ -507,14 +514,16 @@ export default function ProgramDetail() {
             </div>
 
             {/* 3. KPI row for the active program */}
-            <div className={`kpi-grid${isTeacher ? " cols-4" : ""}`}>
+            {/* Lưới tự giãn: cột phải (nhiệm vụ / lớp cần theo dõi) chiếm chỗ nên 6 cột
+                cố định ép mỗi ô còn ~90px, chữ bẻ dọc từng từ (09/10/2026). */}
+            <div className="kpi-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))" }}>
               <Kpi ico="🏫" icoClass="orange" label="Tổng số lớp" value={fmt(kpis.totalClasses)} sub={activeProgram} />
               <Kpi ico="👥" icoClass="blue" label="Tổng sĩ số" value={fmt(kpis.totalStudents)} sub="học sinh đang học" />
               <Kpi
                 ico="📚"
                 icoClass="purple"
                 label="Số buổi đã học"
-                value={kpis.totalKnown > 0 ? `${fmt(kpis.sessionsKnown)} / ${fmt(kpis.totalKnown)}` : "—"}
+                value={kpis.totalKnown > 0 ? <span style={{ whiteSpace: "nowrap" }}>{fmt(kpis.sessionsKnown)}/{fmt(kpis.totalKnown)}</span> : "—"}
                 sub={kpis.totalKnown > 0
                   ? `${gradePctSub}% lộ trình · ${fmt(kpis.knownClasses)}/${fmt(kpis.totalClasses)} lớp có tổng buổi`
                   : `Đã học ${fmt(kpis.sessionsAll)} buổi · chưa rõ tổng số buổi`}
@@ -524,7 +533,7 @@ export default function ProgramDetail() {
                   ico="💰"
                   icoClass="green"
                   label="Học phí phải thu"
-                  value={vnd(thucTe.no)}
+                  value={gon(thucTe.no)}
                   sub={`${fmt(thucTe.lopNo.length)}/${fmt(activeClasses.length)} lớp còn nợ`}
                 />
               ) : null}

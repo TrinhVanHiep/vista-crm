@@ -721,7 +721,7 @@ function Students() {
             <div className="card hs-a">
               <div className="card-head"><h3>Biến động học sinh vào / ra</h3><span className="small muted">6 tháng gần nhất</span></div>
               <BieuDoVaoRa rows={tq?.bien_dong || []} />
-              <div className="small muted" style={{ marginTop: 6 }}>Vào = hồ sơ mới tạo trong tháng (kể cả đợt nhập file) · Ra = ngày cho nghỉ.</div>
+              <div className="small muted" style={{ marginTop: 6 }}>Theo sĩ số thực của lớp: vào = em mới / được xếp lớp, ra = nghỉ học / bỏ khỏi lớp (chuyển lớp nội bộ không tính). Ghi nhận từ 09/10/2026; trước đó chỉ có số em nghỉ.</div>
             </div>
             <div className="card hs-b">
               <div className="card-head"><h3>Phân tích theo cấp học</h3></div>
@@ -833,7 +833,14 @@ function Students() {
                         <td className="bold" style={{ cursor: "pointer" }} onClick={() => navigate(`/classrooms/${l.id}`)}>
                           {l.class_code || l.name}<div className="small muted" style={{ fontWeight: 400 }}>{l.ten_nhom}{l.level_name ? ` - ${l.level_name}` : ""}</div>
                         </td>
-                        <td className="t-center">{fmt(l.si_so)}{l.max_students ? <span className="small muted">/{l.max_students}</span> : null}</td>
+                        <td className="t-center">
+                          {fmt(l.si_so)}{l.max_students ? <span className="small muted">/{l.max_students}</span> : null}
+                          {l.vao_thang || l.ra_thang ? (
+                            <div className="small" style={{ whiteSpace: "nowrap" }} title={`Tháng ${thang}: ${l.vao_thang} vào, ${l.ra_thang} ra`}>
+                              <span style={{ color: "var(--success)" }}>+{l.vao_thang}</span> / <span style={{ color: "var(--danger)" }}>-{l.ra_thang}</span>
+                            </div>
+                          ) : null}
+                        </td>
                         <td style={{ minWidth: 130 }}>
                           <div className="small">{l.buoi_da_hoc}/{l.tong_buoi || "?"} buổi</div>
                           {pt != null ? <div className="prog" style={{ marginTop: 4 }}><i style={{ width: `${pt}%` }} /></div> : null}
