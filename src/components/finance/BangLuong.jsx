@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { dinhDangTien, loiApi, rutGonM } from "../../services/financeService";
-import { layBangLuong, layCoCauLuong, layPhieuLuong, nhapChamCong, taiMauChamCong, xuatBangLuong } from "../../services/payrollService";
-import { Button, Card, CardHead, Modal, NoteStrip, Num, Pill, StatCard, Table } from "./v3/ui";
+import {
+  layBangLuong, layCoCauLuong, layCongChoDuyet, layDonGiaLop, layNhanSuChuaCoLuong, layPhieuLuong,
+  nhapChamCong, taiMauChamCong, xuatBangLuong,
+} from "../../services/payrollService";
+import { Button, Card, CardHead, Modal, NoteStrip, Num, Pill, Table } from "./v3/ui";
 import PhieuLuong from "./PhieuLuong";
 import { DonGiaTheoLop, HopDieuChinhThang } from "./DieuChinhLuong";
 import CauHinhLuong from "./CauHinhLuong";
@@ -26,6 +29,9 @@ import { color } from "./v3/theme";
  * duyệt. Không cho nhập tay số thực nhận ở đây: muốn số khác thì sửa nguồn
  * (cấu hình, buổi dạy, chấm công), để con số luôn truy ngược được.
  */
+
+// Vai có thể cần bảng lương — tài khoản admin/super admin không tính là "thiếu mức lương".
+const VAI_NHAN_SU = ["teacher", "staff", "center_manager", "training_manager", "accountant"];
 
 const LOAI = { full_time: "Full-time", part_time: "Part-time", director: "Giám đốc", foreign: "GV nước ngoài" };
 
@@ -138,6 +144,10 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
   const [cauHinh, setCauHinh] = useState(undefined); // undefined = đóng, null = thêm mới, id = sửa
   const [gvMinhHoa, setGvMinhHoa] = useState("");
   const [xemPhieu, setXemPhieu] = useState(null);
+  const [moBuoc, setMoBuoc] = useState("");
+  const [chuaCoLuong, setChuaCoLuong] = useState([]);
+  const [congChoDuyet, setCongChoDuyet] = useState(0);
+  const [donGia, setDonGia] = useState(null);
   const laQuanTri = VAI_QUAN_TRI.includes(vaiHienTai());
 
   useEffect(() => {
@@ -152,6 +162,17 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
       })
       .catch((e) => !huy && setLoi(loiApi(e, "Không tải được bảng lương.")))
       .finally(() => !huy && setDangTai(false));
+    return () => { huy = true; };
+  }, [thang, nam, taiLai]);
+
+  // Trạng thái từng bước chốt lương; lỗi thì coi như "chưa biết", không chặn bảng lương.
+  useEffect(() => {
+    let huy = false;
+    layCongChoDuyet({ thang, nam }).then((x) => !huy && setCongChoDuyet(x.length)).catch(() => {});
+    layDonGiaLop().then((x) => !huy && setDonGia(x)).catch(() => {});
+    layNhanSuChuaCoLuong()
+      .then((x) => !huy && setChuaCoLuong(x.filter((n) => VAI_NHAN_SU.includes(n.vai))))
+      .catch(() => {});
     return () => { huy = true; };
   }, [thang, nam, taiLai]);
 
@@ -223,52 +244,166 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
     ];
   });
 
+  // ---- Quy trình chốt lương (12/10/2026): chủ trung tâm thấy màn lương "rối mắt, không biết
+  // phải chuẩn bị gì". Gom mọi công cụ vào 6 bước, mỗi bước tự báo đã xong hay còn thiếu;
+  // bấm bước nào mới mở công cụ của bước đó. Bảng lương luôn nằm dưới cùng.
+  const fullTime = ds.filter((x) => !["part_time", "foreign"].includes(x.employment_type));
+  const chuaCong = fullTime.filter((x) => !Number(x.attendance?.attendance_days)).length;
+  const soCa = ds.reduce((n, x) => n + (x.classrooms || []).reduce((m, l) => m + (l.session_attendance || []).length, 0), 0);
+  const lopThieuGia = (donGia || []).filter((l) => !Number(l.manual_rate ?? l.default_rate)).length;
+  const kpiDuyet = ds.filter((x) => x.salary_components?.kpi_status === "approved").length;
+  const BUOC = [
+    {
+      ma: "nhansu", ten: "Nhân sự & mức lương",
+      tt: chuaCoLuong.length ? ["warn", `${chuaCoLuong.length} nhân sự chưa có mức lương`] : ["ok", `${ds.length} người đã có mức lương`],
+      can: ["Mỗi người: loại hợp đồng, lương cơ bản, mức đóng BHXH, % chia lương dạy (GV nước ngoài: đơn giá 1 ca).",
+            "Gán mã trên máy chấm công cho từng người (chỉ làm 1 lần)."],
+    },
+    {
+      ma: "chamcong", ten: "Chấm công",
+      tt: congChoDuyet ? ["warn", `${congChoDuyet} người có công chờ duyệt`]
+        : chuaCong ? ["warn", `${chuaCong}/${fullTime.length} người chưa có công`] : ["ok", "Đủ công cả tháng"],
+      can: ["File chấm công tháng theo mẫu (X = đi làm, T = ca trực).",
+            "Sau khi tải lên, quản lý hoặc super admin bấm Duyệt thì mới tính công."],
+    },
+    {
+      ma: "diemdanh", ten: "Ca dạy & điểm danh",
+      tt: soCa ? ["ok", `${soCa} ca dạy đã duyệt`] : ["warn", "Chưa có ca dạy nào được duyệt"],
+      can: ["Giáo viên báo cáo cuối mỗi ca; quản lý duyệt báo cáo ca dạy.",
+            "Sổ điểm danh gốc của tháng (file Excel mỗi lớp một sheet) — số lượt học sinh có mặt quyết định lương dạy."],
+    },
+    {
+      ma: "dongia", ten: "Đơn giá lớp",
+      tt: donGia == null ? ["idle", "…"] : lopThieuGia ? ["warn", `${lopThieuGia} lớp chưa có đơn giá`] : ["ok", "Lớp nào cũng có đơn giá"],
+      can: ["Tiền trả giáo viên cho 1 lượt học sinh có mặt của từng lớp (trống = theo chương trình)."],
+    },
+    {
+      ma: "dieuchinh", ten: "Thi đua & điều chỉnh",
+      tt: ["info", `${kpiDuyet}/${ds.length} phiếu thi đua đã duyệt`],
+      can: ["Duyệt phiếu thi đua tháng (đạt ngưỡng thì thưởng 10%).",
+            "Nếu có: thưởng sale, thuế TNCN, phạt, BHXH khác mức — bấm \"Chỉnh\" ở dòng của người đó trong bảng lương."],
+    },
+    {
+      ma: "xuat", ten: "Xuất & gửi phiếu",
+      tt: ["info", "Excel + phiếu cá nhân"],
+      can: ["Xuất Excel bảng thanh toán lương (đúng mẫu giấy) để trình ký.",
+            "Mỗi nhân sự tự xem và in phiếu lương của mình ở menu \"Phiếu lương\"."],
+    },
+  ];
+  const MAU = { ok: ["#E7F6EC", "#1E8E4F", "✓"], warn: ["#FFF4E0", "#B7791F", "!"], info: ["#EEF2FB", "#1F3A93", "i"], idle: ["#F3EFEA", "#8a7a66", "·"] };
+  const lamMoi = (tb) => { onNotice?.(tb); setTaiLai((v) => v + 1); };
+  const buocMo = BUOC.find((b) => b.ma === moBuoc);
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
-        <StatCard label="Tổng thực nhận (tạm tính)" value={rutGonM(tong.thucNhan)} note={`Tháng ${thang}/${nam}`} icon="wallet" />
-        <StatCard label="Lương dạy theo doanh thu lớp" value={rutGonM(tong.day)} note="Buổi dạy đã duyệt" icon="doc" tone="blue" />
-        <StatCard label="Khấu trừ" value={rutGonM(tong.khauTru)} note="BHXH, thuế 2 nguồn, phạt" icon="doc" tone="amber" />
-        <StatCard label="Số người có cấu hình lương" value={ds.length} note="Theo cấu hình từng nhân sự" icon="doc" tone="green" />
-      </div>
-
-      <NoteStrip>
-        {ds.length && ds.every((x) => x.attendance?.machine_enabled === false) ? (
-          <b>Công đang tính THEO FILE chấm công đã duyệt (máy chấm công tạm tắt). </b>
-        ) : null}
-        Lương cứng = lương × công ÷ 25 (đủ 25 công = trọn lương) (quản lý đào tạo tính ít nhất 15 công). Lương dạy = đơn giá lớp ×
-        lượt học sinh của ca đã duyệt × % chia. Thưởng thi đua = 10% tổng lương khi phiếu thi đua đã duyệt và
-        đạt ngưỡng điểm. Khấu trừ BHXH, thuế thu nhập 2 nguồn, phạt chỉnh tay từng tháng bằng nút "Chỉnh".
-      </NoteStrip>
-
-      <DuyetCongBoSung
-        thang={thang}
-        nam={nam}
-        duocDuyet={laQuanTri}
-        taiLai={taiLai}
-        onDaDuyet={(tb) => { onNotice?.(tb); setTaiLai((v) => v + 1); }}
-      />
-
-      {coTheGhi ? (
-        <NhapChamCong
-          thang={thang}
-          nam={nam}
-          onDaGhi={(tb) => { onNotice?.(tb); setTaiLai((v) => v + 1); }}
+      <Card>
+        <CardHead
+          title={`Chốt lương tháng ${String(thang).padStart(2, "0")}/${nam}`}
+          sub="Làm lần lượt 6 bước. Bấm vào từng bước để xem cần chuẩn bị gì và làm ngay tại đó."
         />
+        <div style={{ padding: "14px 22px 18px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
+          {BUOC.map((b, i) => {
+            const [nen, chu, ky] = MAU[b.tt[0]];
+            const dangMo = moBuoc === b.ma;
+            return (
+              <button key={b.ma} type="button" onClick={() => setMoBuoc(dangMo ? "" : b.ma)}
+                      style={{ textAlign: "left", cursor: "pointer", borderRadius: 12, padding: "12px 12px 10px",
+                               border: dangMo ? `2px solid ${color.orange}` : "1px solid #eadfd2", background: dangMo ? "#FFF8F3" : "#fff" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ width: 22, height: 22, borderRadius: 11, background: nen, color: chu, fontWeight: 800,
+                                 display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}>
+                    {b.tt[0] === "ok" ? ky : i + 1}
+                  </span>
+                  <b style={{ fontSize: 13.5 }}>{b.ten}</b>
+                </div>
+                <div style={{ fontSize: 12, color: chu, marginTop: 6, fontWeight: 600 }}>{b.tt[1]}</div>
+              </button>
+            );
+          })}
+        </div>
+        {buocMo ? (
+          <div style={{ margin: "0 22px 18px", padding: "12px 14px", borderRadius: 10, background: "#FBF7F2" }}>
+            <div style={{ fontWeight: 800, marginBottom: 6 }}>Cần chuẩn bị</div>
+            <ul style={{ margin: 0, paddingLeft: 18, display: "grid", gap: 4, fontSize: 13.5 }}>
+              {buocMo.can.map((c) => <li key={c}>{c}</li>)}
+            </ul>
+          </div>
+        ) : null}
+      </Card>
+
+      {moBuoc === "nhansu" ? (
+        <>
+          {coTheGhi ? (
+            <div><Button onClick={() => setCauHinh(null)}>+ Thêm nhân sự vào bảng lương</Button></div>
+          ) : null}
+          {chuaCoLuong.length ? (
+            <NoteStrip>Chưa có mức lương: {chuaCoLuong.map((x) => x.ten).join(", ")}.</NoteStrip>
+          ) : null}
+          {coTheGhi || laQuanTri ? <GanNguoiChamCong onDaGan={lamMoi} /> : null}
+          {coCau ? (
+            <details>
+              <summary style={{ cursor: "pointer", fontWeight: 700, padding: "6px 0" }}>Xem cơ cấu thu nhập đang áp dụng</summary>
+              <Card>
+                <div style={{ padding: "14px 0 6px" }}>
+                  <Table
+                    columns={["Vị trí", "Nhân sự", "Lương cố định", "Doanh thu / khoán", "Trực / demo / công", "Sale / thưởng / KPI", "BHXH"]}
+                    rows={(coCau.vi_tri || []).map((v) => [
+                      <Pill key="vt" tone="orange">{v.vi_tri}</Pill>, v.nhan_su, v.luong_co_dinh, v.doanh_thu_khoan,
+                      v.truc_demo_cong, v.sale_thuong_kpi, v.bhxh,
+                    ])}
+                  />
+                </div>
+              </Card>
+            </details>
+          ) : null}
+        </>
+      ) : null}
+
+      {moBuoc === "chamcong" ? (
+        <>
+          {coTheGhi ? <NhapChamCong thang={thang} nam={nam} onDaGhi={lamMoi} /> : null}
+          <DuyetCongBoSung thang={thang} nam={nam} duocDuyet={laQuanTri} taiLai={taiLai} onDaDuyet={lamMoi} />
+          {!congChoDuyet ? <NoteStrip>Không có ngày công nào đang chờ duyệt.</NoteStrip> : null}
+        </>
+      ) : null}
+
+      {moBuoc === "diemdanh" ? (
+        <>
+          {laQuanTri ? <SoDiemDanhGoc thang={thang} nam={nam} onXong={lamMoi} /> : null}
+          <DiemDanhHsBoSung thang={thang} nam={nam} coTheNhap={coTheGhi || laQuanTri} duocDuyet={laQuanTri} onXong={lamMoi} />
+        </>
+      ) : null}
+
+      {moBuoc === "dongia" ? (
+        <>
+          <DonGiaTheoLop coTheGhi={coTheGhi} onDaLuu={lamMoi} />
+          <MinhHoaLuongDay ds={ds} chon={gvMinhHoa} onChon={setGvMinhHoa} />
+        </>
+      ) : null}
+
+      {moBuoc === "dieuchinh" ? (
+        <NoteStrip>
+          Phiếu thi đua duyệt ở menu <b>Thi đua tháng</b>. Thưởng sale, thuế TNCN, phạt, BHXH khác mức: bấm <b>Chỉnh</b> ở
+          dòng của người đó trong bảng lương bên dưới — chỉ áp dụng cho tháng này.
+        </NoteStrip>
+      ) : null}
+
+      {moBuoc === "xuat" ? (
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <Button onClick={() => xuatBangLuong({ thang, nam }).catch((e) => setLoi(loiApi(e, "Không xuất được bảng lương.")))}>
+            ⬇ Xuất bảng thanh toán lương (Excel)
+          </Button>
+          <span style={{ fontSize: 13, color: color.muted }}>Nhân sự tự xem phiếu ở menu "Phiếu lương".</span>
+        </div>
       ) : null}
 
       <Card>
         <CardHead
           title="Bảng lương tạm tính"
-          sub={`Tháng ${String(thang).padStart(2, "0")}/${nam}`}
-          action={coTheGhi ? "+ Thêm nhân sự vào bảng lương" : undefined}
-          onAction={coTheGhi ? () => setCauHinh(null) : undefined}
+          sub={`Tháng ${String(thang).padStart(2, "0")}/${nam} · ${ds.length} người · Tổng thực nhận ${tien(tong.thucNhan)} · Bấm tên để xem chi tiết ngày công, ca dạy`}
+          action="⬇ Xuất Excel"
+          onAction={() => xuatBangLuong({ thang, nam }).catch((e) => setLoi(loiApi(e, "Không xuất được bảng lương.")))}
         />
-        <div style={{ padding: "10px 22px 0" }}>
-          <Button variant="ghost" onClick={() => xuatBangLuong({ thang, nam }).catch((e) => setLoi(loiApi(e, "Không xuất được bảng lương.")))}>
-            ⬇ Xuất bảng lương Excel (kèm lương dạy theo lớp)
-          </Button>
-        </div>
         <div style={{ padding: "14px 0 6px" }}>
           {dangTai ? (
             <p style={{ padding: "0 22px", color: color.muted }}>Đang tải...</p>
@@ -276,7 +411,7 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
             <p style={{ padding: "0 22px", color: color.red }}>{loi}</p>
           ) : ds.length === 0 ? (
             <p style={{ padding: "0 22px", color: color.muted }}>
-              Chưa có nhân sự nào được khai cấu hình lương.
+              Chưa có nhân sự nào có mức lương — bắt đầu từ bước 1.
             </p>
           ) : (
             <Table
@@ -289,36 +424,22 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
             />
           )}
         </div>
+        <details style={{ padding: "0 22px 16px", fontSize: 12.5, color: color.muted }}>
+          <summary style={{ cursor: "pointer" }}>Cách tính</summary>
+          {ds.length && ds.every((x) => x.attendance?.machine_enabled === false) ? (
+            <b>Công đang tính THEO FILE chấm công đã duyệt (máy chấm công tạm tắt). </b>
+          ) : null}
+          Lương cơ bản = lương × công ÷ 25 (đủ 25 công = trọn lương; quản lý đào tạo tính ít nhất 15 công). Lương dạy
+          = đơn giá lớp × lượt học sinh của ca đã duyệt × % chia. Thưởng thi đua = 10% tổng lương khi phiếu thi đua đã
+          duyệt và đạt ngưỡng điểm.
+        </details>
       </Card>
-
-      {laQuanTri ? (
-        <SoDiemDanhGoc thang={thang} nam={nam} onXong={(tb) => { onNotice?.(tb); setTaiLai((v) => v + 1); }} />
-      ) : null}
-
-      <DiemDanhHsBoSung
-        thang={thang}
-        nam={nam}
-        coTheNhap={coTheGhi || laQuanTri}
-        duocDuyet={laQuanTri}
-        onXong={(tb) => { onNotice?.(tb); setTaiLai((v) => v + 1); }}
-      />
-
-      {coTheGhi || laQuanTri ? (
-        <GanNguoiChamCong onDaGan={(tb) => { onNotice?.(tb); setTaiLai((v) => v + 1); }} />
-      ) : null}
-
-      <MinhHoaLuongDay ds={ds} chon={gvMinhHoa} onChon={setGvMinhHoa} />
-
-      <DonGiaTheoLop
-        coTheGhi={coTheGhi}
-        onDaLuu={(tb) => { onNotice?.(tb); setTaiLai((v) => v + 1); }}
-      />
 
       {cauHinh !== undefined ? (
         <CauHinhLuong
           teacherId={cauHinh}
           onDong={() => setCauHinh(undefined)}
-          onDaLuu={(tb) => { setCauHinh(undefined); onNotice?.(tb); setTaiLai((v) => v + 1); }}
+          onDaLuu={(tb) => { setCauHinh(undefined); lamMoi(tb); }}
         />
       ) : null}
 
@@ -332,37 +453,8 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
           thang={thang}
           nam={nam}
           onDong={() => setDangChinh(null)}
-          onDaLuu={(tb) => { setDangChinh(null); onNotice?.(tb); setTaiLai((v) => v + 1); }}
+          onDaLuu={(tb) => { setDangChinh(null); lamMoi(tb); }}
         />
-      ) : null}
-
-      {coCau ? (
-        <Card>
-          <CardHead
-            title="Cơ cấu thu nhập đang áp dụng"
-            sub={`Cập nhật ${coCau.ngay_cap_nhat} · bảng minh hoạ cấu phần thu nhập, không thay thế HĐLĐ`}
-          />
-          <div style={{ padding: "14px 0 6px" }}>
-            <Table
-              columns={[
-                "Vị trí", "Nhân sự", "Lương cố định", "Doanh thu / khoán", "Trực / demo / công",
-                "Sale / thưởng / KPI", "BHXH",
-              ]}
-              rows={(coCau.vi_tri || []).map((v) => [
-                <Pill key="vt" tone="orange">{v.vi_tri}</Pill>,
-                v.nhan_su,
-                v.luong_co_dinh,
-                v.doanh_thu_khoan,
-                v.truc_demo_cong,
-                v.sale_thuong_kpi,
-                v.bhxh,
-              ])}
-            />
-          </div>
-          <p style={{ padding: "4px 22px 18px", fontSize: 12.5, color: color.muted, margin: 0 }}>
-            {coCau.nguyen_tac_doi_soat}
-          </p>
-        </Card>
       ) : null}
     </div>
   );
