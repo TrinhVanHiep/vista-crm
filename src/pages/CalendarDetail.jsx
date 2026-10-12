@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import AnhMinhChung from "../components/AnhMinhChung";
 import { VAI_QUAN_TRI } from "../auth/permissions";
 import { Link, useOutletContext, useSearchParams } from "react-router-dom";
 import DiemDanhCa from "../components/reports/DiemDanhCa";
@@ -5575,6 +5576,10 @@ function CalendarDetail() {
                   </label>
                 </div>
               </div>
+              <AnhMinhChung
+                sessionId={reportSessionId}
+                khoa={Boolean(activeReport && !["draft", "revision_required"].includes(activeReport.report_status))}
+              />
               <p className={styles.note}>
                 Trạng thái báo cáo:{" "}
                 {activeReport ? reportStatusOptions[activeReport.report_status] || activeReport.report_status : "Chưa tạo"}

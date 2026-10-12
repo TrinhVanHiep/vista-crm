@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getViecCanLam } from "../services/calendarService";
+import { getViecCanLam, henLaiCa } from "../services/calendarService";
 import { Button, Modal } from "../ui";
 
 /**
@@ -17,6 +17,7 @@ export default function CanhBaoViecGap({ userId }) {
   const navigate = useNavigate();
   const [viec, setViec] = useState([]);
   const [mo, setMo] = useState(false);
+  const [hen, setHen] = useState(null); // { session_id, ngay, lyDo, loi }
   const khoa = `vista-crm.canh-bao-viec.${userId}`;
 
   useEffect(() => {
@@ -43,6 +44,26 @@ export default function CanhBaoViecGap({ userId }) {
     try { window.sessionStorage.setItem(khoa, "1"); } catch { /* bỏ qua */ }
   };
 
+  const ngayVN = (iso) => (iso ? iso.split("-").reverse().slice(0, 2).join("/") : "");
+  const homNay = new Date();
+  const isoCach = (n) => {
+    const d = new Date(homNay);
+    d.setDate(d.getDate() + n);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+  const tongLoi = viec.reduce((n, v) => n + (v.so_loi || 0), 0);
+
+  const guiHen = async () => {
+    try {
+      const kq = await henLaiCa(hen.session_id, { hanMoi: hen.ngay, lyDo: hen.lyDo });
+      setViec((ds) => ds.map((v) => (v.session_id === hen.session_id
+        ? { ...v, da_hen: true, han_hen: kq.han, han: kq.han, qua_han: false } : v)));
+      setHen(null);
+    } catch (e) {
+      setHen((h) => ({ ...h, loi: e?.response?.data?.detail || "Không hẹn lại được." }));
+    }
+  };
+
   const di = (link) => {
     dong();
     navigate(link);
@@ -53,7 +74,8 @@ export default function CanhBaoViecGap({ userId }) {
       open={mo}
       onClose={dong}
       title="⚠️ Nhiệm vụ cần hoàn thành ngay"
-      subtitle={`${viec.length} việc đang quá hạn hoặc chờ bạn xử lý`}
+      subtitle={`${viec.length} việc đang quá hạn hoặc chờ bạn xử lý`
+        + (tongLoi ? ` · ${tongLoi} lỗi đã tính (trừ ${Math.min(tongLoi, 10)} điểm thi đua tháng)` : "")}
       size="md"
       footer={(
         <>
@@ -62,7 +84,13 @@ export default function CanhBaoViecGap({ userId }) {
         </>
       )}
     >
-      <ul style={{ margin: 0, paddingLeft: 18, display: "grid", gap: 8 }}>
+      {viec.some((v) => v.tinh_loi) ? (
+        <p className="small muted" style={{ marginTop: 0 }}>
+          Mỗi ca phải có báo cáo kèm ít nhất 1 ảnh minh chứng trước 00:00. Quá hạn mà chưa xong thì mỗi đêm tính
+          1 lỗi (trừ 1 điểm thi đua). Chưa kịp thì bấm <b>Hẹn lại</b> và chọn ngày cụ thể — mỗi ca được hẹn một lần.
+        </p>
+      ) : null}
+      <ul style={{ margin: 0, paddingLeft: 18, display: "grid", gap: 10 }}>
         {viec.slice(0, 12).map((v, i) => (
           <li key={`${v.loai}-${v.session_id || i}`}>
             <button
@@ -72,6 +100,31 @@ export default function CanhBaoViecGap({ userId }) {
             >
               {v.tieu_de}
             </button>
+            {v.tinh_loi ? (
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", fontSize: 12.5, marginTop: 3 }}>
+                {v.so_loi ? <span style={{ color: "#C0392B", fontWeight: 700 }}>{v.so_loi} lỗi</span> : null}
+                <span style={{ color: v.qua_han ? "#C0392B" : "#B7791F" }}>
+                  {v.da_hen ? `Đã hẹn tới 24:00 ${ngayVN(v.han_hen)}` : v.qua_han ? "Quá hạn — đang tính lỗi mỗi đêm" : `Hạn 24:00 ${ngayVN(v.han)}`}
+                </span>
+                {!v.da_hen ? (
+                  <button type="button" className="btn ghost sm"
+                          onClick={() => setHen({ session_id: v.session_id, ngay: isoCach(1), lyDo: "", loi: "" })}>
+                    Hẹn lại
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+            {hen?.session_id === v.session_id ? (
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: 6 }}>
+                <input type="date" value={hen.ngay} min={isoCach(0)} max={isoCach(7)}
+                       onChange={(e) => setHen((h) => ({ ...h, ngay: e.target.value }))} />
+                <input type="text" placeholder="Lý do (bắt buộc)" value={hen.lyDo} style={{ flex: 1, minWidth: 160 }}
+                       onChange={(e) => setHen((h) => ({ ...h, lyDo: e.target.value }))} />
+                <Button variant="primary" onClick={guiHen} disabled={!hen.lyDo.trim()}>Lưu hẹn</Button>
+                <Button onClick={() => setHen(null)}>Huỷ</Button>
+                {hen.loi ? <div style={{ color: "#C0392B", fontSize: 12.5, width: "100%" }}>{hen.loi}</div> : null}
+              </div>
+            ) : null}
           </li>
         ))}
         {viec.length > 12 ? <li className="small muted">… và {viec.length - 12} việc khác</li> : null}

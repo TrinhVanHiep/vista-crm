@@ -852,10 +852,13 @@ export default function KpiAdminBoard({ nhungTrongTrang = false, month, year } =
                                   for (let x = 0; x <= Number(r.cap); x += buoc) cacMuc.push(x);
                                   return (
                                     <tr key={r.id}>
-                                      <td className="ka-l">{r.title}</td>
+                                      <td className="ka-l" title={r.tu_dong ? daCo?.note || "" : undefined}>
+                                        {r.title}{r.tu_dong ? " · Tự động" : ""}
+                                      </td>
                                       <td>{laSo(deXuat) && Number(deXuat) ? `${cong ? "+" : "−"}${g1(deXuat)}` : "—"}</td>
                                       <td className="ka-selcell">
-                                        <select value={v ?? ""} disabled={!duocSua}
+                                        <select value={v ?? ""} disabled={!duocSua || r.tu_dong}
+                                                title={r.tu_dong ? `Tự động: ${daCo?.note || "chưa có lỗi"}` : undefined}
                                                 aria-label={`Admin điều chỉnh ${r.title}`}
                                                 onChange={(e) => setDieuChinhNhap((c) => ({ ...c, [r.id]: e.target.value }))}>
                                           <option value="">— giữ —</option>

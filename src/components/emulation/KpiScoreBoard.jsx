@@ -337,6 +337,7 @@ export default function KpiScoreBoard({
     if (suaDuocDieuChinh) {
       const daGhi = new Map((phieu.adjustments || []).map((a) => [a.rule, a]));
       for (const r of quyTac) {
+        if (r.tu_dong) continue; // lỗi nhiệm vụ: máy chủ tự tính
         const raw = nhapGhiNhan[r.id] ?? "";
         const cu = chuanHoa(daGhi.get(r.id)?.quantity);
         if (chuanHoa(raw) === cu) continue;

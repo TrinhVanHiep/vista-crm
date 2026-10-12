@@ -66,12 +66,12 @@ function BangDieuChinh({ loai, nhan, quyTac, tran, dangCham, nhapGhiNhan = {}, o
       {quyTac.map((r, i) => (
         <div className="kpi2-adj__cols kpi2-adj__r" key={r.id ?? i}>
           <span className="kpi2-adj__no">{i + 1}</span>
-          <span className="kpi2-adj__t">{r.title || r.name || "—"}</span>
+          <span className="kpi2-adj__t">{r.title || r.name || "—"}{r.tu_dong ? " · Tự động" : ""}</span>
           <span className="kpi2-adj__how">{r.description || r.formula || "—"}</span>
           <span className="kpi2-adj__cap">{soGon(r.cap ?? r.max_points ?? 5)}</span>
           {dangCham ? (
           <span className="kpi2-adj__got">
-            {onDoiGhiNhan ? (
+            {onDoiGhiNhan && !r.tu_dong ? (
               <input
                 type="number"
                 min="0"

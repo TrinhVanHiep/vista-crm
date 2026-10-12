@@ -389,14 +389,15 @@ function DailyReport() {
       );
       const okCount = outcomes.filter((o) => o.status === "fulfilled").length;
       const failCount = outcomes.length - okCount;
+      const lyDo = outcomes.find((o) => o.status === "rejected")?.reason?.response?.data?.detail || "";
       if (okCount) {
         setNotice(
           `Đã gửi ${okCount} báo cáo ${RANGE_WORD[rangeTab]} cho quản lý duyệt.` +
-            (failCount ? ` (${failCount} báo cáo gửi không thành công)` : ""),
+            (failCount ? ` (${failCount} báo cáo gửi không thành công${lyDo ? `: ${lyDo}` : ""})` : ""),
         );
         setReloadKey((k) => k + 1);
       } else {
-        setFormError("Không gửi được báo cáo. Vui lòng thử lại.");
+        setFormError(lyDo || "Không gửi được báo cáo. Vui lòng thử lại.");
       }
     } catch (error) {
       setFormError(

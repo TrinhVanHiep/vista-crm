@@ -674,3 +674,27 @@ export async function listGiaoVienChon() {
   const { data } = await apiClient.get("/teaching-sessions/giao-vien-chon/");
   return Array.isArray(data) ? data : [];
 }
+
+// Ảnh minh chứng ca dạy — bắt buộc ít nhất 1 ảnh mới nộp được báo cáo (12/10/2026).
+export async function listAnhMinhChung(sessionId) {
+  const { data } = await apiClient.get(`/teaching-sessions/${sessionId}/anh-minh-chung/`);
+  return data;
+}
+
+export async function taiAnhMinhChung(sessionId, files) {
+  const fd = new FormData();
+  Array.from(files).forEach((f) => fd.append("anh", f));
+  const { data } = await apiClient.post(`/teaching-sessions/${sessionId}/anh-minh-chung/`, fd, { timeout: 120000 });
+  return data;
+}
+
+export async function xoaAnhMinhChung(sessionId, anhId) {
+  const { data } = await apiClient.delete(`/teaching-sessions/${sessionId}/anh-minh-chung/${anhId}/`);
+  return data;
+}
+
+// Hẹn lại hạn hoàn thành báo cáo của một ca (mỗi ca một lần, tối đa 7 ngày).
+export async function henLaiCa(sessionId, { hanMoi, lyDo }) {
+  const { data } = await apiClient.post(`/teaching-sessions/${sessionId}/hen-lai/`, { han_moi: hanMoi, ly_do: lyDo });
+  return data;
+}

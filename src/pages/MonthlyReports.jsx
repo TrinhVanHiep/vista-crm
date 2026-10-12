@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import AnhMinhChung from "../components/AnhMinhChung";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import {
@@ -213,6 +214,18 @@ function TheBaoCaoCaDay({
         </div>
       ) : (
         <p className="small muted">Chưa nhập nội dung buổi dạy.</p>
+      )}
+
+      {(report.anh_minh_chung || []).length ? (
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "8px 0" }} aria-label="Ảnh minh chứng">
+          {report.anh_minh_chung.map((a) => (
+            <a key={a.id} href={a.url} target="_blank" rel="noreferrer">
+              <img src={a.url} alt="Minh chứng" style={{ width: 72, height: 54, objectFit: "cover", borderRadius: 6, display: "block" }} />
+            </a>
+          ))}
+        </div>
+      ) : (
+        <p className="small" style={{ color: "#C0392B", margin: "6px 0" }}>Chưa có ảnh minh chứng.</p>
       )}
 
       {cap || daDuyet ? (
@@ -1130,6 +1143,9 @@ function MonthlyReports() {
                 </label>
               </div>
             </div>
+            {manualForm.session ? (
+              <AnhMinhChung sessionId={Number(manualForm.session)} khoa={manualReportLocked} />
+            ) : null}
             {manualReportLocked && (
               <p className="alert orange" style={{ marginTop: 10 }}>
                 Báo cáo này đã gửi quản lý hoặc đã được duyệt, giáo viên không thể sửa trực tiếp.
