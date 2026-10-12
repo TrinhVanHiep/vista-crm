@@ -117,7 +117,7 @@ export default function CauHinhLuong({ teacherId, onDong, onDaLuu }) {
   };
 
   const VAI = { center_manager: "QL cơ sở", training_manager: "QL đào tạo", teacher: "Giáo viên", accountant: "Kế toán", admin: "Admin", staff: "Nhân viên" };
-  const tenNs = (t) => `${t.trung_voi ? "⚠ " : ""}${t.ten}${t.vai ? ` · ${VAI[t.vai] || t.vai}` : ""}${t.email ? ` · ${t.email}` : ""}${t.trung_voi ? ` — TRÙNG TÊN với ${t.trung_voi} đã có lương` : ""}`;
+  const tenNs = (t) => `${t.trung_voi ? "⚠ " : ""}${t.ten}${t.vai ? ` · ${VAI[t.vai] || t.vai}` : ""}${t.trung_voi ? " — TRÙNG TÊN với người đã có lương" : ""}`;
 
   return (
     <Modal

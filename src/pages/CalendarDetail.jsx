@@ -2132,8 +2132,7 @@ function CalendarDetail() {
       [selectedTeacher?.user?.last_name, selectedTeacher?.user?.first_name]
         .filter(Boolean)
         .join(" ") ||
-      selectedTeacher?.user?.email ||
-      "Tất cả giáo viên";
+      (selectedTeacher ? `Chưa đặt tên (GV #${selectedTeacher.id})` : "Tất cả giáo viên");
 
     return [
       formatMonthHeader(selectedMonth, selectedYear),
@@ -2735,8 +2734,7 @@ function CalendarDetail() {
         [selectedTeacher?.user?.last_name, selectedTeacher?.user?.first_name]
           .filter(Boolean)
           .join(" ") ||
-        selectedTeacher?.user?.email ||
-        "Tất cả giáo viên";
+        (selectedTeacher ? `Chưa đặt tên (GV #${selectedTeacher.id})` : "Tất cả giáo viên");
       const generatedAt = new Date().toLocaleString("vi-VN");
       const workbook = XLSX.utils.book_new();
 
@@ -4328,7 +4326,7 @@ function CalendarDetail() {
                       <option key={teacher.id} value={teacher.id}>
                         {[teacher.user?.last_name, teacher.user?.first_name]
                           .filter(Boolean)
-                          .join(" ") || teacher.user?.email || `GV ${teacher.id}`}
+                          .join(" ") || `Chưa đặt tên (GV #${teacher.id})`}
                       </option>
                     ))}
                   </select>
@@ -4683,7 +4681,7 @@ function CalendarDetail() {
                         <option key={teacher.id} value={teacher.id}>
                           {[teacher.user?.last_name, teacher.user?.first_name]
                             .filter(Boolean)
-                            .join(" ") || teacher.user?.email || `GV ${teacher.id}`}
+                            .join(" ") || `Chưa đặt tên (GV #${teacher.id})`}
                         </option>
                       ))}
                     </select>

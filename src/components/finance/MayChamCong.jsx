@@ -38,10 +38,10 @@ function ChonNguoi({ dong, onGan, dangGan }) {
         layNhanSuChuaCoLuong().catch(() => []),
       ]);
       const khop = (x) => `${x.ten} ${x.email}`.toLowerCase().includes(t.toLowerCase());
-      const ten = (u) => (u?.full_name || `${u?.last_name || ""} ${u?.first_name || ""}`).trim() || u?.email;
+      const ten = (u) => (u?.full_name || `${u?.last_name || ""} ${u?.first_name || ""}`).trim() || "Chưa đặt tên";
       setKq([
         ...(gv?.results || []).map((x) => ({ loai: "teacher", id: x.id, ten: ten(x.user) })),
-        ...ns.filter((x) => x.loai === "user" && khop(x)).map((x) => ({ loai: "user", id: x.id, ten: `${x.ten} (${x.email})`, vai: x.vai })),
+        ...ns.filter((x) => x.loai === "user" && khop(x)).map((x) => ({ loai: "user", id: x.id, ten: x.ten, vai: x.vai })),
         ...(hs?.results || []).map((x) => ({ loai: "student", id: x.id, ten: ten(x.user), lop: x.classroom?.class_code || "" })),
       ]);
     }, 350);
