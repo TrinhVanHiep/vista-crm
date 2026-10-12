@@ -193,7 +193,7 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
       <Num key="n" bold>{tien(c.net_salary)}</Num>,
       <div key="cb">
         <Num>{tien(c.prorated_base_salary)}</Num>
-        {Number(c.base_salary) > 0 ? phu(`${cc.payable_workdays ?? cc.attendance_days ?? 0}/${cc.base_salary_standard_days || 26} công × ${rutGonM(c.base_salary)}`) : null}
+        {Number(c.base_salary) > 0 ? phu(`${cc.payable_workdays ?? cc.attendance_days ?? 0}/${cc.base_salary_standard_days || 25} công × ${rutGonM(c.base_salary)}`) : null}
       </div>,
       <div key="d">
         <Num>{tien(c.teaching_salary)}</Num>
@@ -236,7 +236,7 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
         {ds.length && ds.every((x) => x.attendance?.machine_enabled === false) ? (
           <b>Công đang tính THEO FILE chấm công đã duyệt (máy chấm công tạm tắt). </b>
         ) : null}
-        Lương cứng = lương × công ÷ 26 (quản lý đào tạo tính ít nhất 15 công). Lương dạy = đơn giá lớp ×
+        Lương cứng = lương × công ÷ 25 (đủ 25 công = trọn lương) (quản lý đào tạo tính ít nhất 15 công). Lương dạy = đơn giá lớp ×
         lượt học sinh của ca đã duyệt × % chia. Thưởng thi đua = 10% tổng lương khi phiếu thi đua đã duyệt và
         đạt ngưỡng điểm. Khấu trừ BHXH, thuế thu nhập 2 nguồn, phạt chỉnh tay từng tháng bằng nút "Chỉnh".
       </NoteStrip>
