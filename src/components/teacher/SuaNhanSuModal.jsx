@@ -5,7 +5,8 @@ import { Button, Field, Modal } from "../../ui";
 /**
  * Sửa thông tin nhân sự (12/10/2026: màn Hành chính - Nhân sự trước chỉ thêm được,
  * không sửa — tài khoản thiếu họ tên hiện email khắp nơi). Gọi API riêng
- * /teachers/teachers/{id}/sua-thong-tin/; không đụng lớp phụ trách và mật khẩu.
+ * /teachers/teachers/{id}/sua-thong-tin/; không đụng lớp phụ trách. Có ô đặt mật khẩu
+ * mới cho người quên mật khẩu (máy chủ chưa gửi email nên không tự lấy lại được).
  */
 
 const TRANG_THAI = [["active", "Đang làm"], ["probation", "Thử việc"], ["paused", "Tạm nghỉ"], ["terminated", "Đã nghỉ việc"]];
@@ -26,6 +27,7 @@ const tuGv = (g) => ({
   loai: g?.employment_type || "full_time",
   ngay_vao: g?.join_date || "",
   ngay_nghi: g?.termination_date || "",
+  mat_khau_moi: "",
 });
 
 export default function SuaNhanSuModal({ giaoVien, onClose, onXong }) {
@@ -42,7 +44,8 @@ export default function SuaNhanSuModal({ giaoVien, onClose, onXong }) {
     setDang(true);
     setLoi({});
     try {
-      await apiClient.patch(`/teachers/teachers/${giaoVien.id}/sua-thong-tin/`, f);
+      const { mat_khau_moi: mk, ...con } = f;
+      await apiClient.patch(`/teachers/teachers/${giaoVien.id}/sua-thong-tin/`, mk ? { ...con, mat_khau_moi: mk } : con);
       onXong?.();
       onClose?.();
     } catch (err) {
@@ -54,7 +57,8 @@ export default function SuaNhanSuModal({ giaoVien, onClose, onXong }) {
   };
   const o = (k, nhan, extra = {}) => (
     <Field label={nhan} required={extra.required} hint={loi[k] ? <span style={{ color: "var(--danger)" }}>{loi[k]}</span> : extra.hint}>
-      <input value={f[k]} onChange={doi(k)} type={extra.type || "text"} maxLength={extra.max} />
+      <input value={f[k]} onChange={doi(k)} type={extra.type || "text"} maxLength={extra.max}
+             autoComplete={extra.type === "password" ? "new-password" : undefined} />
     </Field>
   );
   const chon = (k, nhan, ds) => (
@@ -70,7 +74,7 @@ export default function SuaNhanSuModal({ giaoVien, onClose, onXong }) {
       open
       onClose={onClose}
       title="Sửa thông tin nhân sự"
-      subtitle="Lớp phụ trách sửa ở nút Gán lớp; mật khẩu không đổi ở đây."
+      subtitle="Lớp phụ trách sửa ở nút Gán lớp."
       size="lg"
       footer={(
         <>
@@ -94,6 +98,10 @@ export default function SuaNhanSuModal({ giaoVien, onClose, onXong }) {
         {o("ngay_vao", "Ngày vào làm", { type: "date" })}
         {o("ngay_nghi", "Ngày nghỉ việc", { type: "date" })}
         <div style={{ gridColumn: "1 / -1" }}>{o("dia_chi", "Địa chỉ", { max: 500 })}</div>
+        {o("mat_khau_moi", "Đặt mật khẩu mới", {
+          type: "password",
+          hint: "Để trống = giữ mật khẩu cũ. Ít nhất 8 ký tự; đặt xong báo trực tiếp cho người đó.",
+        })}
         {loi.detail ? <div style={{ gridColumn: "1 / -1", color: "var(--danger)" }}>{loi.detail}</div> : null}
       </form>
     </Modal>
