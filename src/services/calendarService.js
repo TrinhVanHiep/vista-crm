@@ -698,3 +698,31 @@ export async function henLaiCa(sessionId, { hanMoi, lyDo }) {
   const { data } = await apiClient.post(`/teaching-sessions/${sessionId}/hen-lai/`, { han_moi: hanMoi, ly_do: lyDo });
   return data;
 }
+
+// Giao việc (12/10/2026): quản lý giao, người nhận nộp kết quả kèm minh chứng.
+export async function listGiaoViec(loai = "cua_toi") {
+  const { data } = await apiClient.get("/giao-viec/", { params: { loai } });
+  return data;
+}
+
+export async function listNguoiNhanViec() {
+  const { data } = await apiClient.get("/giao-viec/nguoi-nhan/");
+  return data;
+}
+
+export async function taoGiaoViec(payload) {
+  const { data } = await apiClient.post("/giao-viec/", payload);
+  return data;
+}
+
+export async function thaoTacGiaoViec(id, hanhDong, payload = {}) {
+  const { data } = await apiClient.post(`/giao-viec/${id}/${hanhDong}/`, payload, { timeout: 120000 });
+  return data;
+}
+
+export async function nopGiaoViec(id, { ketQua, tep }) {
+  const fd = new FormData();
+  fd.append("ket_qua", ketQua || "");
+  Array.from(tep || []).forEach((f) => fd.append("tep", f));
+  return thaoTacGiaoViec(id, "nop", fd);
+}

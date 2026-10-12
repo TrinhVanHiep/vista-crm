@@ -154,6 +154,17 @@ const navItems = [
     ),
   },
   {
+    label: "Giao việc",
+    to: "/giao-viec",
+    allowedRoles: ROUTE_PERMISSIONS.giaoViec,
+    icon: navIcon(
+      <>
+        <rect x="5" y="4" width="14" height="17" rx="2" />
+        <path d="M9 4h6v3H9zM9 12l2 2 4-4" />
+      </>
+    ),
+  },
+  {
     label: "Phiếu lương",
     to: "/phieu-luong",
     allowedRoles: ROUTE_PERMISSIONS.payslip,
