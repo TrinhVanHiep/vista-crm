@@ -6,7 +6,8 @@
  * Cấp 1: quản lý cơ sở ký. Báo cáo vẫn "Chờ duyệt".
  * Cấp 2: quản lý đào tạo ký — lúc này mới "Đã duyệt" và được tính công.
  * Hai cấp cùng một phiếu kiểm (BANG_CHUNG), tick ít nhất một ô.
- * Admin/superadmin ký được cả hai cấp, nhưng không ký cả hai trên cùng một báo cáo.
+ * Admin ký được cả hai cấp nhưng không ký cả hai trên cùng một báo cáo; super admin
+ * (admin tổng) thì ký được cả hai trên cùng một báo cáo (12/10/2026).
  */
 
 export const VAI_DUYET_CAP_1 = ["superadmin", "admin", "center_manager"];
@@ -62,7 +63,8 @@ export const quyenKy = (bc, role, userId, teacherId = null) => {
   if (!dsVai.includes(role)) {
     return { cap, duoc: false, lyDo: `Chờ ${TEN_CAP[cap].toLowerCase()} duyệt cấp ${cap}.` };
   }
-  if (cap === 2 && userId != null && Number(bc.level1_reviewed_by) === Number(userId)) {
+  // Super admin (admin tổng) ký được cả hai cấp — khớp approval/services.py.
+  if (cap === 2 && role !== "superadmin" && userId != null && Number(bc.level1_reviewed_by) === Number(userId)) {
     return { cap, duoc: false, lyDo: "Bạn đã ký cấp 1 — cấp 2 phải do người khác duyệt." };
   }
   return { cap, duoc: true, lyDo: "" };

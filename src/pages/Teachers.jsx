@@ -1,6 +1,7 @@
 import BulkImportModal from "../components/bulk/BulkImportModal";
 import { VAI_QUAN_TRI } from "../auth/permissions";
 import GanLopModal from "../components/teacher/GanLopModal";
+import SuaNhanSuModal from "../components/teacher/SuaNhanSuModal";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import apiClient from "../services/apiClient";
@@ -82,6 +83,7 @@ const ChevronIcon = ({ dir = "left" }) => (
 function Teachers() {
   const navigate = useNavigate();
   const [reloadKey, setReloadKey] = useState(0);
+  const [gvSua, setGvSua] = useState(null);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [moNhapExcel, setMoNhapExcel] = useState(false);
   // Gán lớp phụ trách — phân quyền theo lớp chỉ có nghĩa khi gán được lớp.
@@ -534,8 +536,16 @@ function Teachers() {
         key: "actions",
         header: "Thao tác",
         align: "center",
-        width: 96,
+        width: 150,
         render: (item) => (
+          <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(event) => { event.stopPropagation(); setGvSua(item); }}
+          >
+            Sửa
+          </Button>
           <Button
             variant="danger"
             size="sm"
@@ -548,6 +558,7 @@ function Teachers() {
             }}
             icon={<TrashIcon />}
           />
+          </div>
         ),
       });
     }
@@ -1051,6 +1062,12 @@ function Teachers() {
           ) : null}
         </form>
       </Modal>
+
+      <SuaNhanSuModal
+        giaoVien={gvSua}
+        onClose={() => setGvSua(null)}
+        onXong={() => setReloadKey((k) => k + 1)}
+      />
 
       <GanLopModal
         giaoVien={gvGanLop}
