@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getViecCanLam, henLaiCa, thaoTacGiaoViec } from "../services/calendarService";
+import { getViecCanLam, henLaiCa, henLaiLich } from "../services/calendarService";
 import { Button, Modal } from "../ui";
 
 /**
@@ -17,8 +17,8 @@ export default function CanhBaoViecGap({ userId }) {
   const navigate = useNavigate();
   const [viec, setViec] = useState([]);
   const [mo, setMo] = useState(false);
-  const [hen, setHen] = useState(null); // { khoa, session_id | viec_id, ngay, lyDo, loi }
-  const khoaViec = (v) => (v.viec_id ? `viec-${v.viec_id}` : `ca-${v.session_id}`);
+  const [hen, setHen] = useState(null); // { khoa, session_id | lich_id, ngay, lyDo, loi }
+  const khoaViec = (v) => (v.lich_id ? `lich-${v.lich_id}` : `ca-${v.session_id}`);
   const khoa = `vista-crm.canh-bao-viec.${userId}`;
 
   useEffect(() => {
@@ -56,8 +56,8 @@ export default function CanhBaoViecGap({ userId }) {
 
   const guiHen = async () => {
     try {
-      const han = hen.viec_id
-        ? (await thaoTacGiaoViec(hen.viec_id, "hen-lai", { han_moi: hen.ngay, ly_do: hen.lyDo })).han_hieu_luc
+      const han = hen.lich_id
+        ? (await henLaiLich(hen.lich_id, { hanMoi: hen.ngay, lyDo: hen.lyDo })).han
         : (await henLaiCa(hen.session_id, { hanMoi: hen.ngay, lyDo: hen.lyDo })).han;
       setViec((ds) => ds.map((v) => (khoaViec(v) === hen.khoa
         ? { ...v, da_hen: true, han_hen: han, han, qua_han: false } : v)));
@@ -89,14 +89,14 @@ export default function CanhBaoViecGap({ userId }) {
     >
       {viec.some((v) => v.tinh_loi) ? (
         <p className="small muted" style={{ marginTop: 0 }}>
-          Mỗi ca dạy phải có báo cáo kèm ít nhất 1 ảnh minh chứng, mỗi việc được giao phải nộp kết quả kèm minh
-          chứng — trước 24:00 ngày hạn. Quá hạn mà chưa xong thì mỗi đêm tính 1 lỗi (trừ 1 điểm thi đua). Chưa kịp
+          Mỗi ca dạy phải có báo cáo kèm ít nhất 1 ảnh minh chứng, mỗi đầu mục lịch công tác phải chuyển
+          “Hoàn thành” kèm minh chứng — trước 24:00 ngày hạn. Quá hạn mà chưa xong thì mỗi đêm tính 1 lỗi (trừ 1 điểm thi đua). Chưa kịp
           thì bấm <b>Hẹn lại</b> và chọn ngày cụ thể — mỗi đầu mục được hẹn một lần.
         </p>
       ) : null}
       <ul style={{ margin: 0, paddingLeft: 18, display: "grid", gap: 10 }}>
         {viec.slice(0, 12).map((v, i) => (
-          <li key={`${v.loai}-${v.session_id || v.viec_id || i}`}>
+          <li key={`${v.loai}-${v.session_id || v.lich_id || i}`}>
             <button
               type="button"
               onClick={() => di(v.link)}
@@ -112,7 +112,7 @@ export default function CanhBaoViecGap({ userId }) {
                 </span>
                 {!v.da_hen ? (
                   <button type="button" className="btn ghost sm"
-                          onClick={() => setHen({ khoa: khoaViec(v), session_id: v.session_id, viec_id: v.viec_id,
+                          onClick={() => setHen({ khoa: khoaViec(v), session_id: v.session_id, lich_id: v.lich_id,
                                                   ngay: isoCach(1), lyDo: "", loi: "" })}>
                     Hẹn lại
                   </button>

@@ -1,5 +1,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AnhMinhChung from "../components/AnhMinhChung";
+import MinhChungLich from "../components/MinhChungLich";
 import { VAI_QUAN_TRI } from "../auth/permissions";
 import { Link, useOutletContext, useSearchParams } from "react-router-dom";
 import DiemDanhCa from "../components/reports/DiemDanhCa";
@@ -24,6 +25,7 @@ import {
   listClassroomsByCenter,
   listMonthlyScorecards,
   listSchedules,
+  getSchedule,
   listSessionEvidences,
   listSessionReports,
   getStaffRequestPendingSummary,
@@ -2542,6 +2544,16 @@ function CalendarDetail() {
     setIsCreateOpen(true);
   };
 
+  // Mở thẳng một đầu mục từ cảnh báo việc cần làm: /calendar-detail?lich=<id>.
+  const lichCanMoRef = useRef(searchParams.get("lich") || "");
+  useEffect(() => {
+    const id = lichCanMoRef.current;
+    if (!id) return;
+    lichCanMoRef.current = "";
+    getSchedule(id).then(openEditSchedule).catch(() => setScheduleError("Không mở được đầu mục lịch công tác."));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleDeleteSchedule = async (raw) => {
     if (!raw?.id) return;
     if (!window.confirm(`Xoá lịch "${raw.title}" ngày ${formatShortDate(raw.event_date)}?`)) {
@@ -4933,6 +4945,12 @@ function CalendarDetail() {
                     }
                   />
                 </label>
+                {editingScheduleId && editingScheduleRaw ? (
+                  <MinhChungLich
+                    lich={editingScheduleRaw}
+                    onDoi={(moi) => { setEditingScheduleRaw(moi); setReloadKey((v) => v + 1); }}
+                  />
+                ) : null}
               </div>
               )}
               {createError && <div className={styles.errorNotice}>{createError}</div>}

@@ -30,7 +30,6 @@ import StudentLearningReport from './pages/StudentLearningReport.jsx';
 import StudentProfile from './pages/StudentProfile.jsx';
 import Emulation from './pages/Emulation.jsx';
 import PhieuLuongCuaToi from './pages/PhieuLuongCuaToi.jsx';
-import GiaoViec from './pages/GiaoViec.jsx';
 import styles from './styles/dashboard.module.css';
 import { useAuth } from './auth/AuthProvider.jsx';
 import { getDefaultRouteForRole, isRouteAllowedForRole } from './auth/roleRoutes.js';
@@ -165,14 +164,8 @@ function App() {
               </RoleGuard>
             }
           />
-          <Route
-            path="giao-viec"
-            element={
-              <RoleGuard allowedRoles={ROUTE_PERMISSIONS.giaoViec}>
-                <GiaoViec />
-              </RoleGuard>
-            }
-          />
+          {/* Giao việc nằm trong Lịch làm việc (lịch công tác) — chủ TT chốt 12/10/2026. */}
+          <Route path="giao-viec" element={<Navigate to="/calendar-detail" replace />} />
           <Route
             path="phieu-luong"
             element={
