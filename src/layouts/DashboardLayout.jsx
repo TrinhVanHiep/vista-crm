@@ -154,6 +154,17 @@ const navItems = [
     ),
   },
   {
+    label: "Phiếu lương",
+    to: "/phieu-luong",
+    allowedRoles: ROUTE_PERMISSIONS.payslip,
+    icon: navIcon(
+      <>
+        <rect x="4" y="3" width="16" height="18" rx="2" />
+        <path d="M8 8h8M8 12h8M8 16h5" />
+      </>
+    ),
+  },
+  {
     label: "Kết quả học tập",
     to: "/bao-cao-hoc-tap",
     allowedRoles: ROUTE_PERMISSIONS.studentLearningReport,

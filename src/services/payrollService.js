@@ -174,3 +174,11 @@ export async function nhapSoDiemDanh(tep, { thang, nam, ghi = false }) {
   const { data } = await apiClient.post("/so-diem-danh/nhap/", fd, { timeout: 180000 });
   return data;
 }
+
+// Phiếu lương một người một tháng; không truyền teacher = phiếu của chính mình.
+export async function layPhieuLuong({ thang, nam, teacher }) {
+  const { data } = await apiClient.get("/payroll/phieu-luong/", {
+    params: { month: thang, year: nam, ...(teacher ? { teacher } : {}) },
+  });
+  return data;
+}

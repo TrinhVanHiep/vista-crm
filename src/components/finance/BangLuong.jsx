@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { dinhDangTien, loiApi, rutGonM } from "../../services/financeService";
-import { layBangLuong, layCoCauLuong, nhapChamCong, taiMauChamCong, xuatBangLuong } from "../../services/payrollService";
-import { Button, Card, CardHead, NoteStrip, Num, Pill, StatCard, Table } from "./v3/ui";
+import { layBangLuong, layCoCauLuong, layPhieuLuong, nhapChamCong, taiMauChamCong, xuatBangLuong } from "../../services/payrollService";
+import { Button, Card, CardHead, Modal, NoteStrip, Num, Pill, StatCard, Table } from "./v3/ui";
+import PhieuLuong from "./PhieuLuong";
 import { DonGiaTheoLop, HopDieuChinhThang } from "./DieuChinhLuong";
 import CauHinhLuong from "./CauHinhLuong";
 import { DiemDanhHsBoSung, DuyetCongBoSung, GanNguoiChamCong, SoDiemDanhGoc } from "./MayChamCong";
@@ -136,6 +137,7 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
   const [dangChinh, setDangChinh] = useState(null);
   const [cauHinh, setCauHinh] = useState(undefined); // undefined = đóng, null = thêm mới, id = sửa
   const [gvMinhHoa, setGvMinhHoa] = useState("");
+  const [xemPhieu, setXemPhieu] = useState(null);
   const laQuanTri = VAI_QUAN_TRI.includes(vaiHienTai());
 
   useEffect(() => {
@@ -164,88 +166,60 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
     { thucNhan: 0, day: 0, khauTru: 0 },
   );
 
+  // Thứ tự cột theo chủ trung tâm (12/10/2026): Thực nhận → Lương cơ bản → Lương dạy →
+  // Thưởng sale → BHXH → Trợ cấp → Thuế TNCN → Khấu trừ. Gộp khoản giống payroll/phieu_luong.py
+  // (dong_phieu) để bảng trên màn, phiếu cá nhân và file Excel cùng một con số.
+  const phu = (s) => (s ? <div style={{ fontSize: 11.5, color: color.faint, marginTop: 2 }}>{s}</div> : null);
   const dong = ds.map((x) => {
     const c = x.salary_components || {};
     const cc = x.attendance || {};
-    const khac = Number(c.sale_commission || 0) + Number(c.allowance || 0)
-      + Number(c.manual_adjustment || 0) + Number(c.other_adjustment || 0);
-    const khauTru = Number(c.total_deduction ?? c.insurance_deduction ?? 0);
-    const chiTietTru = [
-      Number(c.insurance_deduction) > 0 ? `BHXH ${rutGonM(c.insurance_deduction)}${c.insurance_overridden ? " (tay)" : ""}` : "",
-      Number(c.tax_deduction) > 0 ? `Thuế ${rutGonM(c.tax_deduction)}` : "",
-      Number(c.penalty) > 0 ? `Phạt ${rutGonM(c.penalty)}` : "",
-    ].filter(Boolean).join(" · ");
+    const dieuChinh = Number(c.manual_adjustment || 0) + Number(c.other_adjustment || 0);
+    const troCap = Number(c.allowance || 0) + Number(c.duty_salary || 0) + Number(c.student_management_pay || 0) + Math.max(dieuChinh, 0);
+    const thuong = Number(c.sale_commission || 0) + Number(c.monthly_bonus || 0);
+    const khauTru = Number(c.penalty || 0) + Math.max(-dieuChinh, 0);
+    const soCa = (x.classrooms || []).reduce((n, l) => n + (l.session_attendance || []).length, 0);
+    const am = (v) => (Number(v) > 0 ? <Num tone="red">-{tien(v)}</Num> : <Num>0</Num>);
     return [
-      <div key="t">
-        <div style={{ fontWeight: 700 }}>{x.teacher_name}</div>
+      <div key="t" style={{ minWidth: 190 }}>
+        <button type="button" onClick={() => setXemPhieu(x)} title="Xem chi tiết theo ngày công và ca dạy"
+                style={{ all: "unset", cursor: "pointer", fontWeight: 700, color: color.orange || "#F26522" }}>
+          {x.teacher_name}
+        </button>
         <div style={{ fontSize: 12, color: color.muted, marginTop: 2 }}>
           {x.position_label || LOAI[x.employment_type] || x.employment_type}
-          {x.position_label ? ` · ${LOAI[x.employment_type] || x.employment_type}` : ""}
         </div>
-        <div style={{ fontSize: 11.5, color: color.faint, marginTop: 2 }}>
-          {cc.attendance_days || 0} công
-          {Number(cc.single_punch_days) ? ` · ${cc.single_punch_days} ngày chỉ 1 lượt quẹt (không tính)` : ""}
-          {Number(cc.pending_file_days) ? ` · ${cc.pending_file_days} ngày chờ duyệt` : ""}
-          {Number(cc.teaching_sessions_total) ? ` · ${cc.teaching_sessions_with_punch || 0}/${cc.teaching_sessions_total} ca dạy có quẹt máy` : ""}
-        </div>
+        {phu(`${cc.attendance_days || 0} công · ${soCa} ca dạy${Number(cc.pending_file_days) ? ` · ${cc.pending_file_days} ngày chờ duyệt` : ""}`)}
       </div>,
-      <div key="cd">
+      <Num key="n" bold>{tien(c.net_salary)}</Num>,
+      <div key="cb">
         <Num>{tien(c.prorated_base_salary)}</Num>
-        {Number(c.base_salary) > 0 ? (
-          <div style={{ fontSize: 11.5, color: color.faint }}>
-            {cc.payable_workdays ?? cc.attendance_days ?? 0}/{cc.base_salary_standard_days || 26} công
-            {Number(cc.payable_workdays) > Number(cc.attendance_days) ? ` (thực ${cc.attendance_days}, tối thiểu 15)` : ""}
-            {" · "}{rutGonM(c.base_salary)}
-          </div>
-        ) : null}
+        {Number(c.base_salary) > 0 ? phu(`${cc.payable_workdays ?? cc.attendance_days ?? 0}/${cc.base_salary_standard_days || 26} công × ${rutGonM(c.base_salary)}`) : null}
       </div>,
       <div key="d">
         <Num>{tien(c.teaching_salary)}</Num>
-        {x.employment_type === "foreign" ? (
-          <div style={{ fontSize: 11.5, color: color.faint }}>
-            {x.teaching_summary?.approved_sessions_count || 0} ca × {tien(c.rate_per_session)}
-          </div>
-        ) : Number(c.teaching_salary) > 0 || Number(c.share_percent) > 0 ? (
-          <div style={{ fontSize: 11.5, color: color.faint }}>
-            {c.share_percent || 0}% × {rutGonM(c.salary_basis_revenue_total)}
-          </div>
-        ) : null}
+        {x.employment_type === "foreign"
+          ? phu(`${x.teaching_summary?.approved_sessions_count || 0} ca × ${tien(c.rate_per_session)}`)
+          : Number(c.teaching_salary) > 0 ? phu(`${soCa} ca · ${c.share_percent || 0}%`) : null}
       </div>,
-      <div key="tr">
-        <Num>{tien(c.duty_salary)}</Num>
-        {Number(cc.duty_shift_count) > 0 ? (
-          <div style={{ fontSize: 11.5, color: color.faint }}>
-            {cc.duty_weekday_count || 0} T2–T6 · {cc.duty_saturday_count || 0} T7 · {cc.duty_sunday_count || 0} CN
-          </div>
-        ) : null}
-      </div>,
-      <div key="k">
-        <Num>{tien(c.student_management_pay)}</Num>
-        {Number(c.student_management_rate) > 0 ? (
-          <div style={{ fontSize: 11.5, color: color.faint }}>
-            {c.center_payable_attendance_count || 0} lượt × {tien(c.student_management_rate)} × KPI {c.kpi_coefficient_percent}%
-          </div>
-        ) : null}
-      </div>,
-      <Num key="s">{tien(khac)}</Num>,
       <div key="th" title={c.kpi_bonus_reason || ""}>
-        <Num>{tien(c.monthly_bonus)}</Num>
-        <div style={{ fontSize: 11.5, color: color.faint }}>
-          {c.kpi_score != null ? `Thi đua ${c.kpi_score} đ` : "Chưa có phiếu"}
-          {c.kpi_score != null && c.kpi_status !== "approved" ? " · chưa duyệt" : ""}
-        </div>
+        <Num>{tien(thuong)}</Num>
+        {phu([Number(c.sale_commission) ? `Sale ${rutGonM(c.sale_commission)}` : "",
+              Number(c.monthly_bonus) ? `Thi đua ${rutGonM(c.monthly_bonus)}` : c.kpi_score != null ? `Thi đua ${c.kpi_score} đ${c.kpi_status !== "approved" ? " (chưa duyệt)" : ""}` : ""]
+          .filter(Boolean).join(" · "))}
       </div>,
-      <div key="b" title={c.penalty_note || ""}>
-        <Num tone={khauTru > 0 ? "red" : undefined}>{khauTru > 0 ? `-${tien(khauTru)}` : 0}</Num>
-        {chiTietTru ? <div style={{ fontSize: 11.5, color: color.faint }}>{chiTietTru}</div> : null}
+      <div key="bh">{am(c.insurance_deduction)}{c.insurance_overridden ? phu("chỉnh tay") : null}</div>,
+      <div key="tc">
+        <Num>{tien(troCap)}</Num>
+        {phu([Number(c.allowance) ? `Phụ cấp ${rutGonM(c.allowance)}` : "", Number(c.duty_salary) ? `Trực ${rutGonM(c.duty_salary)}` : "",
+              Number(c.student_management_pay) ? `QLHS ${rutGonM(c.student_management_pay)}` : ""].filter(Boolean).join(" · "))}
       </div>,
-      <Num key="n" bold>{tien(c.net_salary)}</Num>,
-      ...(coTheGhi ? [
-        <div key="c" style={{ display: "flex", gap: 6 }}>
-          <Button variant="ghost" onClick={() => setDangChinh(x)}>Chỉnh</Button>
-          <Button variant="ghost" onClick={() => setCauHinh(x.teacher_id)}>Cấu hình</Button>
-        </div>,
-      ] : []),
+      <div key="tax">{am(c.tax_deduction)}</div>,
+      <div key="kt" title={c.penalty_note || ""}>{am(khauTru)}</div>,
+      <div key="c" style={{ display: "flex", gap: 6 }}>
+        <Button variant="ghost" onClick={() => setXemPhieu(x)}>Chi tiết</Button>
+        {coTheGhi ? <Button variant="ghost" onClick={() => setDangChinh(x)}>Chỉnh</Button> : null}
+        {coTheGhi ? <Button variant="ghost" title="Cấu hình lương" onClick={() => setCauHinh(x.teacher_id)}>⚙</Button> : null}
+      </div>,
     ];
   });
 
@@ -307,9 +281,8 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
           ) : (
             <Table
               columns={[
-                "Nhân sự", "Lương cố định", "Lương dạy", "Trực / demo", "Khoán QLHS",
-                "Sale, phụ cấp, điều chỉnh", "Thưởng thi đua", "Khấu trừ", "Thực nhận",
-                ...(coTheGhi ? [""] : []),
+                "Nhân sự", "Lương thực nhận", "Lương cơ bản", "Lương dạy", "Thưởng sale",
+                "BHXH", "Trợ cấp", "Thuế TNCN", "Khấu trừ", "",
               ]}
               rows={dong}
               align={{ 1: "right", 2: "right", 3: "right", 4: "right", 5: "right", 6: "right", 7: "right", 8: "right" }}
@@ -347,6 +320,10 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
           onDong={() => setCauHinh(undefined)}
           onDaLuu={(tb) => { setCauHinh(undefined); onNotice?.(tb); setTaiLai((v) => v + 1); }}
         />
+      ) : null}
+
+      {xemPhieu ? (
+        <HopPhieuLuong nguoi={xemPhieu} thang={thang} nam={nam} onDong={() => setXemPhieu(null)} />
       ) : null}
 
       {dangChinh ? (
@@ -439,5 +416,24 @@ function MinhHoaLuongDay({ ds, chon, onChon }) {
         <div style={{ fontSize: 13.5 }}>Tổng lương dạy: <b>{tien(c.teaching_salary)}</b></div>
       </div>
     </Card>
+  );
+}
+
+/** Hộp phiếu lương một người (cùng giao diện trang "Phiếu lương của tôi"). */
+function HopPhieuLuong({ nguoi, thang, nam, onDong }) {
+  const [duLieu, setDuLieu] = useState(null);
+  const [loi, setLoi] = useState("");
+  useEffect(() => {
+    let huy = false;
+    layPhieuLuong({ thang, nam, teacher: nguoi.teacher_id })
+      .then((d) => !huy && setDuLieu(d))
+      .catch((e) => !huy && setLoi(loiApi(e, "Không tải được phiếu lương.")));
+    return () => { huy = true; };
+  }, [nguoi.teacher_id, thang, nam]);
+  return (
+    <Modal title={`Phiếu lương — ${nguoi.teacher_name}`} sub={`Tháng ${thang}/${nam}`} width={780} onClose={onDong}
+           footer={<Button variant="ghost" onClick={onDong}>Đóng</Button>}>
+      {loi ? <p style={{ color: color.red }}>{loi}</p> : duLieu ? <PhieuLuong duLieu={duLieu} /> : <p style={{ color: color.muted }}>Đang tải…</p>}
+    </Modal>
   );
 }

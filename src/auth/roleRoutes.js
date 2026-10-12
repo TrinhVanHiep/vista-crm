@@ -22,6 +22,7 @@ const ROUTE_ORDER = [
   { path: '/teachers', allowedRoles: ROUTE_PERMISSIONS.teachers },
   { path: '/teachers/:teacherId', allowedRoles: ROUTE_PERMISSIONS.employeeProfile },
   { path: '/attendance', allowedRoles: ROUTE_PERMISSIONS.attendance },
+  { path: '/phieu-luong', allowedRoles: ROUTE_PERMISSIONS.payslip },
   { path: '/employee-profile', allowedRoles: ROUTE_PERMISSIONS.employeeProfile },
   { path: '/finance', allowedRoles: ROUTE_PERMISSIONS.financeMenu },
   { path: '/accounts/create', allowedRoles: ROUTE_PERMISSIONS.accounts },

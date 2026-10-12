@@ -43,6 +43,8 @@ export const ROUTE_PERMISSIONS = {
   // Báo cáo ngày (giảng dạy + truyền thông). Tên cũ là 'reportCard' nhưng màn
   // này không phải phiếu báo cáo gửi phụ huynh — phiếu đó ở /phieu-bao-cao/:id.
   dailyReport: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager'],
+  // Phiếu lương cá nhân (12/10/2026): mỗi nhân sự tự xem phiếu lương tháng của mình.
+  payslip: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager', 'accountant'],
   employeeProfile: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager'],
   // Hồ sơ học viên tách khỏi employeeProfile: đây là hồ sơ NGƯỜI HỌC, không phải
   // hồ sơ nhân sự, nên quyền cũng phải nói đúng điều đó.
