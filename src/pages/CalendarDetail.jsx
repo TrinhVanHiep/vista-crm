@@ -30,6 +30,7 @@ import {
   createStaffRequest,
   reviewStaffRequest,
   listTeachers,
+  listGvNuocNgoai,
   listTeachingSessions,
   reviewTeachingSessionPlan,
   reviewMonthlyTeachingPlan,
@@ -775,6 +776,7 @@ function CalendarDetail() {
   const { role, user } = useAuth();
   const currentUserId = user?.id;
   const isTeacherRole = role === "teacher";
+  const [gvNuocNgoai, setGvNuocNgoai] = useState([]);
   const canManageSessions = VAI_QUAN_TRI.includes(role);
   // Phân quyền duyệt đơn nhân sự (mirror backend staff_requests._can_review).
   const isAdminRole = VAI_QUAN_TRI.includes(role);
@@ -1145,7 +1147,7 @@ function CalendarDetail() {
         return;
       }
       try {
-        const [classroomResult, teacherResult] = await Promise.allSettled([
+        const [classroomResult, teacherResult, gvNnResult] = await Promise.allSettled([
           // Giáo viên CHỈ lấy lớp mình phụ trách. Đổ toàn bộ 26 lớp ra thì họ
           // chọn được lớp người khác, form cho qua sạch, rồi backend mới trả
           // 403 "Teachers can only manage existing classrooms" — nhìn như hệ
@@ -1154,6 +1156,8 @@ function CalendarDetail() {
           canSelectTeacherForCreate
             ? listTeachers({ page_size: 200 })
             : Promise.resolve({ results: [] }),
+          // GV Việt Nam gán được ca cho GV nước ngoài trong lớp mình (12/10/2026).
+          isTeacherRole ? listGvNuocNgoai() : Promise.resolve([]),
         ]);
 
         if (cancelled) return;
@@ -1163,6 +1167,9 @@ function CalendarDetail() {
         }
         if (teacherResult.status === "fulfilled") {
           setTeachers(safeArray(teacherResult.value.results));
+        }
+        if (gvNnResult.status === "fulfilled") {
+          setGvNuocNgoai(safeArray(gvNnResult.value));
         }
       } catch (error) {
         if (!cancelled) {
@@ -2437,6 +2444,7 @@ function CalendarDetail() {
               meeting_link: payload.meeting_link,
               lesson_topic: payload.lesson_topic,
               lesson_objective: payload.lesson_objective,
+              ...(payload.teacher ? { teacher: payload.teacher } : {}),
               teaching_plan_month: payload.teaching_plan_month,
               teaching_plan_year: payload.teaching_plan_year,
               teaching_plan_week: payload.teaching_plan_week,
@@ -4677,6 +4685,19 @@ function CalendarDetail() {
                             .filter(Boolean)
                             .join(" ") || teacher.user?.email || `GV ${teacher.id}`}
                         </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : isTeacherRole && gvNuocNgoai.length ? (
+                  <label className={styles.formGroup}>
+                    <span>Giáo viên dạy ca này</span>
+                    <select
+                      value={createForm.teacher}
+                      onChange={(event) => setCreateForm((prev) => ({ ...prev, teacher: event.target.value }))}
+                    >
+                      <option value="">Tôi (tài khoản hiện tại)</option>
+                      {gvNuocNgoai.map((g) => (
+                        <option key={g.id} value={g.id}>{g.ten} · GV nước ngoài</option>
                       ))}
                     </select>
                   </label>

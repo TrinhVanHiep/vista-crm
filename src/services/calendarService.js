@@ -668,3 +668,9 @@ export async function taiBangDiemLop({ classroom, month, year, tenLop = "" }) {
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
+
+/** Giáo viên nước ngoài để GV Việt Nam gán vào ca của lớp mình (12/10/2026). */
+export async function listGvNuocNgoai() {
+  const { data } = await apiClient.get("/teaching-sessions/gv-nuoc-ngoai/");
+  return Array.isArray(data) ? data : [];
+}
