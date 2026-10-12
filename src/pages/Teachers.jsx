@@ -344,10 +344,8 @@ function Teachers() {
     setCreateError("");
     setListNotice("");
     setListError("");
-    // Email không bắt buộc (12/10/2026): bỏ trống thì máy chủ tự tạo email nội bộ
-    // làm tên đăng nhập (teachers/serializers.py::to_internal_value).
-    if (!formData.first_name || !formData.last_name) {
-      setCreateError("Vui lòng nhập họ và tên giảng viên.");
+    if (!formData.first_name || !formData.last_name || !formData.email) {
+      setCreateError("Vui lòng nhập họ, tên và email giảng viên.");
       return;
     }
 
@@ -362,7 +360,7 @@ function Teachers() {
         first_name: formData.first_name.trim(),
         last_name: formData.last_name.trim(),
         email: formData.email.trim(),
-        username: (formData.phone_number || formData.email || "").trim(),
+        username: (formData.phone_number || formData.email).trim(),
         password,
       },
       gender: formData.gender || null,
@@ -388,13 +386,10 @@ function Teachers() {
 
     setCreateLoading(true);
     try {
-      const { data: moi } = await apiClient.post("/teachers/teachers/", payload);
-      const dangNhap = !formData.email.trim() && moi?.user?.email
-        ? ` Chưa có email nên hệ thống tạo tên đăng nhập: ${moi.user.email} (mật khẩu mặc định như ghi chú ở form).`
-        : "";
-      setCreateMessage(`Đã thêm giảng viên mới.${dangNhap}`);
+      await apiClient.post("/teachers/teachers/", payload);
+      setCreateMessage("Đã thêm giảng viên mới.");
       setReloadKey((prev) => prev + 1);
-      setListNotice(`Đã thêm giảng viên mới.${dangNhap}`);
+      setListNotice("Đã thêm giảng viên mới.");
       resetCreateForm();
     } catch (error) {
       const apiError = error?.response?.data;
@@ -872,7 +867,7 @@ function Teachers() {
                 required
               />
             </Field>
-            <Field label="Email" hint="Không bắt buộc — bỏ trống thì hệ thống tự tạo tên đăng nhập.">
+            <Field label="Email" required>
               <input
                 type="email"
                 value={formData.email}
@@ -882,6 +877,7 @@ function Teachers() {
                     email: event.target.value,
                   }))
                 }
+                required
               />
             </Field>
             <Field label="Số điện thoại">
