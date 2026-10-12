@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import { ROUTE_PERMISSIONS } from "../auth/permissions";
 import {
@@ -150,17 +150,6 @@ const navItems = [
       <>
         <path d="M7 4h10v5a5 5 0 0 1-10 0V4z" />
         <path d="M7 5H4v2a3.5 3.5 0 0 0 3.5 3.5M17 5h3v2a3.5 3.5 0 0 1-3.5 3.5M12 14v4m-4 3h8m-6.5-3h5" />
-      </>
-    ),
-  },
-  {
-    label: "Phiếu lương",
-    to: "/phieu-luong",
-    allowedRoles: ROUTE_PERMISSIONS.payslip,
-    icon: navIcon(
-      <>
-        <rect x="4" y="3" width="16" height="18" rx="2" />
-        <path d="M8 8h8M8 12h8M8 16h5" />
       </>
     ),
   },
@@ -968,6 +957,19 @@ function DashboardLayout() {
                     </strong>
                     <span style={{ fontSize: "0.75rem", color: "var(--color-muted)" }}>{roleLabel}</span>
                   </div>
+                  {/* Phiếu lương không còn là mục menu riêng (12/10/2026): quản trị xem/xuất PDF
+                      trong Tài chính → Bảng lương; mỗi nhân sự tự xem phiếu của mình ở đây. */}
+                  {ROUTE_PERMISSIONS.payslip.includes(role) ? (
+                    <Link
+                      to="/phieu-luong"
+                      role="menuitem"
+                      onClick={() => setIsUserOpen(false)}
+                      style={{ display: "flex", gap: 8, padding: "10px 12px", marginTop: 4, color: "#43301f",
+                               fontWeight: 600, fontSize: "0.85rem", borderRadius: 8, textDecoration: "none" }}
+                    >
+                      <span aria-hidden="true">🧾</span> Phiếu lương của tôi
+                    </Link>
+                  ) : null}
                   <button
                     type="button"
                     role="menuitem"

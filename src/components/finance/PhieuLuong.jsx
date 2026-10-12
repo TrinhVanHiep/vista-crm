@@ -44,6 +44,17 @@ export default function PhieuLuong({ duLieu, inDuoc = true }) {
     donGia: l.salary_basis_per_student,
     chia: l.teacher_revenue_share_percent,
   }))).sort((x, y) => String(x.session_date).localeCompare(String(y.session_date)));
+  // Xuất PDF = in trang phiếu (trình duyệt: "Lưu dưới dạng PDF"). Đặt tên tài liệu
+  // để file PDF lưu ra có tên người + tháng thay vì "Vista CRM".
+  const xuatPdf = () => {
+    setTab("phieu");
+    const cu = document.title;
+    document.title = `Phieu-luong-${(d.ho_ten || "").replace(/\s+/g, "-")}-T${String(thang).padStart(2, "0")}-${nam}`;
+    setTimeout(() => {
+      window.print();
+      document.title = cu;
+    }, 50);
+  };
   const tabBtn = (ma, nhan) => (
     <button type="button" onClick={() => setTab(ma)} className="no-print"
             style={{ border: 0, borderBottom: tab === ma ? "2px solid #F26522" : "2px solid transparent", background: "none",
@@ -56,10 +67,12 @@ export default function PhieuLuong({ duLieu, inDuoc = true }) {
     <div className="phieu-luong">
       <style>{`
         @media print {
+          @page { size: A4; margin: 14mm; }
           body * { visibility: hidden !important; }
           .phieu-luong, .phieu-luong * { visibility: visible !important; }
           .phieu-luong { position: absolute; left: 0; top: 0; width: 100%; }
           .phieu-luong .no-print { display: none !important; }
+          .phieu-luong .chi-in { display: grid !important; }
         }
       `}</style>
       <div style={{ textAlign: "center", marginBottom: 10 }}>
@@ -73,7 +86,7 @@ export default function PhieuLuong({ duLieu, inDuoc = true }) {
         {tabBtn("phieu", "Phiếu lương")}
         {tabBtn("cong", `Chấm công (${a.attendance_days || 0} công)`)}
         {tabBtn("ca", `Ca dạy (${caDay.length} ca)`)}
-        {inDuoc ? <button type="button" className="btn ghost sm no-print" style={{ marginLeft: "auto" }} onClick={() => window.print()}>🖨 In phiếu</button> : null}
+        {inDuoc ? <button type="button" className="btn primary sm no-print" style={{ marginLeft: "auto" }} onClick={xuatPdf}>⬇ Xuất PDF / In</button> : null}
       </div>
 
       {tab === "phieu" ? (
@@ -105,6 +118,12 @@ export default function PhieuLuong({ duLieu, inDuoc = true }) {
             ) : null}
           </tbody>
         </table>
+      ) : null}
+      {tab === "phieu" ? (
+        <div className="chi-in" style={{ display: "none", gridTemplateColumns: "1fr 1fr", textAlign: "center", marginTop: 28, fontSize: 13 }}>
+          <div><b>NGƯỜI LẬP BIỂU</b><div style={{ fontSize: 11.5, color: "#8a7a66" }}>(Ký, họ tên)</div></div>
+          <div><b>NGƯỜI NHẬN</b><div style={{ fontSize: 11.5, color: "#8a7a66" }}>(Ký, họ tên)</div></div>
+        </div>
       ) : null}
 
       {tab === "cong" ? (

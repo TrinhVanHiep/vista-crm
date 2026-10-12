@@ -221,6 +221,7 @@ const SHEET_NAMES = {
 
 // 4 loại lịch công tác (mọi loại trừ lịch báo giảng — loại đó dùng model và
 // endpoint khác nên có sheet với bộ cột riêng).
+const LOAI_GIAO_VIEC = ["teaching_plan", "student", "marketing", "hr"];
 const SCHEDULE_SHEET_TYPES = WORK_CARDS.filter((c) => c.source === "schedule").map((c) => c.id);
 
 // Bộ cột của sheet lịch báo giảng — mô tả để sinh trang hướng dẫn. Danh sách này
@@ -779,6 +780,7 @@ function CalendarDetail() {
   const { role, user } = useAuth();
   const currentUserId = user?.id;
   const isTeacherRole = role === "teacher";
+  const laQuanTriLich = VAI_QUAN_TRI.includes(role);
   const [gvNuocNgoai, setGvNuocNgoai] = useState([]);
   const canManageSessions = VAI_QUAN_TRI.includes(role);
   // Phân quyền duyệt đơn nhân sự (mirror backend staff_requests._can_review).
@@ -918,6 +920,8 @@ function CalendarDetail() {
   const [importResult, setImportResult] = useState(null);
 
   const [reportSessionId, setReportSessionId] = useState(null);
+  const [cheDoGiaoViec, setCheDoGiaoViec] = useState(false);
+  useEffect(() => { if (!isCreateOpen) setCheDoGiaoViec(false); }, [isCreateOpen]);
   const [reportForm, setReportForm] = useState(buildDefaultReportForm);
   const [reportSaving, setReportSaving] = useState(false);
   const [reportError, setReportError] = useState("");
@@ -2265,6 +2269,10 @@ function CalendarDetail() {
       setCreateError("Vui lòng nhập nội dung công việc.");
       return;
     }
+    if (cheDoGiaoViec && !editingScheduleId && !createForm.sc_assignee) {
+      setCreateError("Giao việc phải chọn người phụ trách.");
+      return;
+    }
     // Ghép giống hệt cách backend ghép khi nhập file, để một việc nhập bằng tay
     // và nhập bằng file ra cùng một tiêu đề (nhờ đó không sinh bản trùng).
     const tieuDe = hangMuc ? `${hangMuc}: ${tieuDeGoc}` : tieuDeGoc;
@@ -2523,6 +2531,7 @@ function CalendarDetail() {
 
   const openEditSchedule = (raw) => {
     if (!raw) return;
+    setCheDoGiaoViec(false);
     setScheduleActionError("");
     setDetailSession(null);
     setCreateError("");
@@ -3403,6 +3412,57 @@ function CalendarDetail() {
   const activeReport = reportSessionId ? reportBySessionId.get(reportSessionId) : null;
   const importErrorItems = safeArray(importResult?.error_logs || importResult?.errors);
 
+  // "Giao việc" (12/10/2026): cùng form thêm lịch, nhưng chỉ 4 loại lịch chủ TT chốt —
+  // lịch báo giảng, học sinh - lớp học, truyền thông, hành chính - nhân sự — và bắt buộc
+  // chọn người nhận. Đầu mục giao đi được đo lường như mọi đầu mục khác (tính lỗi
+  // khi quá 24:00 chưa Hoàn thành kèm minh chứng).
+  const moTaoLich = (giaoViec) => {
+    setCheDoGiaoViec(giaoViec);
+    setCreateError("");
+    const base = `${selectedYear}-${pad2(selectedMonth)}-01`;
+    const draftDate = base >= todayString ? base : todayString;
+    // Lịch công tác được phép ghi ngày quá khứ, và nếu kẹp về
+    // hôm nay thì việc tạo trong tháng cũ sẽ rơi ra ngoài lịch
+    // đang xem. Ca dạy vẫn giữ luật cũ (không lùi ngày).
+    const ngayCongTac =
+      todayString.slice(0, 7) === `${selectedYear}-${pad2(selectedMonth)}`
+        ? todayString
+        : base;
+    const [dy, dm, dday] = draftDate.split("-").map(Number);
+    setIsCreateOpen(true);
+    setEditingSessionId(null);
+    setEditingScheduleId(null); setEditingScheduleRaw(null);
+    setCreateForm((prev) => ({
+      ...prev,
+      calendar_type: giaoViec && calendarTypeOptions.some((c) => c.id === "student")
+        ? "student"
+        : calendarTypeOptions.some((c) => c.id === "teaching_plan")
+          ? "teaching_plan"
+          : calendarTypeOptions[0]?.id || "teaching_plan",
+      // Xoá sạch nội dung của lần mở trước — form dùng chung cho
+      // cả 5 loại lịch và KHÔNG tự reset khi đóng modal.
+      classroom: "",
+      meeting_link: "",
+      lesson_topic: "",
+      lesson_objective: "",
+      delivery_mode: "online",
+      status: "scheduled",
+      sc_title: "",
+      sc_subcategory: "",
+      sc_description: "",
+      sc_time_label: "",
+      sc_status: "todo",
+      sc_assignee: "",
+      sc_date: ngayCongTac,
+      teacher: canSelectTeacherForCreate ? (prev.teacher || selectedTeacherId || "") : "",
+      start_at: `${draftDate}T18:00`,
+      end_at: `${draftDate}T19:30`,
+      teaching_plan_month: dm,
+      teaching_plan_year: dy,
+      teaching_plan_week: getWeekIndexFromDate(dy, dm, dday),
+    }));
+  };
+
   return (
       <>
       <div className="v4page">
@@ -3420,49 +3480,12 @@ function CalendarDetail() {
                     hàng nên trên laptop 1280px chúng tràn xuống 2 hàng và "+ Thêm
                     ca dạy" — việc hay làm nhất — lại bị đẩy xuống dưới cùng. */}
                 {(canCreateTeachingPlan || calendarTypeOptions.length > 0) && (
-                  <button className="btn primary" onClick={() => {
-                    setCreateError("");
-                    const base = `${selectedYear}-${pad2(selectedMonth)}-01`;
-                    const draftDate = base >= todayString ? base : todayString;
-                    // Lịch công tác được phép ghi ngày quá khứ, và nếu kẹp về
-                    // hôm nay thì việc tạo trong tháng cũ sẽ rơi ra ngoài lịch
-                    // đang xem. Ca dạy vẫn giữ luật cũ (không lùi ngày).
-                    const ngayCongTac =
-                      todayString.slice(0, 7) === `${selectedYear}-${pad2(selectedMonth)}`
-                        ? todayString
-                        : base;
-                    const [dy, dm, dday] = draftDate.split("-").map(Number);
-                    setIsCreateOpen(true);
-                    setEditingSessionId(null);
-                    setEditingScheduleId(null); setEditingScheduleRaw(null);
-                    setCreateForm((prev) => ({
-                      ...prev,
-                      calendar_type: calendarTypeOptions.some((c) => c.id === "teaching_plan")
-                        ? "teaching_plan"
-                        : calendarTypeOptions[0]?.id || "teaching_plan",
-                      // Xoá sạch nội dung của lần mở trước — form dùng chung cho
-                      // cả 5 loại lịch và KHÔNG tự reset khi đóng modal.
-                      classroom: "",
-                      meeting_link: "",
-                      lesson_topic: "",
-                      lesson_objective: "",
-                      delivery_mode: "online",
-                      status: "scheduled",
-                      sc_title: "",
-                      sc_subcategory: "",
-                      sc_description: "",
-                      sc_time_label: "",
-                      sc_status: "todo",
-                      sc_assignee: "",
-                      sc_date: ngayCongTac,
-                      teacher: canSelectTeacherForCreate ? (prev.teacher || selectedTeacherId || "") : "",
-                      start_at: `${draftDate}T18:00`,
-                      end_at: `${draftDate}T19:30`,
-                      teaching_plan_month: dm,
-                      teaching_plan_year: dy,
-                      teaching_plan_week: getWeekIndexFromDate(dy, dm, dday),
-                    }));
-                  }}>+ Thêm lịch</button>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {laQuanTriLich ? (
+                      <button className="btn ghost" onClick={() => moTaoLich(true)}>Giao việc</button>
+                    ) : null}
+                    <button className="btn primary" onClick={() => moTaoLich(false)}>+ Thêm lịch</button>
+                  </div>
                 )}
               </div>
               {/* Các thao tác phụ thành thanh riêng, dùng hết bề ngang nên vừa một
@@ -4580,6 +4603,8 @@ function CalendarDetail() {
               <h2>
                 {editingSessionId
                   ? "Sửa ca dạy"
+                  : cheDoGiaoViec && !editingScheduleId
+                    ? `Giao việc — ${WORK_CARDS.find((c) => c.id === createForm.calendar_type)?.fullLabel || ""}`
                   : createForm.calendar_type === "teaching_plan"
                     ? "Tạo ca dạy thủ công"
                     : `${editingScheduleId ? "Sửa lịch" : "Thêm lịch"} ${
@@ -4621,7 +4646,7 @@ function CalendarDetail() {
                       setCreateForm((prev) => ({ ...prev, calendar_type: loai }));
                     }}
                   >
-                    {calendarTypeOptions.map((card) => (
+                    {calendarTypeOptions.filter((c) => !cheDoGiaoViec || LOAI_GIAO_VIEC.includes(c.id)).map((card) => (
                       <option key={card.id} value={card.id}>
                         {card.fullLabel}
                       </option>
