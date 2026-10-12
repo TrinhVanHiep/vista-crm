@@ -30,7 +30,7 @@ import {
   createStaffRequest,
   reviewStaffRequest,
   listTeachers,
-  listGvNuocNgoai,
+  listGiaoVienChon,
   listTeachingSessions,
   reviewTeachingSessionPlan,
   reviewMonthlyTeachingPlan,
@@ -1156,8 +1156,8 @@ function CalendarDetail() {
           canSelectTeacherForCreate
             ? listTeachers({ page_size: 200 })
             : Promise.resolve({ results: [] }),
-          // GV Việt Nam gán được ca cho GV nước ngoài trong lớp mình (12/10/2026).
-          isTeacherRole ? listGvNuocNgoai() : Promise.resolve([]),
+          // GV chọn người dạy ca: GV nước ngoài hoặc nhờ GV khác dạy hộ (12/10/2026).
+          isTeacherRole ? listGiaoVienChon() : Promise.resolve([]),
         ]);
 
         if (cancelled) return;
@@ -4696,9 +4696,14 @@ function CalendarDetail() {
                       onChange={(event) => setCreateForm((prev) => ({ ...prev, teacher: event.target.value }))}
                     >
                       <option value="">Tôi (tài khoản hiện tại)</option>
-                      {gvNuocNgoai.map((g) => (
-                        <option key={g.id} value={g.id}>{g.ten} · GV nước ngoài</option>
-                      ))}
+                      {gvNuocNgoai.some((g) => g.nuoc_ngoai) ? (
+                        <optgroup label="Giáo viên nước ngoài">
+                          {gvNuocNgoai.filter((g) => g.nuoc_ngoai).map((g) => <option key={g.id} value={g.id}>{g.ten}</option>)}
+                        </optgroup>
+                      ) : null}
+                      <optgroup label="Nhờ giáo viên khác dạy hộ">
+                        {gvNuocNgoai.filter((g) => !g.nuoc_ngoai).map((g) => <option key={g.id} value={g.id}>{g.ten}</option>)}
+                      </optgroup>
                     </select>
                   </label>
                 ) : (

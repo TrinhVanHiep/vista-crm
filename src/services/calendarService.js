@@ -669,8 +669,8 @@ export async function taiBangDiemLop({ classroom, month, year, tenLop = "" }) {
   setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
 
-/** Giáo viên nước ngoài để GV Việt Nam gán vào ca của lớp mình (12/10/2026). */
-export async function listGvNuocNgoai() {
-  const { data } = await apiClient.get("/teaching-sessions/gv-nuoc-ngoai/");
+/** Giáo viên để GV chọn dạy ca của lớp mình: GV nước ngoài + GV khác dạy hộ (12/10/2026). */
+export async function listGiaoVienChon() {
+  const { data } = await apiClient.get("/teaching-sessions/giao-vien-chon/");
   return Array.isArray(data) ? data : [];
 }
