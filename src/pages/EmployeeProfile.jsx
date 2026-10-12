@@ -13,6 +13,7 @@ import {
   getInitials,
 } from "../utils/userFormatters";
 import { skillsFor } from "../utils/skills";
+import SuaNhanSuModal from "../components/teacher/SuaNhanSuModal";
 
 const monthOptions = Array.from({ length: 12 }, (_, index) => ({
   value: index + 1,
@@ -267,7 +268,9 @@ function EmployeeProfile() {
   const [loadedStudent, setLoadedStudent] = useState(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileError, setProfileError] = useState("");
-  const teacher = location.state?.teacher || loadedTeacher;
+  // Bản vừa tải lại (sau khi Sửa) ưu tiên hơn bản truyền qua state lúc mở trang.
+  const teacher = loadedTeacher || location.state?.teacher;
+  const [moSua, setMoSua] = useState(false);
   const student = location.state?.student || loadedStudent;
   const now = new Date();
   const currentYear = now.getFullYear();
@@ -891,6 +894,16 @@ function EmployeeProfile() {
           <p>{profile.eyebrow}</p>
           <h1>{profile.title}</h1>
         </div>
+        {teacherId && isAdmin && teacher ? (
+          <button
+            type="button"
+            className="btn primary"
+            style={{ marginLeft: "auto", marginRight: 10 }}
+            onClick={() => setMoSua(true)}
+          >
+            Sửa thông tin
+          </button>
+        ) : null}
         <button
           type="button"
           className={styles.settingsButton}
@@ -1516,6 +1529,16 @@ function EmployeeProfile() {
           )}
         </section>
       </div>
+      {moSua ? (
+        <SuaNhanSuModal
+          giaoVien={teacher}
+          onClose={() => setMoSua(false)}
+          onXong={async () => {
+            const { data } = await apiClient.get(`/teachers/teachers/${teacherId}/`);
+            setLoadedTeacher(data);
+          }}
+        />
+      ) : null}
     </div>
   );
 }
