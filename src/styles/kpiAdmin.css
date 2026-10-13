@@ -12,6 +12,7 @@
      font đó, nên icon vẽ bằng SVG nội tuyến; .ka-ms chỉ còn là khung căn icon.
    ========================================================================== */
 .ka-page {
+  container: ka / inline-size; /* mốc co giãn theo bề rộng vùng nội dung, xem RESPONSIVE */
   --ka-bg: #f1f2f4; --ka-card: #fff; --ka-line: #e4e6ea; --ka-line-soft: #f2f3f5;
   --ka-ink: #1f2530; --ka-ink-2: #4a515b; --ka-muted: #8b929c; --ka-faint: #9aa1ad;
   --ka-maroon: #a3211b; --ka-orange: #ef7622; --ka-orange-dk: #c25b17; --ka-orange-num: #e0562b;
@@ -327,13 +328,17 @@ table.ka-sm tr.ka-plusminus b.ka-m { color: var(--ka-red); font-weight: 700; mar
 .ka-page--nhung .ka-layout { padding: 14px 0 0; }
 
 /* ==========================================================================
-   RESPONSIVE — bản thiết kế gốc là trang desktop cố định 1640px. Ba mốc:
-   - ≤1400: ba cột thành hai (cột phải xuống dưới, trải ngang).
-   - ≤1024: một cột, danh sách người được chấm nằm trên cùng.
+   RESPONSIVE — bản thiết kế gốc là trang desktop cố định 1640px.
+   13/10/2026: đổi @media -> @container theo bề rộng THẬT của .ka-page. Màn này nằm
+   trong khung có sidebar (và trong tab Thi đua tháng), nên laptop 1440px chỉ còn
+   ~1200px nội dung: tính theo cửa sổ thì vẫn chia 3 cột, cột giữa bị ép, chữ bảng
+   xuống từng ký tự. Ba mốc (bề rộng vùng nội dung):
+   - ≤1320: ba cột thành hai (cột phải xuống dưới, trải ngang).
+   - ≤880: một cột, danh sách người được chấm nằm trên cùng.
    - ≤640: bảng chấm bỏ cột phụ, mỗi tiêu chí gói thành một thẻ để không tràn.
    Cỡ chữ và ô nhập cũng hạ theo, vì bảng 7 cột không thể vừa màn 375px.
    ========================================================================== */
-@media (max-width: 1400px) {
+@container ka (max-width: 1320px) {
   .ka-wrap { min-width: 0; }
   .ka-layout { flex-wrap: wrap; }
   .ka-col-left { width: 280px; flex: 0 0 280px; }
@@ -346,7 +351,7 @@ table.ka-sm tr.ka-plusminus b.ka-m { color: var(--ka-red); font-weight: 700; mar
   .ka-actions { grid-column: 1 / -1; }
 }
 
-@media (max-width: 1024px) {
+@container ka (max-width: 880px) {
   .ka-topbar { flex-wrap: wrap; gap: 12px; }
   .ka-topbar-actions { width: 100%; flex-wrap: wrap; }
   .ka-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -367,7 +372,7 @@ table.ka-sm tr.ka-plusminus b.ka-m { color: var(--ka-red); font-weight: 700; mar
   .ka-profile-tags { margin-left: 0; align-items: flex-start; flex-direction: row; }
 }
 
-@media (max-width: 760px) {
+@container ka (max-width: 760px) {
   .ka-page-title { font-size: 17px; }
   .ka-kpis { grid-template-columns: minmax(0, 1fr); }
   .ka-kpi:nth-child(2n) { border-left: 0; }
@@ -380,7 +385,7 @@ table.ka-sm tr.ka-plusminus b.ka-m { color: var(--ka-red); font-weight: 700; mar
   .ka-btn { flex: 1 1 auto; justify-content: center; }
 }
 
-@media (max-width: 640px) {
+@container ka (max-width: 640px) {
   /* Bảng 7 cột không thể vừa màn 375px. Đổi hẳn sang dạng THẺ: mỗi tiêu chí một
      khối, nhãn cột ghi kèm bằng ::before. Cho cuộn ngang thì người dùng phải kéo
      qua kéo lại mới thấy ô nhập điểm — dùng được nhưng rất khó chấm trên điện thoại. */
