@@ -182,3 +182,25 @@ export async function layPhieuLuong({ thang, nam, teacher }) {
   });
   return data;
 }
+
+// Chốt lương tháng theo bảng đối soát kế toán (13/10/2026).
+export async function layLuongChot({ thang, nam }) {
+  const { data } = await apiClient.get("/payroll/luong-chot/", { params: { month: thang, year: nam } });
+  return data;
+}
+
+export async function nhapLuongChot(tep, { thang, nam, ghi = false, gan = {} }) {
+  const fd = new FormData();
+  fd.append("file", tep);
+  fd.append("month", thang);
+  fd.append("year", nam);
+  if (ghi) fd.append("ghi", "1");
+  fd.append("gan", JSON.stringify(gan));
+  const { data } = await apiClient.post("/payroll/luong-chot/", fd, { timeout: 120000 });
+  return data;
+}
+
+export async function boLuongChot({ thang, nam }) {
+  const { data } = await apiClient.delete("/payroll/luong-chot/", { params: { month: thang, year: nam } });
+  return data;
+}

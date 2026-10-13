@@ -73,7 +73,7 @@ export default function CauHinhLuong({ teacherId, onDong, onDaLuu }) {
         setDsGv(await layNhanSuChuaCoLuong());
         setF({ teacher: "", employment_type: "part_time", position: "", base_salary: 0,
           class_revenue_share_percent: 30, rate_per_session: 0, insurance_salary: 0,
-          student_management_rate: 0, allowance: 0 });
+          student_management_rate: 0, allowance: 0, khau_tru_co_che_phan_tram: 0 });
       })
       .catch((e) => setLoi(loiApi(e, "Không tải được cấu hình lương.")));
   }, [teacherId, moi]);
@@ -87,7 +87,7 @@ export default function CauHinhLuong({ teacherId, onDong, onDaLuu }) {
     setLoi("");
     try {
       const { id, teacher, employment_type, position, base_salary, class_revenue_share_percent,
-        rate_per_session, insurance_salary, student_management_rate, allowance } = f;
+        rate_per_session, insurance_salary, student_management_rate, allowance, khau_tru_co_che_phan_tram } = f;
       const [loaiNs, idNs] = String(teacher || "").split(":");
       const ns = dsGv.find((x) => `${x.loai}:${x.id}` === teacher);
       let xacNhanTrung = false;
@@ -106,7 +106,7 @@ export default function CauHinhLuong({ teacherId, onDong, onDaLuu }) {
         employment_type, position, class_revenue_share_percent: Number(class_revenue_share_percent) || 0,
         base_salary: nuocNgoai ? 0 : Number(base_salary) || 0, rate_per_session: Number(rate_per_session) || 0,
         insurance_salary: Number(insurance_salary) || 0, student_management_rate: Number(student_management_rate) || 0,
-        allowance: Number(allowance) || 0,
+        allowance: Number(allowance) || 0, khau_tru_co_che_phan_tram: Number(khau_tru_co_che_phan_tram) || 0,
       });
       onDaLuu?.(moi ? "Đã thêm nhân sự vào bảng lương." : "Đã lưu cấu hình lương.");
     } catch (e) {
@@ -163,6 +163,10 @@ export default function CauHinhLuong({ teacherId, onDong, onDaLuu }) {
                      onChange={(e) => doi(k)(so(e.target.value))} />
             </Field>
           ))}
+          <Field label="Khấu trừ theo cơ chế (% tổng thu nhập)">
+            <Input inputMode="numeric" value={f.khau_tru_co_che_phan_tram ?? 0} placeholder="0"
+                   onChange={(e) => doi("khau_tru_co_che_phan_tram")(e.target.value.replace(/[^\d.]/g, ""))} />
+          </Field>
           {nuocNgoai ? (
             <div style={{ gridColumn: "1 / -1", fontSize: 12.5, color: color.muted }}>
               Lương = đơn giá × số ca dạy có báo cáo đã duyệt trong tháng. Không lương cứng, không chia % học phí.

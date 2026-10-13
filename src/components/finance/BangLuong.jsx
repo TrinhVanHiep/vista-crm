@@ -7,6 +7,7 @@ import {
 } from "../../services/payrollService";
 import { Button, Card, CardHead, NoteStrip, Num, Pill, Table } from "./v3/ui";
 import PhieuLuong from "./PhieuLuong";
+import ChotLuong from "./ChotLuong";
 import { DonGiaTheoLop, HopDieuChinhThang } from "./DieuChinhLuong";
 import CauHinhLuong from "./CauHinhLuong";
 import { DiemDanhHsBoSung, DuyetCongBoSung, GanNguoiChamCong, SoDiemDanhGoc } from "./MayChamCong";
@@ -214,11 +215,13 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
     Object.keys(k).forEach((m) => { t[m] = (t[m] || 0) + k[m]; });
     return t;
   }, {});
+  // Tháng đã chốt: chỉ cộng người có trong bảng chốt (người ngoài bảng vẫn hiện, đánh dấu đỏ).
+  const ngoaiChot = (x) => Boolean(x.chot?.khong_co_trong_file);
   const khoiGv = ds.filter((x) => khoiCua(x) === "gv");
   const khoiQl = ds.filter((x) => khoiCua(x) !== "gv");
-  const tong = cong(ds);
-  const tongGv = cong(khoiGv);
-  const tongQl = cong(khoiQl);
+  const tong = cong(ds.filter((x) => !ngoaiChot(x)));
+  const tongGv = cong(khoiGv.filter((x) => !ngoaiChot(x)));
+  const tongQl = cong(khoiQl.filter((x) => !ngoaiChot(x)));
 
   // Thứ tự cột theo chủ trung tâm (12/10/2026): Thực nhận → Lương cơ bản → Lương dạy →
   // Thưởng sale → BHXH → Trợ cấp → Thuế TNCN → Khấu trừ. Gộp khoản giống payroll/phieu_luong.py
@@ -235,14 +238,19 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
     const am = (v) => (Number(v) > 0 ? <Num tone="red">-{tien(v)}</Num> : <Num>0</Num>);
     return [
       <div key="t" style={{ minWidth: 190 }}>
-        <button type="button" onClick={() => moNguoi(x.teacher_id)} title="Mở bảng lương của người này"
+        <button type="button" disabled={!x.teacher_id} onClick={() => x.teacher_id && moNguoi(x.teacher_id)}
+                title={x.teacher_id ? "Mở bảng lương của người này" : "Chưa có hồ sơ trên CRM"}
                 style={{ all: "unset", cursor: "pointer", fontWeight: 700, color: color.orange || "#F26522" }}>
           {x.teacher_name}
         </button>
         <div style={{ fontSize: 12, color: color.muted, marginTop: 2 }}>
           {x.position_label || LOAI[x.employment_type] || x.employment_type}
         </div>
-        {phu(`${cc.attendance_days || 0} công · ${soCa} ca dạy${Number(cc.pending_file_days) ? ` · ${cc.pending_file_days} ngày chờ duyệt` : ""}`)}
+        {x.chot && !x.chot.khong_co_trong_file
+          ? phu(`ĐÃ CHỐT · ${x.chot.so_buoi || 0} buổi${x.chot.ghi_chu ? ` · ${x.chot.ghi_chu}` : ""}`)
+          : x.chot?.khong_co_trong_file
+            ? <div style={{ fontSize: 11.5, color: color.red, marginTop: 2 }}>Không có trong bảng chốt — số tạm tính</div>
+            : phu(`${cc.attendance_days || 0} công · ${soCa} ca dạy${Number(cc.pending_file_days) ? ` · ${cc.pending_file_days} ngày chờ duyệt` : ""}`)}
       </div>,
       <Num key="n" bold>{tien(c.net_salary)}</Num>,
       <div key="cb">
@@ -269,7 +277,7 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
       </div>,
       <div key="tax">{am(c.tax_deduction)}</div>,
       <div key="kt" title={c.penalty_note || ""}>{am(khauTru)}</div>,
-      <Button key="c" variant="ghost" onClick={() => moNguoi(x.teacher_id)}>Xem →</Button>,
+      x.teacher_id ? <Button key="c" variant="ghost" onClick={() => moNguoi(x.teacher_id)}>Xem →</Button> : <span key="c" />,
     ];
   });
 
@@ -280,6 +288,7 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
   const chuaCong = fullTime.filter((x) => !Number(x.attendance?.attendance_days)).length;
   const soCa = ds.reduce((n, x) => n + (x.classrooms || []).reduce((m, l) => m + (l.session_attendance || []).length, 0), 0);
   const lopThieuGia = (donGia || []).filter((l) => !Number(l.manual_rate ?? l.default_rate)).length;
+  const daChot = ds.some((x) => x.chot && !x.chot.khong_co_trong_file);
   const kpiDuyet = ds.filter((x) => x.salary_components?.kpi_status === "approved").length;
   const BUOC = [
     {
@@ -313,9 +322,10 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
             "Nếu có: thưởng sale, thuế TNCN, phạt, BHXH khác mức — bấm \"Chỉnh\" ở dòng của người đó trong bảng lương."],
     },
     {
-      ma: "xuat", ten: "Xuất & gửi phiếu",
-      tt: ["info", "Excel + phiếu cá nhân"],
-      can: ["Xuất Excel bảng thanh toán lương (đúng mẫu giấy) để trình ký.",
+      ma: "xuat", ten: "Chốt & xuất",
+      tt: daChot ? ["ok", "Đã chốt theo đối soát"] : ["info", "Chưa chốt — đang tạm tính"],
+      can: ["Kế toán đối soát xong thì nhập file đối soát (sheet “Bang luong”) để CHỐT số chính thức.",
+            "Xuất Excel bảng thanh toán lương (đúng mẫu giấy) để trình ký.",
             "Mỗi nhân sự tự xem và in phiếu lương của mình ở menu \"Phiếu lương\"."],
     },
   ];
@@ -514,6 +524,9 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
       ) : null}
 
       {moBuoc === "xuat" ? (
+        <ChotLuong thang={thang} nam={nam} ds={ds} coTheGhi={coTheGhi} onXong={lamMoi} />
+      ) : null}
+      {moBuoc === "xuat" ? (
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
           <Button onClick={() => xuatBangLuong({ thang, nam }).catch((e) => setLoi(loiApi(e, "Không xuất được bảng lương.")))}>
             ⬇ Xuất bảng thanh toán lương (Excel)
@@ -524,7 +537,7 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
 
       <Card>
         <CardHead
-          title="Bảng lương tạm tính"
+          title={daChot ? `Bảng lương ĐÃ CHỐT tháng ${thang}/${nam}` : "Bảng lương tạm tính"}
           sub={`Tháng ${String(thang).padStart(2, "0")}/${nam} · bấm tên một người để mở bảng lương chi tiết của người đó`}
           action="⬇ Xuất Excel"
           onAction={() => xuatBangLuong({ thang, nam }).catch((e) => setLoi(loiApi(e, "Không xuất được bảng lương.")))}
