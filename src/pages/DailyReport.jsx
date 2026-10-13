@@ -49,7 +49,8 @@ const coNoiDungDeXem = (status) =>
 // Báo cáo còn sửa được (hoặc chưa có) => cho phép nhập/cập nhật; đã khóa => chỉ xem.
 // Backend chỉ cho giáo viên PATCH khi status ∈ {draft, revision_required}
 // (teaching/views.py perform_update); "rejected" là trạng thái khóa, không sửa được.
-const EDITABLE_STATUSES = ["draft", "revision_required"];
+// "rejected" sửa và nộp lại được (13/10/2026) — từ chối kèm lý do là yêu cầu sửa.
+const EDITABLE_STATUSES = ["draft", "revision_required", "rejected"];
 const LOCKED_STATUSES = ["submitted", "approved", "rejected"];
 const isLockedReport = (status) => LOCKED_STATUSES.includes(status);
 

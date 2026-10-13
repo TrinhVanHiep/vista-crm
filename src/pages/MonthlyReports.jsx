@@ -282,7 +282,7 @@ function TheBaoCaoCaDay({
         </div>
       ) : laQuanLy && ky.lyDo ? (
         <p className="small muted" style={{ margin: 0, textAlign: "right" }}>{ky.lyDo}</p>
-      ) : (!laQuanLy || laCuaToi) && report.report_status === "revision_required" ? (
+      ) : (!laQuanLy || laCuaToi) && ["revision_required", "rejected"].includes(report.report_status) ? (
         <div className="sr-card__act">
           <Button size="sm" onClick={() => onSua(report)}>Chỉnh sửa</Button>
         </div>
@@ -542,7 +542,7 @@ function MonthlyReports() {
   const manualReportLocked =
     nhapBaoCaoCaDay &&
     selectedManualReport &&
-    !["draft", "revision_required"].includes(selectedManualReport.report_status);
+    !["draft", "revision_required", "rejected"].includes(selectedManualReport.report_status);
 
   const manualSummary = useMemo(() => {
     const submitted = manualReports.filter((item) => item.report_status === "submitted").length;
@@ -1151,7 +1151,7 @@ function MonthlyReports() {
                 Báo cáo này đã gửi quản lý hoặc đã được duyệt, giáo viên không thể sửa trực tiếp.
               </p>
             )}
-            {selectedManualReport?.report_status === "revision_required" && (
+            {["revision_required", "rejected"].includes(selectedManualReport?.report_status) && (
               <p className="alert orange" style={{ marginTop: 10 }}>
                 Phản hồi quản lý: {selectedManualReport.rejected_reason || "Vui lòng chỉnh sửa và gửi lại báo cáo."}
               </p>

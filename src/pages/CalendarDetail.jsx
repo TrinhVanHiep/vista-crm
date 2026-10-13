@@ -5621,7 +5621,7 @@ function CalendarDetail() {
               </div>
               <AnhMinhChung
                 sessionId={reportSessionId}
-                khoa={Boolean(activeReport && !["draft", "revision_required"].includes(activeReport.report_status))}
+                khoa={Boolean(activeReport && !["draft", "revision_required", "rejected"].includes(activeReport.report_status))}
               />
               <p className={styles.note}>
                 Trạng thái báo cáo:{" "}
@@ -5637,14 +5637,14 @@ function CalendarDetail() {
                 <button
                   type="submit"
                   className={styles.secondaryButton}
-                  disabled={reportSaving || (activeReport && !["draft", "revision_required"].includes(activeReport.report_status))}
+                  disabled={reportSaving || (activeReport && !["draft", "revision_required", "rejected"].includes(activeReport.report_status))}
                 >
                   {reportSaving ? "Đang lưu..." : "Lưu nháp"}
                 </button>
                 <button
                   type="button"
                   className={styles.primaryButton}
-                  disabled={reportSaving || (activeReport && !["draft", "revision_required"].includes(activeReport.report_status))}
+                  disabled={reportSaving || (activeReport && !["draft", "revision_required", "rejected"].includes(activeReport.report_status))}
                   onClick={motLan(() => saveSessionReport({ thenSubmit: true }))}
                 >
                   {reportSaving ? "Đang gửi..." : "Đã báo cáo — Gửi duyệt"}
