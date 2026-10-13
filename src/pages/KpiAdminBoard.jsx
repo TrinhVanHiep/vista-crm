@@ -786,14 +786,15 @@ export default function KpiAdminBoard({ nhungTrongTrang = false, month, year } =
                                         backend từ chối CẢ lượt lưu, mất luôn mọi ô khác
                                         vừa sửa. Ô trống hiển thị điểm tự chấm mờ làm gợi
                                         ý — đúng con số hệ thống sẽ dùng nếu không chấm lại. */}
-                                    {/* Tiêu chí tự động (lịch báo giảng / báo cáo): khoá, không chấm tay. */}
+                                    {/* Tiêu chí tự động (lịch báo giảng / báo cáo): quản lý được sửa đè cho đúng
+                                        thực tế (13/10/2026); để trống = quay về điểm tự động. */}
                                     <input type="number" min="0" max={toiDa} step="0.5"
-                                           value={v ?? ""} disabled={!duocSua || s?.tu_dong}
-                                           title={s?.tu_dong ? `Tự động: ${s.note || ""}` : undefined}
+                                           value={v ?? ""} disabled={!duocSua}
+                                           title={s?.tu_dong ? `Tự động ${g1(s.self_score)}: ${s.note || ""}` : undefined}
                                            placeholder={laSo(s?.self_score) ? g1(s.self_score) : ""}
                                            aria-label={`Điểm admin chấm cho ${tc.title}`}
                                            onChange={(e) => setDiemNhap((c) => ({ ...c, [tc.id]: kepDiem(e.target.value, toiDa) }))} />
-                                    <span>/ {g1(toiDa)}{s?.tu_dong ? " · Tự động" : ""}</span>
+                                    <span>/ {g1(toiDa)}{s?.tu_dong ? (s.quan_ly_chinh ? ` · QL sửa (tự động ${g1(s.self_score)})` : " · Tự động") : ""}</span>
                                   </td>
                                   <td>
                                     {!laSo(v) ? (
@@ -853,11 +854,11 @@ export default function KpiAdminBoard({ nhungTrongTrang = false, month, year } =
                                   return (
                                     <tr key={r.id}>
                                       <td className="ka-l" title={r.tu_dong ? daCo?.note || "" : undefined}>
-                                        {r.title}{r.tu_dong ? " · Tự động" : ""}
+                                        {r.title}{r.tu_dong ? (daCo?.quan_ly_chinh ? ` · QL sửa (tự động ${g1(daCo.quantity)})` : " · Tự động") : ""}
                                       </td>
                                       <td>{laSo(deXuat) && Number(deXuat) ? `${cong ? "+" : "−"}${g1(deXuat)}` : "—"}</td>
                                       <td className="ka-selcell">
-                                        <select value={v ?? ""} disabled={!duocSua || r.tu_dong}
+                                        <select value={v ?? ""} disabled={!duocSua}
                                                 title={r.tu_dong ? `Tự động: ${daCo?.note || "chưa có lỗi"}` : undefined}
                                                 aria-label={`Admin điều chỉnh ${r.title}`}
                                                 onChange={(e) => setDieuChinhNhap((c) => ({ ...c, [r.id]: e.target.value }))}>
