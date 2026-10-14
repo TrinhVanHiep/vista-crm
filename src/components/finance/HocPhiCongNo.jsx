@@ -7,6 +7,7 @@ import {
 import { listClassroomsAll } from "../../services/calendarService";
 import HopThuTien from "./HopThuTien";
 import NganKeoDangKyHoc from "./NganKeoDangKyHoc";
+import NganKeoHocPhiCaNhan from "./NganKeoHocPhiCaNhan";
 import NhapLieu from "./NhapLieu";
 import { color, radius } from "./v3/theme";
 import {
@@ -70,6 +71,7 @@ export default function HocPhiCongNo({ thang, nam, onNotice, laQuanTri, coTheGhi
   const [dangGiam, setDangGiam] = useState(null);
   const [moNhap, setMoNhap] = useState(false);
   const [moDangKy, setMoDangKy] = useState(false);
+  const [moCaNhan, setMoCaNhan] = useState(false);
 
   const tai = useCallback(async () => {
     setDangTai(true);
@@ -171,6 +173,9 @@ export default function HocPhiCongNo({ thang, nam, onNotice, laQuanTri, coTheGhi
             <Button variant="ghost" icon="doc" onClick={() => setMoNhap(true)}>Nhập từ Excel</Button>
           ) : null}
           <Button variant="ghost" icon="plus" onClick={() => setMoDangKy(true)}>Đăng ký học</Button>
+          {coTheGhi ? (
+            <Button variant="ghost" icon="plus" onClick={() => setMoCaNhan(true)}>Học phí cá nhân</Button>
+          ) : null}
           {coTheGhi ? (
             <Button icon="plus" onClick={() => setMoLapHangLoat(true)}>Lập học phí cho lớp</Button>
           ) : null}
@@ -280,6 +285,7 @@ export default function HocPhiCongNo({ thang, nam, onNotice, laQuanTri, coTheGhi
 
       <HopThuTien mo={!!dangThu} hocVien={dangThu} onDong={() => setDangThu(null)} onXong={xong} />
       <NganKeoDangKyHoc mo={moDangKy} onDong={() => setMoDangKy(false)} onXong={xong} />
+      <NganKeoHocPhiCaNhan mo={moCaNhan} thang={thang} nam={nam} onDong={() => setMoCaNhan(false)} onXong={xong} />
       <NganKeoLapHangLoat
         mo={moLapHangLoat} thang={thang} nam={nam}
         onDong={() => setMoLapHangLoat(false)} onXong={xong}
