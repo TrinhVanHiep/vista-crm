@@ -73,7 +73,9 @@ function dichCauCore(s, sau) {
       const d = tinh.get(chuan(v)) || (sau < 3 ? dichCauSau(v, sau + 1) : null);
       // Tên riêng / dữ liệu ngắn (≤ 4 từ: "Nguyễn Văn A", "Lớp 701") giữ nguyên là đúng;
       // đoạn dài còn tiếng Việt thì coi như chưa dịch được.
-      if (!d && v.trim().split(/\s+/).length > 4) hong = true;
+      // Chỉ giữ nguyên phần chèn là tên riêng / mã (bắt đầu bằng chữ hoa hoặc số); chữ thường
+      // ("ngày", "học sinh, …") nghĩa là mẫu đang khớp nhầm một câu khác.
+      if (!d && (v.trim().split(/\s+/).length > 4 || !/^[\p{Lu}\d]/u.test(v.trim()))) hong = true;
       return d || v;
     });
     if (!hong) return kqDich;

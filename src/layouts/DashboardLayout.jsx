@@ -482,7 +482,8 @@ function DashboardLayout() {
   };
 
   const myProfilePath = (() => {
-    if (role === 'teacher' && user?.teacher_id) return `/teachers/${user.teacher_id}`;
+    // Mọi vai nội bộ đều có hồ sơ (14/10/2026), không chỉ giáo viên.
+    if (role && role !== 'student') return '/ho-so-cua-toi';
     // Vai 'student' CỐ Ý không có mục này: route /students/:id chặn vai học viên
     // (ROUTE_PERMISSIONS.studentProfile), và backend cũng 403 ngay ở tầng quyền.
     // Bày nút ra thì bấm vào là văng sang /unauthorized — mà đó lại đang là mục

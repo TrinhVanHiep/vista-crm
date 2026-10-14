@@ -5,7 +5,7 @@ import { ROUTE_PERMISSIONS } from './auth/permissions.js';
 import DashboardLayout from './layouts/DashboardLayout.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Courses from './pages/Courses.jsx';
-import EmployeeProfile from './pages/EmployeeProfile.jsx';
+import HoSoNhanSu from './pages/HoSoNhanSu.jsx';
 import CalendarDetail from './pages/CalendarDetail.jsx';
 import MonthlyScorecards from './pages/MonthlyScorecards.jsx';
 import ParentReport from './pages/ParentReport.jsx';
@@ -122,14 +122,17 @@ function App() {
               </RoleGuard>
             }
           />
+          {/* Hồ sơ nhân sự mới (14/10/2026, thiết kế HoSoCuaToi): mọi vai nội bộ có "Hồ sơ của tôi".
+              /employee-profile cũ mở ra dữ liệu giả — chuyển về màn mới. */}
           <Route
-            path="employee-profile"
+            path="ho-so-cua-toi"
             element={
-              <RoleGuard allowedRoles={ROUTE_PERMISSIONS.employeeProfile}>
-                <EmployeeProfile />
+              <RoleGuard allowedRoles={ROUTE_PERMISSIONS.hoSo}>
+                <HoSoNhanSu />
               </RoleGuard>
             }
           />
+          <Route path="employee-profile" element={<Navigate to="/ho-so-cua-toi" replace />} />
           {/* Trước đây trỏ vào EmployeeProfile — màn dựng cho nhân sự — nên hồ sơ
               học viên nằm cạnh "Chi tiết tính lương". Nay có màn riêng. */}
           <Route
@@ -143,8 +146,8 @@ function App() {
           <Route
             path="teachers/:teacherId"
             element={
-              <RoleGuard allowedRoles={ROUTE_PERMISSIONS.employeeProfile}>
-                <EmployeeProfile />
+              <RoleGuard allowedRoles={ROUTE_PERMISSIONS.hoSo}>
+                <HoSoNhanSu />
               </RoleGuard>
             }
           />
