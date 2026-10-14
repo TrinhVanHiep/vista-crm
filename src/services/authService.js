@@ -21,6 +21,8 @@ const normalizeUser = (profile) => {
     avatar: profile.image ?? null,
     teacher_id: profile.teacher_id ?? null,
     student_id: profile.student_id ?? null,
+    // Quyền thu học phí cấp riêng (nhóm thu_hoc_phi, 14/10/2026).
+    quyen_thu_hoc_phi: Boolean(profile.quyen_thu_hoc_phi),
   };
 };
 

@@ -120,9 +120,9 @@ export default function StudentProfile() {
   const [taiLaiHp, setTaiLaiHp] = useState(0);
   // Học phí lấy từ Tài chính (khoản phải thu) — 14/10/2026: trước đọc bảng học phí cũ
   // (đã bỏ, rỗng) nên hồ sơ luôn báo "Chưa nối được bản ghi học phí".
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   const xemHocPhi = ROUTE_PERMISSIONS.finance.includes(role);
-  const ghiThuDuoc = ROUTE_PERMISSIONS.financeWrite.includes(role);
+  const ghiThuDuoc = ROUTE_PERMISSIONS.financeWrite.includes(role) || Boolean(user?.quyen_thu_hoc_phi);
   const [dangTai, setDangTai] = useState(true);
   const [loi, setLoi] = useState("");
   const [thongBao, setThongBao] = useState("");

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useAuth } from "../../auth/AuthProvider";
 import {
   duyetGiamTru, lapPhaiThuHangLoat, layCongNo, layGiamTru,
   loiApi, rutGonM, soDayDu, taoGiamTru, tongHopCongNo,
@@ -72,6 +73,9 @@ export default function HocPhiCongNo({ thang, nam, onNotice, laQuanTri, coTheGhi
   const [moNhap, setMoNhap] = useState(false);
   const [moDangKy, setMoDangKy] = useState(false);
   const [moCaNhan, setMoCaNhan] = useState(false);
+  // Quyền thu học phí cấp riêng (14/10/2026): QLCS được thu tiền, không lập/sửa khoản.
+  const { user } = useAuth();
+  const coTheThu = coTheGhi || Boolean(user?.quyen_thu_hoc_phi);
 
   const tai = useCallback(async () => {
     setDangTai(true);
@@ -137,15 +141,17 @@ export default function HocPhiCongNo({ thang, nam, onNotice, laQuanTri, coTheGhi
     r.status === "cancelled" ? (
       <Pill tone="grey">Đã hủy</Pill>
     ) : Number(r.balance) > 0 ? (
-      !coTheGhi ? (
+      !coTheThu ? (
         <span style={{ fontSize: 12.5, color: color.faint }}>Còn nợ</span>
       ) : (
       <div style={{ display: "flex", gap: 14, justifyContent: "flex-end" }}>
         <button type="button" style={nutLink} onClick={() => setDangThu({
           id: r.student, ten: r.student_name, lop: r.classroom_name,
         })}>Ghi nhận thu</button>
-        <button type="button" style={{ ...nutLink, color: color.muted }}
-                onClick={() => setDangGiam(r)}>Giảm trừ</button>
+        {coTheGhi ? (
+          <button type="button" style={{ ...nutLink, color: color.muted }}
+                  onClick={() => setDangGiam(r)}>Giảm trừ</button>
+        ) : null}
       </div>
       )
     ) : (
