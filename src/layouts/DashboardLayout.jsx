@@ -787,6 +787,9 @@ function DashboardLayout() {
             </div>
           )}
           <div className={styles["dashboard__topbar-actions"]}>
+            {/* Nút chuyển ngôn ngữ ngay cạnh chuông thông báo (14/10/2026) — trước nằm trong
+                menu tài khoản, phải mở popup mới thấy. */}
+            <NutNgonNgu style={{ alignSelf: "center" }} />
             <div style={{ position: "relative" }} ref={notifRef}>
               <button
                 type="button"
@@ -958,10 +961,6 @@ function DashboardLayout() {
                       {displayName}
                     </strong>
                     <span style={{ fontSize: "0.75rem", color: "var(--color-muted)" }}>{roleLabel}</span>
-                  </div>
-                  <div style={{ padding: "8px 12px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                    <span style={{ fontSize: "0.8rem", color: "var(--color-muted)" }}>Ngôn ngữ / Language</span>
-                    <NutNgonNgu />
                   </div>
                   {/* Phiếu lương không còn là mục menu riêng (12/10/2026): quản trị xem/xuất PDF
                       trong Tài chính → Bảng lương; mỗi nhân sự tự xem phiếu của mình ở đây. */}
