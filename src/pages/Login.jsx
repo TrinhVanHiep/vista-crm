@@ -1,3 +1,4 @@
+import NutNgonNgu from '../i18n/NutNgonNgu.jsx';
 import { useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
@@ -52,6 +53,7 @@ function Login() {
     <div className={styles["auth-shell"]}>
       <div className={styles["auth-card"]}>
         <div className={styles["auth-panel"]}>
+          <NutNgonNgu style={{ alignSelf: "flex-end", marginBottom: 8 }} />
           <div className={styles["auth-brand"]}>
             <span className={styles["auth-brand-icon"]} aria-hidden="true">
               <svg

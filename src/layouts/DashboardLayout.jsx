@@ -26,6 +26,7 @@ import {
 } from "../services/webPushService";
 import styles from "../styles/dashboard.module.css";
 import CanhBaoViecGap from "../components/CanhBaoViecGap";
+import NutNgonNgu from "../i18n/NutNgonNgu";
 import { useAutoCenter, isSingleCenter } from "../utils/centerField";
 
 const NOTIFICATION_POLL_MS = 5000;
@@ -956,6 +957,10 @@ function DashboardLayout() {
                       {displayName}
                     </strong>
                     <span style={{ fontSize: "0.75rem", color: "var(--color-muted)" }}>{roleLabel}</span>
+                  </div>
+                  <div style={{ padding: "8px 12px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                    <span style={{ fontSize: "0.8rem", color: "var(--color-muted)" }}>Ngôn ngữ / Language</span>
+                    <NutNgonNgu />
                   </div>
                   {/* Phiếu lương không còn là mục menu riêng (12/10/2026): quản trị xem/xuất PDF
                       trong Tài chính → Bảng lương; mỗi nhân sự tự xem phiếu của mình ở đây. */}

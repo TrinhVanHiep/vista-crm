@@ -5,6 +5,9 @@ import { AuthProvider } from './auth/AuthProvider.jsx';
 import './index.css';
 import { BrowserRouter } from 'react-router-dom';
 import { registerVistaServiceWorker } from './services/webPushService.js';
+import { khoiDongDich } from './i18n/dich.js';
+
+khoiDongDich();
 
 window.addEventListener('load', () => {
   registerVistaServiceWorker().catch(() => {});
