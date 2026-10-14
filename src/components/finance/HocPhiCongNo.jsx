@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   duyetGiamTru, lapPhaiThuHangLoat, layCongNo, layGiamTru,
   loiApi, rutGonM, soDayDu, taoGiamTru, tongHopCongNo,
@@ -59,7 +60,9 @@ export default function HocPhiCongNo({ thang, nam, onNotice, laQuanTri, coTheGhi
   const [loi, setLoi] = useState("");
   const [taiLai, setTaiLai] = useState(0);
 
-  const [tuKhoa, setTuKhoa] = useState("");
+  // Mở từ hồ sơ học sinh: /finance?tab=tuition&q=<tên> (14/10/2026).
+  const [thamSo] = useSearchParams();
+  const [tuKhoa, setTuKhoa] = useState(() => thamSo.get("q") || "");
   const [trangThai, setTrangThai] = useState("con_no");
 
   const [dangThu, setDangThu] = useState(null);
@@ -73,7 +76,10 @@ export default function HocPhiCongNo({ thang, nam, onNotice, laQuanTri, coTheGhi
     setLoi("");
     try {
       const [bang, th, gt] = await Promise.all([
-        layCongNo({ month: thang, year: nam, status: trangThai, search: tuKhoa, page_size: 200 }),
+        // Đang tìm tên thì tìm trong MỌI kỳ — học viên nợ tháng trước vẫn phải tìm ra.
+        layCongNo(tuKhoa.trim()
+          ? { status: trangThai, search: tuKhoa.trim(), page_size: 200 }
+          : { month: thang, year: nam, status: trangThai, page_size: 200 }),
         tongHopCongNo({ month: thang, year: nam }),
         layGiamTru({ pending: 1, page_size: 50 }),
       ]);
@@ -198,7 +204,9 @@ export default function HocPhiCongNo({ thang, nam, onNotice, laQuanTri, coTheGhi
 
       <Card style={{ paddingBottom: 20 }}>
         <CardHead
-          title={`Học phí & công nợ học viên — ${String(thang).padStart(2, "0")}/${nam}`}
+          title={tuKhoa.trim()
+            ? `Kết quả tìm “${tuKhoa.trim()}” — mọi kỳ`
+            : `Học phí & công nợ học viên — ${String(thang).padStart(2, "0")}/${nam}`}
           sub="Mỗi dòng là một khoản phải thu; thanh toán được phân bổ, không sửa trực tiếp số gốc."
         />
         <div style={{ padding: "16px 22px 0" }}>
