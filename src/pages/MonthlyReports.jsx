@@ -195,6 +195,10 @@ function TheBaoCaoCaDay({
             {report.teacher_name || session.teacher_name || "--"}
           </span>
           <Badge tone={tt.tone || "gray"}>{tt.label || report.report_status}</Badge>
+          {/* 14/10/2026: ca GV nước ngoài dạy trong lớp mình phụ trách — báo cáo hiện cả ở GV Việt Nam. */}
+          {report.gv_nuoc_ngoai && !laCuaToi && !laQuanLy ? (
+            <Badge tone="blue">GV nước ngoài dạy · lớp bạn phụ trách</Badge>
+          ) : report.gv_nuoc_ngoai ? <Badge tone="blue">GV nước ngoài</Badge> : null}
         </div>
       </header>
 
