@@ -722,3 +722,14 @@ export async function henLaiLich(id, { hanMoi, lyDo }) {
   const { data } = await apiClient.post(`/schedules/schedules/${id}/hen-lai/`, { han_moi: hanMoi, ly_do: lyDo });
   return data;
 }
+
+// Báo cáo tiến độ có căn cứ + quản lý duyệt Đạt / Không đạt (14/10/2026).
+export async function baoCaoTienDoLich(id, { tienDo, noiDung }) {
+  const { data } = await apiClient.post(`/schedules/schedules/${id}/bao-cao-tien-do/`, { tien_do: tienDo, noi_dung: noiDung });
+  return data;
+}
+
+export async function duyetLich(id, { ketQua, lyDo }) {
+  const { data } = await apiClient.post(`/schedules/schedules/${id}/duyet/`, { ket_qua: ketQua, ly_do: lyDo });
+  return data;
+}

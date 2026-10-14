@@ -75,7 +75,8 @@ const ngayVN = (iso) => (iso ? String(iso).slice(0, 10).split("-").reverse().joi
 const th = { textAlign: "left", fontWeight: 600, fontSize: 11.5, color: C.muted, padding: "8px", borderBottom: `1px solid ${C.line}`, whiteSpace: "nowrap" };
 const td = { padding: "9px 8px", borderBottom: `1px solid ${C.line}`, fontSize: 12.5, color: C.ink, whiteSpace: "nowrap" };
 const PRIORITY = { Cao: [C.red, C.redSoft], "Trung bình": [C.amber, C.amberSoft], Thấp: [C.green, C.greenSoft] };
-const STATUS = { "Cần làm": [C.orange, C.orangeSoft], "Quá hạn": [C.red, C.redSoft], "Đang làm": [C.blue, C.blueSoft], "Đã xong": [C.green, C.greenSoft] };
+const STATUS = { "Cần làm": [C.orange, C.orangeSoft], "Quá hạn": [C.red, C.redSoft], "Đang làm": [C.blue, C.blueSoft], "Đã xong": [C.green, C.greenSoft],
+  "Chờ duyệt": [C.purple, C.purpleSoft], "Không đạt": [C.red, C.redSoft] };
 const TABS = ["Tổng quan", "Nhiệm vụ", "Học sinh & Lớp học", "Bảng lương", "Đánh giá & Phản hồi", "Mục tiêu tháng sau", "Tài liệu"];
 const MAU_MT = { ca: [C.orange, C.orangeSoft, "task"], bao_cao: [C.blue, C.blueSoft, "clock"], chuyen_can: [C.green, C.greenSoft, "users"],
   nhiem_vu: [C.purple, C.purpleSoft, "check"], thi_dua: [C.amber, C.amberSoft, "star"], loi: [C.red, C.redSoft, "alert"] };
@@ -127,11 +128,13 @@ export default function HoSoNhanSu() {
   const dem = {
     "Tất cả": nv.length,
     "Cần làm": nv.filter((t) => t.trang_thai === "Cần làm" || t.trang_thai === "Quá hạn").length,
-    "Đang làm": nv.filter((t) => t.trang_thai === "Đang làm").length,
+    "Đang làm": nv.filter((t) => ["Đang làm", "Không đạt"].includes(t.trang_thai)).length,
+    "Chờ duyệt": nv.filter((t) => t.trang_thai === "Chờ duyệt").length,
     "Đã hoàn thành": nv.filter((t) => t.trang_thai === "Đã xong").length,
   };
   const nvLoc = nv.filter((t) => loc === "Tất cả" || (loc === "Cần làm" && ["Cần làm", "Quá hạn"].includes(t.trang_thai))
-    || (loc === "Đang làm" && t.trang_thai === "Đang làm") || (loc === "Đã hoàn thành" && t.trang_thai === "Đã xong"));
+    || (loc === "Đang làm" && ["Đang làm", "Không đạt"].includes(t.trang_thai)) || (loc === "Chờ duyệt" && t.trang_thai === "Chờ duyệt")
+    || (loc === "Đã hoàn thành" && t.trang_thai === "Đã xong"));
 
   const hoanThanh = async (t) => {
     setThongBao("");
@@ -191,7 +194,7 @@ export default function HoSoNhanSu() {
       {thongBao ? <div style={{ fontSize: 12.5, color: C.red, marginBottom: 8 }}>{thongBao}</div> : null}
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead><tr>{["", "Nhiệm vụ", "Loại", "Lớp liên quan", "Hạn hoàn thành", "Ưu tiên", "Trạng thái"].map((h) => <th key={h} style={th}>{h}</th>)}</tr></thead>
+          <thead><tr>{["", "Nhiệm vụ", "Loại", "Lớp liên quan", "Hạn hoàn thành", "Tiến độ", "Ưu tiên", "Trạng thái"].map((h) => <th key={h} style={th}>{h}</th>)}</tr></thead>
           <tbody>
             {nvLoc.length ? nvLoc.map((t) => {
               const xong = t.trang_thai === "Đã xong";
@@ -214,11 +217,19 @@ export default function HoSoNhanSu() {
                   <td style={{ ...td, color: C.muted }}>{t.loai}</td>
                   <td style={td}>{t.lop || "—"}</td>
                   <td style={{ ...td, color: t.trang_thai === "Quá hạn" ? C.red : C.ink }}>{ngayVN(t.han)}</td>
+                  <td style={{ ...td, minWidth: 110 }}>
+                    {t.tien_do == null ? "—" : (
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <Bar v={t.tien_do} color={t.trang_thai === "Không đạt" ? C.red : C.orange} />
+                        <span style={{ fontSize: 11.5, color: C.muted, width: 32 }}>{t.tien_do}%</span>
+                      </div>
+                    )}
+                  </td>
                   <td style={td}><Pill fg={PRIORITY[t.uu_tien][0]} bg={PRIORITY[t.uu_tien][1]}>{t.uu_tien}</Pill></td>
                   <td style={td}><Pill fg={STATUS[t.trang_thai][0]} bg={STATUS[t.trang_thai][1]}>{t.trang_thai}</Pill></td>
                 </tr>
               );
-            }) : <tr><td colSpan={7} style={{ ...td, color: C.muted, padding: 16 }}>Không có nhiệm vụ nào trong tháng {thang}/{nam}.</td></tr>}
+            }) : <tr><td colSpan={8} style={{ ...td, color: C.muted, padding: 16 }}>Không có nhiệm vụ nào trong tháng {thang}/{nam}.</td></tr>}
           </tbody>
         </table>
       </div>
@@ -391,7 +402,7 @@ export default function HoSoNhanSu() {
       </header>
 
       {/* Thẻ hồ sơ + khẩu hiệu */}
-      <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,520px),1fr))", gap: 16 }}>
+      <section>
         <div style={{ ...card, padding: 20, display: "flex", gap: 20, alignItems: "center", flexWrap: "wrap" }}>
           <div style={{ position: "relative" }}>
             <Avatar name={n.ho_ten} src={n.anh} size={112} />
@@ -432,11 +443,14 @@ export default function HoSoNhanSu() {
               {n.chuyen_mon ? <><span style={{ color: C.line }}>|</span><span>Chuyên môn: <b style={{ color: C.ink, fontWeight: 600 }}>{n.chuyen_mon}</b></span></> : null}
             </div>
           </div>
-        </div>
-        <div style={{ ...card, padding: 22, background: "linear-gradient(160deg,#FFF6EF,#FFE9DA)", border: "1px solid #FFE0CC", display: "flex", flexDirection: "column", justifyContent: "center", gap: 12, maxWidth: 420 }}>
-          <div style={{ fontSize: 44, lineHeight: 0.6, color: C.orange, fontFamily: "Georgia, serif" }}>“</div>
-          <div style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.5 }}>Mỗi buổi dạy hôm nay là một bước tiến cho tương lai của học sinh.</div>
-          <div style={{ fontSize: 12.5, color: C.orange, fontWeight: 600 }}>— VISTA Academy</div>
+          {/* Khẩu hiệu nằm trong thẻ thông tin cá nhân (14/10/2026). */}
+          <div style={{ flex: "0 1 300px", minWidth: 220, alignSelf: "stretch", padding: "16px 18px", borderRadius: 12,
+                        background: "linear-gradient(160deg,#FFF6EF,#FFE9DA)", border: "1px solid #FFE0CC",
+                        display: "flex", flexDirection: "column", justifyContent: "center", gap: 8 }}>
+            <div style={{ fontSize: 34, lineHeight: 0.5, color: C.orange, fontFamily: "Georgia, serif" }}>“</div>
+            <div style={{ fontSize: 14.5, fontWeight: 600, lineHeight: 1.5 }}>Mỗi buổi dạy hôm nay là một bước tiến cho tương lai của học sinh.</div>
+            <div style={{ fontSize: 12, color: C.orange, fontWeight: 600 }}>— VISTA Academy</div>
+          </div>
         </div>
       </section>
 

@@ -79,6 +79,8 @@ export const laySoGiaoDich = (p = {}) =>
   apiClient.get("/finances/transactions/", { params: p }).then((r) => r.data);
 export const tongHopSo = (p = {}) =>
   apiClient.get("/finances/transactions/tong-hop/", { params: p }).then(lay);
+export const baoCaoKqkd = (p = {}) =>
+  apiClient.get("/finances/transactions/bao-cao-kqkd/", { params: p }).then(lay);
 export const ghiSo = (d) => apiClient.post("/finances/transactions/ghi-so/", d).then(lay);
 export const xacNhanKhop = (id, d = {}) =>
   apiClient.post(`/finances/transactions/${id}/doi-soat/`, d).then(lay);

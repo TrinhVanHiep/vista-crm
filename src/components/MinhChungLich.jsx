@@ -1,5 +1,7 @@
 import { useRef, useState } from "react";
-import { henLaiLich, taiMinhChungLich, xoaMinhChungLich } from "../services/calendarService";
+import { baoCaoTienDoLich, duyetLich, henLaiLich, taiMinhChungLich, xoaMinhChungLich } from "../services/calendarService";
+import { useAuth } from "../auth/AuthProvider";
+import { VAI_QUAN_TRI } from "../auth/permissions";
 
 /**
  * Minh chứng + hẹn lại cho một đầu mục lịch công tác (12/10/2026). Chuyển “Hoàn thành”
@@ -18,7 +20,14 @@ export default function MinhChungLich({ lich, onDoi }) {
   const [dang, setDang] = useState(false);
   const [loi, setLoi] = useState("");
   const [hen, setHen] = useState(null);
+  const { role, user } = useAuth();
+  const [td, setTd] = useState({ pt: lich?.tien_do ?? 0, nd: "" });
+  const [lyDoKd, setLyDoKd] = useState("");
   if (!lich?.id) return null;
+  const laQuanLy = VAI_QUAN_TRI.includes(role);
+  const laPhuTrach = (lich.assigned_to?.id ?? lich.created_by?.id) === user?.id || laQuanLy;
+  const NHAN_DUYET = { cho_duyet: ["Chờ quản lý duyệt", "#6B46C1", "#F3EFFF"], dat: ["Đạt", "#1E8E4F", "#E7F6EC"],
+                       khong_dat: ["Không đạt — làm lại", "#C0392B", "#FDECEA"] };
   const mc = lich.minh_chung || [];
   const xong = ["done", "cancel"].includes(lich.status) && mc.length;
 
@@ -38,6 +47,55 @@ export default function MinhChungLich({ lich, onDoi }) {
   return (
     <div style={{ gridColumn: "1 / -1", padding: 12, borderRadius: 10,
                   border: `1px dashed ${mc.length ? "#9AD3AE" : "#E8A87C"}`, background: mc.length ? "#F3FBF6" : "#FFF8F3" }}>
+      {/* Tiến độ có căn cứ + duyệt (14/10/2026) */}
+      <div style={{ display: "grid", gap: 8, marginBottom: 12, paddingBottom: 12, borderBottom: "1px dashed #E8A87C" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <b style={{ fontSize: 13.5 }}>Tiến độ</b>
+          <div style={{ flex: 1, minWidth: 120, height: 8, borderRadius: 8, background: "#EEF0F3", overflow: "hidden" }}>
+            <div style={{ width: `${lich.tien_do || 0}%`, height: "100%", background: lich.duyet === "khong_dat" ? "#C0392B" : "#F26522" }} />
+          </div>
+          <b style={{ fontSize: 13 }}>{lich.tien_do || 0}%</b>
+          {lich.duyet && NHAN_DUYET[lich.duyet] ? (
+            <span style={{ fontSize: 12, fontWeight: 700, padding: "2px 9px", borderRadius: 999,
+                           color: NHAN_DUYET[lich.duyet][1], background: NHAN_DUYET[lich.duyet][2] }}>{NHAN_DUYET[lich.duyet][0]}</span>
+          ) : null}
+        </div>
+        {lich.bao_cao_tien_do ? (
+          <div style={{ fontSize: 12.5, color: "#4b5466" }}>
+            <b>Báo cáo gần nhất:</b> {lich.bao_cao_tien_do}
+            {lich.bao_cao_luc ? <span style={{ color: "#8a7a66" }}> · {new Date(lich.bao_cao_luc).toLocaleString("vi-VN")}</span> : null}
+          </div>
+        ) : null}
+        {lich.duyet === "khong_dat" && lich.ly_do_duyet ? (
+          <div style={{ fontSize: 12.5, color: "#C0392B" }}><b>Lý do không đạt:</b> {lich.ly_do_duyet}{lich.duyet_boi_ten ? ` — ${lich.duyet_boi_ten}` : ""}</div>
+        ) : null}
+        {laPhuTrach && lich.duyet !== "dat" && lich.status !== "cancel" ? (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <select value={td.pt} onChange={(e) => setTd((x) => ({ ...x, pt: Number(e.target.value) }))} aria-label="Tiến độ">
+              {[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map((v) => <option key={v} value={v}>{v === 100 ? "100% — Hoàn thành" : `${v}%`}</option>)}
+            </select>
+            <input type="text" value={td.nd} placeholder="Đã làm gì (căn cứ báo cáo)…" style={{ flex: 1, minWidth: 200 }}
+                   onChange={(e) => setTd((x) => ({ ...x, nd: e.target.value }))} />
+            <button type="button" className="btn primary sm" disabled={dang || !td.nd.trim()}
+                    onClick={() => goi(async () => { onDoi(await baoCaoTienDoLich(lich.id, { tienDo: td.pt, noiDung: td.nd })); setTd((x) => ({ ...x, nd: "" })); })}>
+              Gửi báo cáo tiến độ
+            </button>
+          </div>
+        ) : null}
+        {laQuanLy && lich.duyet === "cho_duyet" ? (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <button type="button" className="btn primary sm" disabled={dang}
+                    onClick={() => goi(async () => onDoi(await duyetLich(lich.id, { ketQua: "dat" })))}>✓ Đạt</button>
+            <input type="text" value={lyDoKd} placeholder="Lý do không đạt…" style={{ flex: 1, minWidth: 180 }}
+                   onChange={(e) => setLyDoKd(e.target.value)} />
+            <button type="button" className="btn ghost sm" disabled={dang || !lyDoKd.trim()}
+                    onClick={() => goi(async () => { onDoi(await duyetLich(lich.id, { ketQua: "khong_dat", lyDo: lyDoKd })); setLyDoKd(""); })}>
+              ✕ Không đạt
+            </button>
+          </div>
+        ) : null}
+      </div>
+
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
         <b style={{ fontSize: 13.5 }}>Minh chứng hoàn thành <span style={{ color: "#C0392B" }}>*</span></b>
         <span style={{ fontSize: 12.5, color: mc.length ? "#1E8E4F" : "#B7791F" }}>

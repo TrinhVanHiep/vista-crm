@@ -545,32 +545,13 @@ function DashboardLayout() {
           </svg>
         </button>
 
-        <div className={styles["dashboard__brand"]}>
-          <span className={styles["dashboard__brand-mark"]}>
-            <svg viewBox="0 0 120 102" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-              {[[14, 30, 4.6], [26, 17, 5.2], [42, 8, 5.8], [78, 8, 5.8], [94, 17, 5.2], [106, 30, 4.6]].map(
-                ([x, y, s], i) => (
-                  <polygon
-                    key={i}
-                    points="0,-1 0.224,-0.309 0.951,-0.309 0.363,0.118 0.588,0.809 0,0.382 -0.588,0.809 -0.363,0.118 -0.951,-0.309 -0.224,-0.309"
-                    transform={`translate(${x},${y}) scale(${s})`}
-                    fill="#F26522"
-                  />
-                )
-              )}
-              <path d="M60 6 114 48l-9 6L60 20 15 54l-9-6L60 6z" fill="#A93226" />
-              <g stroke="#F26522" strokeWidth="15" strokeLinecap="round" strokeLinejoin="round" fill="none">
-                <path d="M23 56 42 90 56 34" />
-                <path d="M97 56 78 90 64 34" />
-              </g>
-              <circle cx="34" cy="44" r="9.5" fill="#F26522" />
-              <circle cx="86" cy="44" r="9.5" fill="#F26522" />
-            </svg>
-          </span>
-          <div className={styles["dashboard__brand-name"]}>
-            <strong>VISTA</strong>
-            <span>Perfect Your English</span>
-          </div>
+        {/* Logo chuẩn của trung tâm (14/10/2026) thay bản vẽ lại bằng SVG. */}
+        <div className={styles["dashboard__brand"]} style={{ justifyContent: "center" }}>
+          <img
+            src="/vista-logo.png"
+            alt="VISTA — Perfect Your English"
+            style={{ width: collapsed ? 44 : 132, height: "auto", display: "block", objectFit: "contain" }}
+          />
         </div>
 
         <nav className={styles["dashboard__nav"]} aria-label="Điều hướng chính">

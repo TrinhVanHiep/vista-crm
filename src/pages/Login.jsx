@@ -55,21 +55,7 @@ function Login() {
         <div className={styles["auth-panel"]}>
           <NutNgonNgu style={{ alignSelf: "flex-end", marginBottom: 8 }} />
           <div className={styles["auth-brand"]}>
-            <span className={styles["auth-brand-icon"]} aria-hidden="true">
-              <svg
-                viewBox="0 0 24 24"
-                width="16"
-                height="16"
-                aria-hidden="true"
-                focusable="false"
-              >
-                <path
-                  d="M12 2.5a6.5 6.5 0 0 1 6.5 6.5c0 5.1-6.5 12-6.5 12S5.5 14.1 5.5 9A6.5 6.5 0 0 1 12 2.5Zm0 3a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z"
-                  fill="currentColor"
-                />
-              </svg>
-            </span>
-            <span>Your Logo</span>
+            <img src="/vista-logo.png" alt="VISTA — Perfect Your English" style={{ width: 120, height: "auto" }} />
           </div>
 
           <div className={styles["auth-heading"]}>

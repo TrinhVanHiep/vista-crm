@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import { ROUTE_PERMISSIONS } from "../auth/permissions";
 import DongSo from "../components/finance/DongSo";
+import BaoCaoKqkd from "../components/finance/BaoCaoKqkd";
 import BangLuong from "../components/finance/BangLuong";
 import HocPhiCongNo from "../components/finance/HocPhiCongNo";
 import SoGiaoDich from "../components/finance/SoGiaoDich";
@@ -143,6 +144,7 @@ export default function TaiChinh() {
 
       {tab === "report" ? (
         <>
+          {xemTongQuan ? <BaoCaoKqkd thang={thang} nam={nam} /> : null}
           <DongSo
             thang={thang} nam={nam} laQuanTri={laQuanTri} coTheGhi={coTheGhi}
             onNotice={setThongBao}
