@@ -237,6 +237,51 @@ export default function HoSoNhanSu() {
   );
 
   const mt = d.muc_tieu;
+  // Vi phạm bị trừ thi đua (15/10/2026) — nhân sự từ quản lý trở xuống; admin không có khối này.
+  const vp = d.vi_pham;
+  const khoiViPham = vp ? (
+    <div style={{ ...card, padding: 18 }}>
+      <CardHead title={`Vi phạm & điểm trừ thi đua tháng ${thang}/${nam}`}
+                right={<span style={{ fontSize: 13, fontWeight: 700, color: vp.tong_diem_tru || vp.so_loi_nhiem_vu ? C.red : C.green }}>
+                  {vp.tong_diem_tru ? `−${vp.tong_diem_tru} điểm` : vp.so_loi_nhiem_vu ? `${vp.so_loi_nhiem_vu} lỗi` : "Không vi phạm"}
+                </span>} />
+      {!vp.viec_tre.length && !vp.dong_tru.length ? (
+        <div style={{ fontSize: 13, color: C.muted, padding: "6px 0" }}>Tháng này chưa có lỗi vi phạm nào.</div>
+      ) : (
+        <div style={{ display: "grid", gap: 14, marginTop: 6 }}>
+          {vp.viec_tre.length ? (
+            <div>
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: C.muted, marginBottom: 6 }}>
+                Lỗi nhiệm vụ tự động ({vp.so_loi_nhiem_vu} lỗi — mỗi đêm trễ hạn tính 1 lỗi)
+              </div>
+              {vp.viec_tre.map((v, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 10, fontSize: 13, padding: "7px 0",
+                                      borderTop: i ? `1px dashed ${C.line}` : "none" }}>
+                  <span>{v.ten}</span>
+                  <span style={{ whiteSpace: "nowrap", color: C.red, fontWeight: 600 }}>
+                    {v.so_dem} lỗi · {ngayVN(v.tu)}{v.den !== v.tu ? `–${ngayVN(v.den)}` : ""}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : null}
+          {vp.dong_tru.length ? (
+            <div>
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: C.muted, marginBottom: 6 }}>Điểm trừ trên phiếu thi đua</div>
+              {vp.dong_tru.map((r, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 10, fontSize: 13, padding: "7px 0",
+                                      borderTop: i ? `1px dashed ${C.line}` : "none" }}>
+                  <span>{r.ten}{r.ghi_chu ? <span style={{ color: C.muted }}> — {r.ghi_chu}</span> : null}</span>
+                  <span style={{ whiteSpace: "nowrap", color: C.red, fontWeight: 700 }}>−{r.diem_tru}{r.so_luong > r.tran ? ` (chặn trần ${r.tran})` : ""}</span>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      )}
+    </div>
+  ) : null;
+
   const khoiMucTieu = mt ? (
     <div style={{ ...card, padding: 18 }}>
       <CardHead title={`Tiến độ mục tiêu tháng ${thang}/${nam}`} right={q.chi_tiet ? <XemThem to="/thi-dua-thang" label="Xem thi đua" /> : null} />
@@ -515,6 +560,7 @@ export default function HoSoNhanSu() {
               {hien(3) ? khoiLuong : null}
             </section>
           ) : null}
+          {hien(4) && khoiViPham ? khoiViPham : null}
           {(hien(4) || hien(5) || hien(6)) ? (
             <section style={{ display: "grid", gridTemplateColumns: tab === 0 ? "repeat(auto-fit,minmax(min(100%,300px),1fr))" : "1fr", gap: 16 }}>
               {hien(4) ? khoiDanhGia : null}

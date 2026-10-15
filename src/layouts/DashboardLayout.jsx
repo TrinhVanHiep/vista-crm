@@ -499,6 +499,8 @@ function DashboardLayout() {
       staff: "Nhân viên",
       student: "Học viên",
       center_manager: "Quản lý cơ sở",
+      designer: "Designer",
+      accountant: "Kế toán tổng hợp",
       training_manager: "Quản lý đào tạo",
     }[role] || "Chưa có quyền";
   const initials =

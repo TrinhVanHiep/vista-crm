@@ -33,7 +33,7 @@ import { color } from "./v3/theme";
  */
 
 // Vai có thể cần bảng lương — tài khoản admin/super admin không tính là "thiếu mức lương".
-const VAI_NHAN_SU = ["teacher", "staff", "center_manager", "training_manager", "accountant"];
+const VAI_NHAN_SU = ["teacher", "staff", "center_manager", "training_manager", "accountant", "designer"];
 
 // Khối lương: giáo viên (kể cả part-time, thực tập, nước ngoài) và quản lý & văn phòng.
 const VI_TRI_GV = ["teacher_full_time", "teacher_part_time", "intern", "foreign_teacher"];

@@ -17,11 +17,11 @@ export const ROUTE_PERMISSIONS = {
   programs: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager'],
   teachers: VAI_QUAN_TRI,
   attendance: VAI_QUAN_TRI,
-  calendar: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager'],
+  calendar: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager', 'designer', 'accountant'],
   monthlyScorecards: ['superadmin', 'admin', 'teacher', 'student'],
   // Thi đua tháng: giáo viên/nhân viên tự chấm rồi nộp, quản lý duyệt. Học viên
   // không liên quan nên không vào.
-  emulation: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager'],
+  emulation: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager', 'designer', 'accountant'],
   // Màn CHẤM thi đua của quản trị: chấm phiếu của NGƯỜI KHÁC nên chỉ mở cho
   // các vai quản lý. Giáo viên/nhân viên tự chấm ở /thi-dua-thang.
   // Danh sách này phải khớp VAI_CHAM bên kpi/views.py, lệch là menu hiện ra
@@ -42,13 +42,13 @@ export const ROUTE_PERMISSIONS = {
   monthlyReports: ['superadmin', 'admin', 'teacher', 'center_manager', 'training_manager'],
   // Báo cáo ngày (giảng dạy + truyền thông). Tên cũ là 'reportCard' nhưng màn
   // này không phải phiếu báo cáo gửi phụ huynh — phiếu đó ở /phieu-bao-cao/:id.
-  dailyReport: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager'],
+  dailyReport: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager', 'designer'],
   // Hồ sơ nhân sự (14/10/2026): mọi vai nội bộ có "Hồ sơ của tôi"; xem người khác thì máy
   // chủ tự lọc nội dung theo quyền (teachers/ho_so.py).
-  hoSo: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager', 'accountant'],
+  hoSo: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager', 'accountant', 'designer'],
   // Phiếu lương cá nhân (12/10/2026): mỗi nhân sự tự xem phiếu lương tháng của mình.
-  payslip: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager', 'accountant'],
-  employeeProfile: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager'],
+  payslip: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager', 'accountant', 'designer'],
+  employeeProfile: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager', 'designer', 'accountant'],
   // Hồ sơ học viên tách khỏi employeeProfile: đây là hồ sơ NGƯỜI HỌC, không phải
   // hồ sơ nhân sự, nên quyền cũng phải nói đúng điều đó.
   studentProfile: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager'],
@@ -63,10 +63,10 @@ export const ROUTE_PERMISSIONS = {
   financeWrite: ['superadmin', 'admin', 'accountant'],
   financeApprove: ['superadmin', 'admin'],
   financeOverview: ['superadmin', 'admin', 'accountant'],
-  documents: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager'],
+  documents: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager', 'designer', 'accountant'],
   settings: VAI_QUAN_TRI,
   accounts: VAI_QUAN_TRI,
-  media: ['superadmin', 'admin', 'staff', 'teacher', 'center_manager', 'training_manager'],
+  media: ['superadmin', 'admin', 'staff', 'teacher', 'center_manager', 'training_manager', 'designer'],
   // Cửa vào /finance. Tab Học phí 2026 (mở cho cả staff) đã gộp vào Học phí &
   // Công nợ, mà API tài chính không mở cho staff, nên cửa vào = quyền tài chính.
   financeMenu: [...VAI_QUAN_TRI, 'accountant'],

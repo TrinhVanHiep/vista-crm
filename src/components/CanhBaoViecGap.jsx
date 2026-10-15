@@ -17,7 +17,9 @@ export default function CanhBaoViecGap({ userId }) {
   const navigate = useNavigate();
   const [viec, setViec] = useState([]);
   const [mo, setMo] = useState(false);
-  const [hen, setHen] = useState(null); // { khoa, session_id | lich_id, ngay, lyDo, loi }
+  const [hen, setHen] = useState(null);
+  // Trễ hạn mà KHÔNG xin gia hạn (15/10/2026): popup riêng bắt liên hệ quản lý, hiện trước.
+  const [coY, setCoY] = useState(null); // { so, quanLy: [{ten, vai, sdt}] } // { khoa, session_id | lich_id, ngay, lyDo, loi }
   const khoaViec = (v) => (v.lich_id ? `lich-${v.lich_id}` : `ca-${v.session_id}`);
   const khoa = `vista-crm.canh-bao-viec.${userId}`;
 
@@ -34,6 +36,7 @@ export default function CanhBaoViecGap({ userId }) {
         if (!con) return;
         const ds = Array.isArray(data?.items) ? data.items : [];
         setViec(ds);
+        if (data?.so_tre_khong_hen) setCoY({ so: data.so_tre_khong_hen, quanLy: data.quan_ly || [] });
         setMo(ds.length > 0);
       })
       .catch(() => {});
@@ -71,6 +74,47 @@ export default function CanhBaoViecGap({ userId }) {
     dong();
     navigate(link);
   };
+
+  const daRo = () => setCoY(null);
+  const soZalo = (sdt) => String(sdt || "").replace(/[^0-9]/g, "");
+
+  if (coY) {
+    return (
+      <Modal
+        open
+        onClose={daRo}
+        closeOnBackdrop={false}
+        title="⛔ Trễ hạn mà chưa xin gia hạn"
+        subtitle={`${coY.so} việc đã quá hạn, đang bị tính lỗi mỗi đêm và bạn chưa bấm Hẹn lại`}
+        size="md"
+        footer={<Button variant="primary" onClick={daRo}>Tôi sẽ liên hệ quản lý ngay</Button>}
+      >
+        <p style={{ marginTop: 0 }}>
+          Việc trễ hạn mà không xin gia hạn được coi là <b>chủ động bỏ việc</b>. Hãy <b>liên hệ trực tiếp quản lý</b> để
+          trao đổi lại công việc — quản lý sẽ quyết định gia hạn, giao lại hay giữ nguyên lỗi.
+        </p>
+        {coY.quanLy.length ? (
+          <div style={{ display: "grid", gap: 8 }}>
+            {coY.quanLy.map((q) => (
+              <div key={q.ten + q.vai} style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+                                                padding: "10px 12px", border: "1px solid #F3D3C2", borderRadius: 10, background: "#FFF7F2" }}>
+                <div style={{ flex: 1, minWidth: 160 }}>
+                  <div style={{ fontWeight: 700 }}>{q.ten}</div>
+                  <div className="small muted">{q.vai}{q.sdt ? ` · ${q.sdt}` : ""}</div>
+                </div>
+                {q.sdt ? (
+                  <>
+                    <a className="btn ghost sm" href={`tel:${soZalo(q.sdt)}`}>📞 Gọi</a>
+                    <a className="btn ghost sm" href={`https://zalo.me/${soZalo(q.sdt)}`} target="_blank" rel="noreferrer">💬 Zalo</a>
+                  </>
+                ) : <span className="small muted">Chưa có SĐT</span>}
+              </div>
+            ))}
+          </div>
+        ) : <p className="small muted">Liên hệ quản lý cơ sở / quản lý đào tạo của trung tâm.</p>}
+      </Modal>
+    );
+  }
 
   return (
     <Modal

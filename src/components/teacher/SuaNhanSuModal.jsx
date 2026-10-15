@@ -10,6 +10,9 @@ import { Button, Field, Modal } from "../../ui";
  */
 
 const TRANG_THAI = [["active", "Đang làm"], ["probation", "Thử việc"], ["paused", "Tạm nghỉ"], ["terminated", "Đã nghỉ việc"]];
+// Vai trò nhân sự của trung tâm (15/10/2026) — quyết định menu và quyền trong hệ thống.
+const VAI = [["teacher", "Giáo viên / TTS / Trợ giảng"], ["designer", "Designer"], ["accountant", "Kế toán tổng hợp"],
+  ["center_manager", "Quản lý cơ sở"], ["training_manager", "Quản lý đào tạo"]];
 const LOAI = [["full_time", "Full-time"], ["part_time", "Part-time"], ["freelance", "Cộng tác viên"], ["director", "Giám đốc"]];
 
 const tuGv = (g) => ({
@@ -30,6 +33,7 @@ const tuGv = (g) => ({
   loai: g?.employment_type || "full_time",
   ngay_vao: g?.join_date || "",
   ngay_nghi: g?.termination_date || "",
+  vai: g?.vai || "",
   mat_khau_moi: "",
 });
 
@@ -99,6 +103,7 @@ export default function SuaNhanSuModal({ giaoVien, onClose, onXong }) {
         {o("facebook", "Facebook", { max: 255 })}
         {o("sdt_khan_cap", "SĐT liên hệ khẩn cấp", { max: 20 })}
         {o("nguoi_khan_cap", "Người liên hệ khẩn cấp", { max: 120 })}
+        {f.vai && !VAI.some(([v]) => v === f.vai) ? null : chon("vai", "Vai trò trong hệ thống", [["", "—"], ...VAI])}
         {chon("trang_thai", "Trạng thái làm việc", TRANG_THAI)}
         {chon("loai", "Loại hợp đồng", LOAI)}
         {o("ngay_vao", "Ngày vào làm", { type: "date" })}
