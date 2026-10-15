@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { baoCaoTienDoLich, duyetLich, henLaiLich, taiMinhChungLich, xoaMinhChungLich } from "../services/calendarService";
+import { baoCaoTienDoLich, duyetKeHoach, duyetLich, getSchedule, henLaiLich, taiMinhChungLich, xoaMinhChungLich } from "../services/calendarService";
 import { useAuth } from "../auth/AuthProvider";
 import { VAI_QUAN_TRI } from "../auth/permissions";
 
@@ -23,6 +23,7 @@ export default function MinhChungLich({ lich, onDoi }) {
   const { role, user } = useAuth();
   const [td, setTd] = useState({ pt: lich?.tien_do ?? 0, nd: "" });
   const [lyDoKd, setLyDoKd] = useState("");
+  const [lyDoKh, setLyDoKh] = useState("");
   if (!lich?.id) return null;
   const laQuanLy = VAI_QUAN_TRI.includes(role);
   const laPhuTrach = (lich.assigned_to?.id ?? lich.created_by?.id) === user?.id || laQuanLy;
@@ -47,6 +48,34 @@ export default function MinhChungLich({ lich, onDoi }) {
   return (
     <div style={{ gridColumn: "1 / -1", padding: 12, borderRadius: 10,
                   border: `1px dashed ${mc.length ? "#9AD3AE" : "#E8A87C"}`, background: mc.length ? "#F3FBF6" : "#FFF8F3" }}>
+      {/* Kế hoạch: nhân sự tự đăng việc -> quản lý duyệt nhận việc (15/10/2026) */}
+      {lich.ke_hoach && lich.ke_hoach !== "da_duyet" ? (
+        <div style={{ display: "grid", gap: 8, marginBottom: 12, paddingBottom: 12, borderBottom: "1px dashed #E8A87C" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <b style={{ fontSize: 13.5 }}>Kế hoạch</b>
+            <span style={{ fontSize: 12, fontWeight: 700, padding: "2px 9px", borderRadius: 999,
+                           color: lich.ke_hoach === "tu_choi" ? "#C0392B" : "#B7791F",
+                           background: lich.ke_hoach === "tu_choi" ? "#FDECEA" : "#FEF5E3" }}>
+              {lich.ke_hoach === "tu_choi" ? "Bị từ chối" : "Chờ quản lý duyệt kế hoạch"}
+            </span>
+            {lich.ke_hoach === "tu_choi" && lich.ly_do_ke_hoach ? (
+              <span style={{ fontSize: 12.5, color: "#C0392B" }}>{lich.ly_do_ke_hoach}{lich.ke_hoach_boi_ten ? ` — ${lich.ke_hoach_boi_ten}` : ""}</span>
+            ) : null}
+          </div>
+          {laQuanLy && lich.ke_hoach === "cho_duyet" && (lich.assigned_to?.id ?? lich.created_by?.id) !== user?.id ? (
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button type="button" className="btn primary sm" disabled={dang}
+                      onClick={() => goi(async () => { await duyetKeHoach([lich.id], "duyet"); onDoi(await getSchedule(lich.id)); })}>✓ Duyệt kế hoạch</button>
+              <input type="text" value={lyDoKh} placeholder="Lý do từ chối…" style={{ flex: 1, minWidth: 160 }}
+                     onChange={(e) => setLyDoKh(e.target.value)} />
+              <button type="button" className="btn ghost sm" disabled={dang || !lyDoKh.trim()}
+                      onClick={() => goi(async () => { await duyetKeHoach([lich.id], "tu_choi", lyDoKh.trim()); onDoi(await getSchedule(lich.id)); })}>
+                ✕ Từ chối
+              </button>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
       {/* Tiến độ có căn cứ + duyệt (14/10/2026) */}
       <div style={{ display: "grid", gap: 8, marginBottom: 12, paddingBottom: 12, borderBottom: "1px dashed #E8A87C" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>

@@ -5,6 +5,7 @@ import { VAI_QUAN_TRI } from "../auth/permissions";
 import { Link, useOutletContext, useSearchParams } from "react-router-dom";
 import DiemDanhCa from "../components/reports/DiemDanhCa";
 import NganDoiCa from "../components/NganDoiCa";
+import DuyetKeHoach from "../components/DuyetKeHoach";
 import { plannerCategories } from "../data/scheduleData";
 import { useAuth } from "../auth/AuthProvider";
 import {
@@ -35,6 +36,7 @@ import {
   reviewStaffRequest,
   listTeachers,
   listGiaoVienChon,
+  listKeHoachChoDuyet,
   listTeachingSessions,
   reviewTeachingSessionPlan,
   reviewMonthlyTeachingPlan,
@@ -858,7 +860,10 @@ function CalendarDetail() {
   const [calendarView, setCalendarView] = useState("week");
   // Ca đang mở màn điểm danh từng học sinh (kể cả học bù).
   const [diemDanhCa, setDiemDanhCa] = useState(null);
-  const [doiCa, setDoiCa] = useState(null); // { ca, tenLop } — GV xin đổi ca / nhờ dạy thay
+  const [doiCa, setDoiCa] = useState(null);
+  // Duyệt kế hoạch việc nhân sự tự đăng (15/10/2026); ?duyet_ke_hoach=1 từ popup mở thẳng.
+  const [moDuyetKh, setMoDuyetKh] = useState(() => searchParams.get("duyet_ke_hoach") === "1");
+  const [soKeHoach, setSoKeHoach] = useState(0); // { ca, tenLop } — GV xin đổi ca / nhờ dạy thay
   // Khung lịch phủ kín màn hình — xem được nhiều ca trong tuần mà không cuộn.
   const [toanManHinh, setToanManHinh] = useState(false);
   // Bấm thẻ số liệu đầu trang thì thả xuống phần tương ứng (thay cho cột phải
@@ -2663,6 +2668,13 @@ function CalendarDetail() {
   };
 
   // Chỉ làm mới số đếm đơn chờ duyệt, không reload lại cả trang lịch.
+  useEffect(() => {
+    if (!canManageSessions) return undefined;
+    let con = true;
+    listKeHoachChoDuyet().then((ds) => con && setSoKeHoach(ds.length)).catch(() => {});
+    return () => { con = false; };
+  }, [canManageSessions, reloadKey, moDuyetKh]);
+
   const refreshStaffPending = async () => {
     try {
       const params = {};
@@ -3653,6 +3665,8 @@ function CalendarDetail() {
                   {[
                     { key: "plan", icon: "📄", nhan: "Lịch báo giảng", so: planStatusCounts.submitted || 0,
                       duoc: canManageSessions, bam: handleOpenReviewPlan },
+                    { key: "ke_hoach", icon: "🎯", nhan: "Kế hoạch việc nhân sự tự đăng", so: soKeHoach,
+                      duoc: canManageSessions, bam: () => setMoDuyetKh(true) },
                     { key: "leave_shift", icon: "🗓", nhan: "Đơn xin nghỉ / đổi ca", so: staffPending.leave_shift,
                       duoc: canReviewLeaveShift, bam: () => setStaffReviewGroup("leave_shift") },
                     { key: "proposal", icon: "✎", nhan: "Đề xuất - yêu cầu", so: staffPending.proposal,
@@ -4035,6 +4049,12 @@ function CalendarDetail() {
           tieuDe={diemDanhCa.ten}
           onDong={() => setDiemDanhCa(null)}
           onDaLuu={(d) => setNotice(`Đã lưu điểm danh: ${d.present_count}/${d.rows.length} em có mặt.`)}
+        />
+      ) : null}
+      {moDuyetKh && canManageSessions ? (
+        <DuyetKeHoach
+          onDong={() => { setMoDuyetKh(false); setReloadKey((v) => v + 1); }}
+          onXong={(m) => setNotice(m)}
         />
       ) : null}
       {doiCa ? (

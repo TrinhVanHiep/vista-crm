@@ -733,3 +733,14 @@ export async function duyetLich(id, { ketQua, lyDo }) {
   const { data } = await apiClient.post(`/schedules/schedules/${id}/duyet/`, { ket_qua: ketQua, ly_do: lyDo });
   return data;
 }
+
+// Duyệt kế hoạch việc nhân sự tự đăng (15/10/2026).
+export async function listKeHoachChoDuyet() {
+  const { data } = await apiClient.get("/schedules/schedules/", { params: { ke_hoach: "cho_duyet", page_size: 200 } });
+  return Array.isArray(data) ? data : data?.results || [];
+}
+
+export async function duyetKeHoach(ids, ketQua, lyDo = "") {
+  const { data } = await apiClient.post("/schedules/schedules/duyet-ke-hoach/", { ids, ket_qua: ketQua, ly_do: lyDo });
+  return data;
+}
