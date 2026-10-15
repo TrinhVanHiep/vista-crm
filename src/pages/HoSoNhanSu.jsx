@@ -436,7 +436,15 @@ export default function HoSoNhanSu() {
               {n.sdt ? <span style={{ display: "flex", alignItems: "center", gap: 6 }}><Icon n="phone" s={15} c={C.orange} />{n.sdt}</span> : null}
               <span style={{ display: "flex", alignItems: "center", gap: 6 }} data-no-translate><Icon n="mail" s={15} c={C.orange} />{n.email}</span>
               {n.dia_chi ? <span style={{ display: "flex", alignItems: "center", gap: 6 }}><Icon n="pin" s={15} c={C.orange} />{n.dia_chi}</span> : null}
+              {n.facebook ? <a href={n.facebook} target="_blank" rel="noreferrer" data-no-translate
+                               style={{ display: "flex", alignItems: "center", gap: 6, color: "#1877F2", fontWeight: 600 }}>Facebook ↗</a> : null}
+              {n.sdt_khan_cap ? <span style={{ display: "flex", alignItems: "center", gap: 6 }}><Icon n="phone" s={15} c={C.red} />Khẩn cấp: {n.sdt_khan_cap}{n.nguoi_khan_cap ? ` (${n.nguoi_khan_cap})` : ""}</span> : null}
             </div>
+            {n.ho_so_thieu?.length ? (
+              <div style={{ fontSize: 12.5, color: C.red, background: C.redSoft, borderRadius: 8, padding: "6px 10px", alignSelf: "flex-start" }}>
+                Hồ sơ còn thiếu: {n.ho_so_thieu.join(", ")}
+              </div>
+            ) : null}
             <div style={{ fontSize: 12.5, color: C.muted, display: "flex", gap: 14, flexWrap: "wrap" }}>
               <span>Ngày vào làm: <b style={{ color: C.ink, fontWeight: 600 }}>{ngayVN(n.ngay_vao)}</b></span>
               {n.tham_nien ? <><span style={{ color: C.line }}>|</span><span>Thâm niên: <b style={{ color: C.ink, fontWeight: 600 }}>{n.tham_nien}</b></span></> : null}

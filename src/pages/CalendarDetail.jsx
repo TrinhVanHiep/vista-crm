@@ -4,6 +4,7 @@ import MinhChungLich from "../components/MinhChungLich";
 import { VAI_QUAN_TRI } from "../auth/permissions";
 import { Link, useOutletContext, useSearchParams } from "react-router-dom";
 import DiemDanhCa from "../components/reports/DiemDanhCa";
+import NganDoiCa from "../components/NganDoiCa";
 import { plannerCategories } from "../data/scheduleData";
 import { useAuth } from "../auth/AuthProvider";
 import {
@@ -796,7 +797,8 @@ function CalendarDetail() {
   const canReviewLeaveShift = canReviewStaffType("leave") || canReviewStaffType("shift_change");
   const canReviewProposal = canReviewStaffType("proposal");
   const canCreateTeachingPlan = ["superadmin", "admin", "teacher", "staff"].includes(role);
-  const canSelectTeacherForCreate = ["superadmin", "admin", "staff"].includes(role);
+  // Quản lý cơ sở / đào tạo cũng phải đổi được người dạy ca (15/10/2026) — trước chỉ admin/nhân viên.
+  const canSelectTeacherForCreate = [...VAI_QUAN_TRI, "staff"].includes(role);
   const canSubmitTeachingPlan = ["teacher", "staff"].includes(role);
   const canViewFinance = VAI_QUAN_TRI.includes(role);
   const canViewApprovals = VAI_QUAN_TRI.includes(role);
@@ -856,6 +858,7 @@ function CalendarDetail() {
   const [calendarView, setCalendarView] = useState("week");
   // Ca đang mở màn điểm danh từng học sinh (kể cả học bù).
   const [diemDanhCa, setDiemDanhCa] = useState(null);
+  const [doiCa, setDoiCa] = useState(null); // { ca, tenLop } — GV xin đổi ca / nhờ dạy thay
   // Khung lịch phủ kín màn hình — xem được nhiều ca trong tuần mà không cuộn.
   const [toanManHinh, setToanManHinh] = useState(false);
   // Bấm thẻ số liệu đầu trang thì thả xuống phần tương ứng (thay cho cột phải
@@ -4034,6 +4037,14 @@ function CalendarDetail() {
           onDaLuu={(d) => setNotice(`Đã lưu điểm danh: ${d.present_count}/${d.rows.length} em có mặt.`)}
         />
       ) : null}
+      {doiCa ? (
+        <NganDoiCa
+          ca={doiCa.ca}
+          tenLop={doiCa.tenLop}
+          onDong={() => setDoiCa(null)}
+          onXong={(m) => { setDoiCa(null); setNotice(m); refreshStaffPending(); }}
+        />
+      ) : null}
 
       {detailSession && (
         <div
@@ -4276,6 +4287,18 @@ function CalendarDetail() {
                 >
                   Điểm danh
                 </button>
+                {isTeacherRole && (detailSession.raw.session_date || "") >= todayString && (
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={() => {
+                      setDoiCa({ ca: detailSession.raw, tenLop: detailSession.title });
+                      setDetailSession(null);
+                    }}
+                  >
+                    Đổi ca / nhờ dạy thay
+                  </button>
+                )}
                 <button
                   type="button"
                   className={styles.primaryButton}
@@ -5196,6 +5219,10 @@ function CalendarDetail() {
                             </span>
                           )}
                           {item.desired_shift && <span>🔄 {item.desired_shift}</span>}
+                          {item.ca && (
+                            <span>🏫 Ca {item.ca.lop} {item.ca.ngay ? item.ca.ngay.split("-").reverse().join("/") : ""} — {item.ca.giao_vien}</span>
+                          )}
+                          {item.giao_vien_thay_ten && <span style={{ color: "#F26522", fontWeight: 700 }}>➜ Dạy thay: {item.giao_vien_thay_ten}</span>}
                         </div>
                         {item.reason && (
                           <p style={{ margin: 0, fontSize: 13, color: "#43301f" }}>{item.reason}</p>

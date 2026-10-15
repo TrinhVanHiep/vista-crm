@@ -23,6 +23,9 @@ const tuGv = (g) => ({
   dia_chi: g?.address || "",
   cccd: g?.national_id || "",
   chuyen_mon: g?.specialization || "",
+  facebook: g?.facebook || "",
+  sdt_khan_cap: g?.sdt_khan_cap || "",
+  nguoi_khan_cap: g?.nguoi_khan_cap || "",
   trang_thai: g?.employment_status || "active",
   loai: g?.employment_type || "full_time",
   ngay_vao: g?.join_date || "",
@@ -93,6 +96,9 @@ export default function SuaNhanSuModal({ giaoVien, onClose, onXong }) {
         {o("ma", "Mã giáo viên / nhân sự", { max: 50 })}
         {o("cccd", "Số CCCD", { max: 50 })}
         {o("chuyen_mon", "Chuyên môn", { max: 255 })}
+        {o("facebook", "Facebook", { max: 255 })}
+        {o("sdt_khan_cap", "SĐT liên hệ khẩn cấp", { max: 20 })}
+        {o("nguoi_khan_cap", "Người liên hệ khẩn cấp", { max: 120 })}
         {chon("trang_thai", "Trạng thái làm việc", TRANG_THAI)}
         {chon("loai", "Loại hợp đồng", LOAI)}
         {o("ngay_vao", "Ngày vào làm", { type: "date" })}

@@ -9,6 +9,7 @@ import { listClassroomsAll } from "../../services/calendarService";
 import HopThuTien from "./HopThuTien";
 import NganKeoDangKyHoc from "./NganKeoDangKyHoc";
 import NganKeoHocPhiCaNhan from "./NganKeoHocPhiCaNhan";
+import DoiSoatThuTien from "./DoiSoatThuTien";
 import NhapLieu from "./NhapLieu";
 import { color, radius } from "./v3/theme";
 import {
@@ -73,6 +74,7 @@ export default function HocPhiCongNo({ thang, nam, onNotice, laQuanTri, coTheGhi
   const [moNhap, setMoNhap] = useState(false);
   const [moDangKy, setMoDangKy] = useState(false);
   const [moCaNhan, setMoCaNhan] = useState(false);
+  const [moDoiSoat, setMoDoiSoat] = useState(false);
   // Quyền thu học phí cấp riêng (14/10/2026): QLCS được thu tiền, không lập/sửa khoản.
   const { user } = useAuth();
   const coTheThu = coTheGhi || Boolean(user?.quyen_thu_hoc_phi);
@@ -174,7 +176,8 @@ export default function HocPhiCongNo({ thang, nam, onNotice, laQuanTri, coTheGhi
           onChange={setTrangThai}
           width={190}
         />
-        <div style={{ marginLeft: "auto", display: "flex", gap: 10 }}>
+        <div style={{ marginLeft: "auto", display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <Button variant="ghost" icon="check" onClick={() => setMoDoiSoat(true)}>Đối soát thu tiền</Button>
           {coTheGhi ? (
             <Button variant="ghost" icon="doc" onClick={() => setMoNhap(true)}>Nhập từ Excel</Button>
           ) : null}
@@ -291,6 +294,10 @@ export default function HocPhiCongNo({ thang, nam, onNotice, laQuanTri, coTheGhi
 
       <HopThuTien mo={!!dangThu} hocVien={dangThu} onDong={() => setDangThu(null)} onXong={xong} />
       <NganKeoDangKyHoc mo={moDangKy} onDong={() => setMoDangKy(false)} onXong={xong} />
+      {moDoiSoat ? (
+        <DoiSoatThuTien onDong={() => setMoDoiSoat(false)} onNotice={onNotice}
+                        coTheXacNhan={coTheGhi || !!user?.quyen_thu_hoc_phi} />
+      ) : null}
       <NganKeoHocPhiCaNhan mo={moCaNhan} thang={thang} nam={nam} onDong={() => setMoCaNhan(false)} onXong={xong} />
       <NganKeoLapHangLoat
         mo={moLapHangLoat} thang={thang} nam={nam}
