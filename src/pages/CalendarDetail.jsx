@@ -113,11 +113,11 @@ const staffRequestTypeOptions = [
 const staffRequestTypeLabels = staffRequestTypeOptions.reduce((acc, item) => {
   acc[item.value] = item.label;
   return acc;
-}, {});
+}, { huy_ca: "Xin huỷ ca" }); // huy_ca chỉ tạo từ nút trên ca dạy, không có trong form tạo đơn
 const STAFF_REQUEST_GROUPS = {
   leave_shift: {
     label: "Đơn xin nghỉ / đổi ca",
-    types: ["leave", "shift_change"],
+    types: ["leave", "shift_change", "huy_ca"],
     reviewer: "Quản lý đào tạo",
   },
   proposal: {
@@ -4041,8 +4041,9 @@ function CalendarDetail() {
         <NganDoiCa
           ca={doiCa.ca}
           tenLop={doiCa.tenLop}
+          cheDo={doiCa.cheDo}
           onDong={() => setDoiCa(null)}
-          onXong={(m) => { setDoiCa(null); setNotice(m); refreshStaffPending(); }}
+          onXong={(m) => { setDoiCa(null); setNotice(m); refreshStaffPending(); setReloadKey((v) => v + 1); }}
         />
       ) : null}
 
@@ -4268,6 +4269,31 @@ function CalendarDetail() {
                       Sửa
                     </button>
                   )}
+                {/* GV sửa ca ĐÃ DUYỆT: chỉ đổi người dạy, phải gửi quản lý duyệt (15/10/2026). */}
+                {!canManageSessions && isTeacherRole && detailSession.raw.teaching_plan_status === "approved"
+                  && detailSession.raw.status !== "cancelled" && (detailSession.raw.session_date || "") >= todayString && (
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={() => { setDoiCa({ ca: detailSession.raw, tenLop: detailSession.title, cheDo: "doi" }); setDetailSession(null); }}
+                  >
+                    Sửa (đổi người dạy)
+                  </button>
+                )}
+                {detailSession.raw.status !== "cancelled" && (detailSession.raw.session_date || "") >= todayString
+                  && (canManageSessions || isTeacherRole) && (
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    style={{ color: "#c0392b", borderColor: "#e7b6ad" }}
+                    onClick={() => {
+                      setDoiCa({ ca: detailSession.raw, tenLop: detailSession.title, cheDo: canManageSessions ? "huy" : "xin_huy" });
+                      setDetailSession(null);
+                    }}
+                  >
+                    {canManageSessions ? "Huỷ ca" : "Xin huỷ ca"}
+                  </button>
+                )}
                 {/* Xoá: backend destroy chỉ cho admin/superadmin. */}
                 {canManageSessions && (
                   <button
@@ -4287,18 +4313,7 @@ function CalendarDetail() {
                 >
                   Điểm danh
                 </button>
-                {isTeacherRole && (detailSession.raw.session_date || "") >= todayString && (
-                  <button
-                    type="button"
-                    className={styles.secondaryButton}
-                    onClick={() => {
-                      setDoiCa({ ca: detailSession.raw, tenLop: detailSession.title });
-                      setDetailSession(null);
-                    }}
-                  >
-                    Đổi ca / nhờ dạy thay
-                  </button>
-                )}
+
                 <button
                   type="button"
                   className={styles.primaryButton}
