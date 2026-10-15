@@ -466,5 +466,14 @@
  "Không ghi được doanh thu khác.": "Could not save other revenue.",
  "Không xuất được báo cáo.": "Could not export the report.",
  "Nhập nội dung và số tiền lớn hơn 0.": "Enter a description and an amount above 0.",
- "Tạm tính — chốt lương xong số sẽ cập nhật": "Estimate — updates once payroll is locked"
+ "Tạm tính — chốt lương xong số sẽ cập nhật": "Estimate — updates once payroll is locked",
+ "Đơn vị triệu đồng · tháng có dấu * là số nhập từ file": "In million VND · months marked * use imported figures",
+ "Nhập file số liệu": "Import figures file",
+ "{0} — {1} tháng hợp lệ": "{0} — {1} valid months",
+ "Sửa file rồi nhập lại — chưa ghi gì.": "Fix the file and import again — nothing was saved.",
+ "Ghi {0} tháng vào hệ thống": "Save {0} months",
+ "Số chính thức nhập từ file": "Official figures from file",
+ "Số nhập từ file": "Imported figures",
+ "Theo file: doanh thu {0}": "From file: revenue {0}",
+ "Không đọc được file — cần file Excel .xlsx theo mẫu.": "Can't read the file — use the .xlsx template."
 }

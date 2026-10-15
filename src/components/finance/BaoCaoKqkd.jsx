@@ -21,7 +21,7 @@ const NGUON_GIA = { lo_trinh: "Học phí ÷ buổi lộ trình", con_lai: "Họ
 
 /* Biểu đồ cột (doanh thu, chi phí) + đường (lợi nhuận) cho 12 tháng — SVG thuần. */
 function BieuDoNam({ ds }) {
-  const W = 760, H = 240, L = 46, B = 26, T = 12;
+  const W = 760, H = 190, L = 46, B = 24, T = 16;
   const co = ds.filter((x) => x.doanh_thu != null);
   const max = Math.max(1, ...co.map((x) => Math.max(x.doanh_thu, x.chi_phi, x.loi_nhuan)));
   const min = Math.min(0, ...co.map((x) => x.loi_nhuan));
@@ -50,14 +50,19 @@ function BieuDoNam({ ds }) {
                 <rect x={cx + 1} y={y(Math.max(x.chi_phi, 0))} width={bw} height={Math.abs(y(0) - y(x.chi_phi))} rx="2" fill="#F5C9A9">
                   <title>{`T${x.thang} — Chi phí ${d(x.chi_phi)}`}</title>
                 </rect>
+                {/* Thông số trên đầu cột (triệu đồng) */}
+                {x.doanh_thu ? <text x={cx - bw / 2 - 1} y={y(Math.max(x.doanh_thu, 0)) - 3} fontSize="8.5" textAnchor="middle" fill="#C2410C" fontWeight="700">{trieu(x.doanh_thu)}</text> : null}
+                {x.chi_phi ? <text x={cx + bw / 2 + 1} y={y(Math.max(x.chi_phi, 0)) - 3} fontSize="8.5" textAnchor="middle" fill="#9A6B4F">{trieu(x.chi_phi)}</text> : null}
               </>
             ) : null}
-            <text x={cx} y={H - 8} fontSize="11" textAnchor="middle" fill="#4A5568">T{x.thang}</text>
+            <text x={cx} y={H - 7} fontSize="11" textAnchor="middle" fill="#4A5568" fontWeight={x.nguon === "file" ? 700 : 400}>
+              T{x.thang}{x.nguon === "file" ? "*" : ""}
+            </text>
           </g>
         );
       })}
       <polyline points={diem.map((p) => `${p[0]},${p[1]}`).join(" ")} fill="none" stroke="#16A34A" strokeWidth="2.2" />
-      {diem.map(([px, py, v]) => <circle key={px} cx={px} cy={py} r="3.5" fill="#16A34A"><title>{`Lợi nhuận ${d(v)}`}</title></circle>)}
+      {diem.map(([px, py, v]) => <circle key={px} cx={px} cy={py} r="3" fill="#16A34A"><title>{`Lợi nhuận ${d(v)}`}</title></circle>)}
     </svg>
   );
 }
@@ -84,6 +89,7 @@ export default function BaoCaoKqkd({ thang, nam, coTheGhi = true }) {
   const [caMo, setCaMo] = useState(null);
   const [moi, setMoi] = useState({ noi_dung: "", so_tien: "" });
   const [taiLai, setTaiLai] = useState(0);
+  const [nhap, setNhap] = useState(null); // { tep, thu: {hop_le, loi, dong} }
 
   useEffect(() => {
     let huy = false;
@@ -156,13 +162,38 @@ export default function BaoCaoKqkd({ thang, nam, coTheGhi = true }) {
     } catch (e) { setLoi(loiApi(e, "Không xuất được báo cáo.")); }
   };
 
+  const taiMau = async () => {
+    try {
+      const r = await apiClient.get("/finances/transactions/so-lieu-thang/", { params: { year: nam, mau: 1 }, responseType: "blob" });
+      const url = URL.createObjectURL(r.data);
+      const a = document.createElement("a");
+      a.href = url; a.download = `Mau-so-lieu-thang-${nam}.xlsx`; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+    } catch (e) { setLoi(loiApi(e, "Không tải được file mẫu.")); }
+  };
+  const guiFile = async (tep, thu) => {
+    const fd = new FormData();
+    fd.append("file", tep);
+    try {
+      const { data } = await apiClient.post(`/finances/transactions/so-lieu-thang/?year=${nam}${thu ? "&thu=1" : ""}`, fd, { timeout: 60000 });
+      if (thu) setNhap({ tep, thu: data });
+      else { setNhap(null); setTaiLai((v) => v + 1); }
+    } catch (e) {
+      const dd = e?.response?.data;
+      if (dd?.loi) setNhap({ tep, thu: dd });
+      else setLoi(loiApi(e, "Không nhập được file."));
+    }
+  };
+
   const ky = `${String(thang).padStart(2, "0")}/${nam}`;
   if (loi && !bc) return <NoteStrip>{loi}</NoteStrip>;
   if (!bc) return <Card style={{ padding: 20, color: color.muted, fontSize: 13 }}>Đang tính báo cáo kết quả kinh doanh…</Card>;
 
   const cp = bc.chi_phi;
   const ns = cp.nhan_su;
-  const ln = Number(bc.loi_nhuan_thuan);
+  const ct = bc.chinh_thuc || {};
+  const tuFile = ct.nguon === "file";
+  const ln = Number(tuFile ? ct.loi_nhuan : bc.loi_nhuan_thuan);
   const canKiem = dt.theo_lop.filter((r) => r.can_kiem.length).length;
   const tamTinh = ns.nguon !== "chot";
   const lopDangMo = dt.theo_lop.find((r) => r.classroom_id === lopMo);
@@ -171,7 +202,8 @@ export default function BaoCaoKqkd({ thang, nam, coTheGhi = true }) {
     <div style={{ display: "grid", gap: 16, marginBottom: 20, opacity: dangTai ? 0.6 : 1 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
         <div style={{ fontSize: 18, fontWeight: 800 }}>Báo cáo kết quả kinh doanh — Tháng {ky}</div>
-        {canKiem || tamTinh ? <Pill tone="amber">Bản tạm — chưa đối soát đủ</Pill> : <Pill tone="green">Đủ số liệu</Pill>}
+        {tuFile ? <Pill tone="blue">Số chính thức nhập từ file</Pill>
+          : canKiem || tamTinh ? <Pill tone="amber">Bản tạm — chưa đối soát đủ</Pill> : <Pill tone="green">Đủ số liệu</Pill>}
         <Button variant="ghost" icon="doc" onClick={xuat} style={{ marginLeft: "auto" }}>Xuất báo cáo</Button>
       </div>
       {loi ? <NoteStrip>{loi}</NoteStrip> : null}
@@ -179,16 +211,53 @@ export default function BaoCaoKqkd({ thang, nam, coTheGhi = true }) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
         <StatCard label="Doanh thu thực học tháng" value={d(dt.thuc_hoc)} icon="wallet" tone="orange"
                   note={`Từ điểm danh thực tế · ${dt.so_buoi} buổi, ${dt.luot_hoc} lượt`} small />
-        <StatCard label="Chi phí tháng" value={d(cp.tong)} icon="doc" tone="amber"
-                  note={tamTinh ? "Lương tạm tính + vận hành" : "Lương đã chốt + vận hành"} small />
+        <StatCard label="Chi phí tháng" value={d(tuFile ? ct.chi_phi : cp.tong)} icon="doc" tone="amber"
+                  note={tuFile ? "Số nhập từ file" : tamTinh ? "Lương tạm tính + vận hành" : "Lương đã chốt + vận hành"} small />
         <StatCard label="Kết quả kinh doanh" value={d(ln)} icon="chart" tone={ln >= 0 ? "green" : "red"} valueColor={ln >= 0 ? "green" : "red"}
-                  note={`Tổng doanh thu ${d(dt.tong)}`} small />
-        <StatCard label="Tỷ suất" value={bc.ty_suat != null ? `${bc.ty_suat}%` : "—"} icon="check" tone="blue" note="Lợi nhuận / doanh thu" small />
+                  note={tuFile ? `Theo file: doanh thu ${d(ct.doanh_thu)}` : `Tổng doanh thu ${d(dt.tong)}`} small />
+        <StatCard label="Tỷ suất" value={(tuFile ? (Number(ct.doanh_thu) ? `${(ln / Number(ct.doanh_thu) * 100).toFixed(1)}%` : "—") : bc.ty_suat != null ? `${bc.ty_suat}%` : "—")} icon="check" tone="blue" note="Lợi nhuận / doanh thu" small />
       </div>
 
       <Card>
-        <CardHead title={`Hiệu suất kinh doanh năm ${nam}`} sub="Doanh thu (thực học + khác), chi phí và lợi nhuận từng tháng" />
-        <div style={{ padding: "8px 22px 18px" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 10, flexWrap: "wrap", padding: "18px 22px 0" }}>
+          <div style={{ flex: 1, minWidth: 220 }}>
+            <div style={{ fontSize: 16, fontWeight: 700 }}>Hiệu suất kinh doanh năm {nam}</div>
+            <div style={{ fontSize: 12.5, color: color.muted, marginTop: 3 }}>Đơn vị triệu đồng · tháng có dấu * là số nhập từ file</div>
+          </div>
+          {coTheGhi ? (
+            <>
+              <Button variant="ghost" icon="doc" onClick={taiMau}>Tải file mẫu</Button>
+              <label style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 14px", borderRadius: radius.md, cursor: "pointer",
+                              background: color.orange, color: "#fff", fontWeight: 700, fontSize: 13 }}>
+                Nhập file số liệu
+                <input type="file" accept=".xlsx" style={{ display: "none" }}
+                       onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) guiFile(f, true); }} />
+              </label>
+            </>
+          ) : null}
+        </div>
+        {nhap ? (
+          <div style={{ margin: "12px 22px 0", border: "1px solid " + color.border, borderRadius: radius.md, padding: 12, background: color.subtle, fontSize: 13 }}>
+            <b>{nhap.tep.name}</b> — {nhap.thu.hop_le} tháng hợp lệ
+            {nhap.thu.loi?.length ? (
+              <div style={{ color: color.red, marginTop: 6 }}>{nhap.thu.loi.map((x) => <div key={x}>• {x}</div>)}
+                <div style={{ marginTop: 4 }}>Sửa file rồi nhập lại — chưa ghi gì.</div></div>
+            ) : (
+              <>
+                <div style={{ display: "grid", gap: 2, margin: "6px 0" }}>
+                  {(nhap.thu.dong || []).map((x) => (
+                    <div key={`${x.nam}-${x.thang}`}>T{x.thang}/{x.nam}: doanh thu {d(x.doanh_thu)} · chi phí {d(x.chi_phi)}{x.ghi_chu ? ` · ${x.ghi_chu}` : ""}</div>
+                  ))}
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <Button onClick={() => guiFile(nhap.tep, false)}>Ghi {nhap.thu.hop_le} tháng vào hệ thống</Button>
+                  <Button variant="ghost" onClick={() => setNhap(null)}>Huỷ</Button>
+                </div>
+              </>
+            )}
+          </div>
+        ) : null}
+        <div style={{ padding: "8px 22px 18px", maxWidth: 820 }}>
           <div style={{ display: "flex", gap: 16, fontSize: 12.5, color: color.ink70, marginBottom: 6, flexWrap: "wrap" }}>
             <span><b style={{ color: "#F26522" }}>■</b> Doanh thu</span>
             <span><b style={{ color: "#F5C9A9" }}>■</b> Chi phí</span>
