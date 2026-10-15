@@ -1,114 +1,318 @@
-import { useEffect, useState } from "react";
-import { baoCaoKqkd, dinhDangTien, loiApi } from "../../services/financeService";
-import { Card, CardHead, NoteStrip, StatCard } from "./v3/ui";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import apiClient from "../../services/apiClient";
+import { dinhDangTien, loiApi } from "../../services/financeService";
+import { Button, Card, CardHead, Input, NoteStrip, Pill, StatCard, Table } from "./v3/ui";
 import { color, radius } from "./v3/theme";
 
 /**
- * Báo cáo kết quả kinh doanh tháng: Tổng doanh thu − Tổng chi phí = Lợi nhuận thuần.
- * Số do máy chủ tính (finances/bao_cao_kqkd.py) — doanh thu theo kỳ học phí, chi phí
- * nhân sự theo lương chốt / tạm tính, chi khác theo sổ giao dịch.
+ * Báo cáo kết quả kinh doanh tháng (chủ trung tâm chốt 15/10/2026).
+ * Doanh thu = điểm danh thực học × học phí áp dụng từng học sinh + doanh thu khác (nhập tay).
+ * Dòng tiền = học phí phụ huynh thực đóng trong tháng. Số do máy chủ tính:
+ * giasu_online/finances/bao_cao_kqkd.py.
  */
 
-const d = (v) => `${dinhDangTien(Math.round(Number(v || 0)))} đ`;
+const d = (v) => (v == null ? "—" : `${dinhDangTien(Math.round(Number(v || 0)))} đ`);
+const trieu = (v) => (Math.abs(v) >= 1e6 ? `${(v / 1e6).toFixed(1).replace(".0", "")}M` : `${Math.round(v / 1e3)}k`);
+const ngayVN = (iso) => (iso ? String(iso).slice(0, 10).split("-").reverse().join("/") : "");
+const gio = (iso) => (iso ? new Date(iso).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }) : "");
+const NGUON_CA = { diem_danh: "Điểm danh từng em", si_so_bao_cao: "Theo sĩ số báo cáo", chua_diem_danh: "Chưa điểm danh" };
+const NGUON_GIA = { lo_trinh: "Học phí ÷ buổi lộ trình", con_lai: "Học phí ÷ buổi còn lại", thang: "Học phí ÷ ca trong tháng",
+                    trung_vi_lop: "Chưa có học phí — giá trung vị lớp", tb_trung_tam: "Giá trung bình trung tâm" };
 
-function Dong({ nhan, so, phu, dam, am }) {
+/* Biểu đồ cột (doanh thu, chi phí) + đường (lợi nhuận) cho 12 tháng — SVG thuần. */
+function BieuDoNam({ ds }) {
+  const W = 760, H = 240, L = 46, B = 26, T = 12;
+  const co = ds.filter((x) => x.doanh_thu != null);
+  const max = Math.max(1, ...co.map((x) => Math.max(x.doanh_thu, x.chi_phi, x.loi_nhuan)));
+  const min = Math.min(0, ...co.map((x) => x.loi_nhuan));
+  const y = (v) => T + (H - T - B) * (1 - (v - min) / (max - min));
+  const cot = (W - L) / 12;
+  const bw = Math.min(16, cot / 3.2);
+  const diem = co.map((x) => [L + cot * (x.thang - 1) + cot / 2, y(x.loi_nhuan), x.loi_nhuan]);
+  const vach = [0, 0.25, 0.5, 0.75, 1].map((k) => min + (max - min) * k);
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "9px 0",
-                  borderTop: "1px dashed " + color.border, fontWeight: dam ? 700 : 400 }}>
-      <div>
-        <div style={{ fontSize: 13.5 }}>{nhan}</div>
-        {phu ? <div style={{ fontSize: 12, color: color.muted, marginTop: 2 }}>{phu}</div> : null}
-      </div>
-      <div style={{ fontSize: 13.5, whiteSpace: "nowrap", color: am ? color.red : color.ink }}>{so}</div>
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto" }} role="img" aria-label="Hiệu suất kinh doanh 12 tháng">
+      {vach.map((v) => (
+        <g key={v}>
+          <line x1={L} x2={W} y1={y(v)} y2={y(v)} stroke="#EDF0F4" />
+          <text x={L - 6} y={y(v) + 4} fontSize="10" textAnchor="end" fill="#8A93A3">{trieu(v)}</text>
+        </g>
+      ))}
+      {ds.map((x, i) => {
+        const cx = L + cot * i + cot / 2;
+        return (
+          <g key={x.thang}>
+            {x.doanh_thu != null ? (
+              <>
+                <rect x={cx - bw - 1} y={y(Math.max(x.doanh_thu, 0))} width={bw} height={Math.abs(y(0) - y(x.doanh_thu))} rx="2" fill="#F26522">
+                  <title>{`T${x.thang} — Doanh thu ${d(x.doanh_thu)}`}</title>
+                </rect>
+                <rect x={cx + 1} y={y(Math.max(x.chi_phi, 0))} width={bw} height={Math.abs(y(0) - y(x.chi_phi))} rx="2" fill="#F5C9A9">
+                  <title>{`T${x.thang} — Chi phí ${d(x.chi_phi)}`}</title>
+                </rect>
+              </>
+            ) : null}
+            <text x={cx} y={H - 8} fontSize="11" textAnchor="middle" fill="#4A5568">T{x.thang}</text>
+          </g>
+        );
+      })}
+      <polyline points={diem.map((p) => `${p[0]},${p[1]}`).join(" ")} fill="none" stroke="#16A34A" strokeWidth="2.2" />
+      {diem.map(([px, py, v]) => <circle key={px} cx={px} cy={py} r="3.5" fill="#16A34A"><title>{`Lợi nhuận ${d(v)}`}</title></circle>)}
+    </svg>
+  );
+}
+
+function Dong({ nhan, so, dam, am, phu }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "8px 0", borderTop: "1px dashed " + color.border,
+                  fontWeight: dam ? 700 : 400, fontSize: 13.5 }}>
+      <div>{nhan}{phu ? <div style={{ fontSize: 12, color: color.muted, fontWeight: 400 }}>{phu}</div> : null}</div>
+      <div style={{ whiteSpace: "nowrap", color: am ? color.red : color.ink }}>{so}</div>
     </div>
   );
 }
 
-export default function BaoCaoKqkd({ thang, nam }) {
+export default function BaoCaoKqkd({ thang, nam, coTheGhi = true }) {
   const [bc, setBc] = useState(null);
+  const [nam12, setNam12] = useState(null);
   const [loi, setLoi] = useState("");
   const [dangTai, setDangTai] = useState(true);
+  const [kieu, setKieu] = useState("lop");
+  const [tim, setTim] = useState("");
+  const [lopMo, setLopMo] = useState(null);
+  const [chiTiet, setChiTiet] = useState(null);
+  const [caMo, setCaMo] = useState(null);
+  const [moi, setMoi] = useState({ noi_dung: "", so_tien: "" });
+  const [taiLai, setTaiLai] = useState(0);
 
   useEffect(() => {
     let huy = false;
     setDangTai(true);
     setLoi("");
-    baoCaoKqkd({ month: thang, year: nam })
-      .then((x) => !huy && setBc(x))
+    apiClient.get("/finances/transactions/bao-cao-kqkd/", { params: { month: thang, year: nam }, timeout: 60000 })
+      .then(({ data }) => !huy && setBc(data))
       .catch((e) => !huy && setLoi(loiApi(e, "Không tải được báo cáo kết quả kinh doanh.")))
       .finally(() => !huy && setDangTai(false));
     return () => { huy = true; };
-  }, [thang, nam]);
+  }, [thang, nam, taiLai]);
+
+  useEffect(() => {
+    let huy = false;
+    setNam12(null);
+    apiClient.get("/finances/transactions/bao-cao-kqkd/nam/", { params: { year: nam }, timeout: 120000 })
+      .then(({ data }) => !huy && setNam12(data.thang)).catch(() => !huy && setNam12([]));
+    return () => { huy = true; };
+  }, [nam, taiLai]);
+
+  const moLop = useCallback((id) => {
+    if (lopMo === id) { setLopMo(null); setChiTiet(null); return; }
+    setLopMo(id);
+    setChiTiet(null);
+    setCaMo(null);
+    apiClient.get("/finances/transactions/bao-cao-kqkd/", { params: { month: thang, year: nam, lop: id }, timeout: 60000 })
+      .then(({ data }) => setChiTiet(data.doanh_thu.chi_tiet_lop)).catch(() => setChiTiet([]));
+  }, [lopMo, thang, nam]);
+
+  const dt = bc?.doanh_thu;
+  const hang = useMemo(() => {
+    if (!dt) return [];
+    const k = tim.trim().toLowerCase();
+    const ds = dt.theo_lop.filter((r) => !k || `${r.lop} ${r.chuong_trinh}`.toLowerCase().includes(k));
+    if (kieu === "lop") return ds;
+    const m = new Map();
+    ds.forEach((r) => {
+      const o = m.get(r.chuong_trinh) || { lop: r.chuong_trinh, so_buoi: 0, luot_hoc: 0, doanh_thu: 0, can_kiem: [], so_lop: 0 };
+      o.so_buoi += r.so_buoi; o.luot_hoc += r.luot_hoc; o.doanh_thu += Number(r.doanh_thu); o.so_lop += 1;
+      if (r.can_kiem.length) o.can_kiem.push(`${r.lop}: ${r.can_kiem.join(", ")}`);
+      m.set(r.chuong_trinh, o);
+    });
+    return [...m.values()].map((o) => ({ ...o, chuong_trinh: `${o.so_lop} lớp` }));
+  }, [dt, tim, kieu]);
+
+  const themKhac = async () => {
+    try {
+      await apiClient.post("/finances/transactions/doanh-thu-khac/", {
+        month: thang, year: nam, noi_dung: moi.noi_dung, so_tien: Number(moi.so_tien || 0),
+      });
+      setMoi({ noi_dung: "", so_tien: "" });
+      setTaiLai((v) => v + 1);
+    } catch (e) { setLoi(loiApi(e, "Không ghi được doanh thu khác.")); }
+  };
+  const xoaKhac = async (id) => {
+    if (!window.confirm("Xoá dòng doanh thu này?")) return;
+    try {
+      await apiClient.delete(`/finances/transactions/doanh-thu-khac/?id=${id}`);
+      setTaiLai((v) => v + 1);
+    } catch (e) { setLoi(loiApi(e, "Không xoá được.")); }
+  };
+  const xuat = async () => {
+    try {
+      const r = await apiClient.get("/finances/transactions/bao-cao-kqkd/xuat/",
+        { params: { month: thang, year: nam }, responseType: "blob", timeout: 60000 });
+      const url = URL.createObjectURL(r.data);
+      const a = document.createElement("a");
+      a.href = url; a.download = `Bao-cao-KQKD-${String(thang).padStart(2, "0")}-${nam}.xlsx`; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+    } catch (e) { setLoi(loiApi(e, "Không xuất được báo cáo.")); }
+  };
 
   const ky = `${String(thang).padStart(2, "0")}/${nam}`;
-  if (loi) return <NoteStrip>{loi}</NoteStrip>;
-  if (dangTai && !bc) return <Card style={{ padding: 20, color: color.muted, fontSize: 13 }}>Đang tính báo cáo kết quả kinh doanh…</Card>;
-  if (!bc) return null;
+  if (loi && !bc) return <NoteStrip>{loi}</NoteStrip>;
+  if (!bc) return <Card style={{ padding: 20, color: color.muted, fontSize: 13 }}>Đang tính báo cáo kết quả kinh doanh…</Card>;
 
-  const dt = bc.doanh_thu;
   const cp = bc.chi_phi;
   const ns = cp.nhan_su;
   const ln = Number(bc.loi_nhuan_thuan);
+  const canKiem = dt.theo_lop.filter((r) => r.can_kiem.length).length;
   const tamTinh = ns.nguon !== "chot";
+  const lopDangMo = dt.theo_lop.find((r) => r.classroom_id === lopMo);
 
   return (
     <div style={{ display: "grid", gap: 16, marginBottom: 20, opacity: dangTai ? 0.6 : 1 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
-        <StatCard label="Tổng doanh thu" value={d(dt.tong)} icon="wallet" tone="blue"
-                  note={`Học phí & khoản thu kỳ ${ky}`} />
-        <StatCard label="Tổng chi phí" value={d(cp.tong)} icon="doc" tone="amber"
-                  note={tamTinh ? "Lương đang tạm tính" : "Theo lương đã chốt"} />
-        <StatCard label="Lợi nhuận thuần" value={d(ln)} icon="chart" tone={ln >= 0 ? "green" : "red"}
-                  valueColor={ln >= 0 ? "green" : "red"}
-                  note={bc.ty_suat != null ? `Tỷ suất ${bc.ty_suat}% doanh thu` : "Chưa có doanh thu"} />
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        <div style={{ fontSize: 18, fontWeight: 800 }}>Báo cáo kết quả kinh doanh — Tháng {ky}</div>
+        {canKiem || tamTinh ? <Pill tone="amber">Bản tạm — chưa đối soát đủ</Pill> : <Pill tone="green">Đủ số liệu</Pill>}
+        <Button variant="ghost" icon="doc" onClick={xuat} style={{ marginLeft: "auto" }}>Xuất báo cáo</Button>
+      </div>
+      {loi ? <NoteStrip>{loi}</NoteStrip> : null}
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
+        <StatCard label="Doanh thu thực học tháng" value={d(dt.thuc_hoc)} icon="wallet" tone="orange"
+                  note={`Từ điểm danh thực tế · ${dt.so_buoi} buổi, ${dt.luot_hoc} lượt`} small />
+        <StatCard label="Chi phí tháng" value={d(cp.tong)} icon="doc" tone="amber"
+                  note={tamTinh ? "Lương tạm tính + vận hành" : "Lương đã chốt + vận hành"} small />
+        <StatCard label="Kết quả kinh doanh" value={d(ln)} icon="chart" tone={ln >= 0 ? "green" : "red"} valueColor={ln >= 0 ? "green" : "red"}
+                  note={`Tổng doanh thu ${d(dt.tong)}`} small />
+        <StatCard label="Tỷ suất" value={bc.ty_suat != null ? `${bc.ty_suat}%` : "—"} icon="check" tone="blue" note="Lợi nhuận / doanh thu" small />
       </div>
 
       <Card>
-        <CardHead title={`Báo cáo kết quả kinh doanh — tháng ${ky}`}
-                  sub="Doanh thu tính theo kỳ của khoản phải thu; chi phí lương tính theo tháng công." />
-        <div style={{ padding: "8px 22px 20px", display: "grid", gap: 22,
-                      gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))" }}>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: color.blue, marginBottom: 4 }}>I. TỔNG DOANH THU</div>
-            {dt.theo_loai.length ? dt.theo_loai.map((l) => (
-              <Dong key={l.loai} nhan={l.ten} so={d(l.doanh_thu)}
-                    phu={Number(l.giam_tru) ? `Phải thu ${d(l.phai_thu)} − giảm trừ ${d(l.giam_tru)}` : null} />
-            )) : <Dong nhan="Chưa lập khoản phải thu nào cho kỳ này" so={d(0)} />}
-            <Dong nhan="Tổng doanh thu" so={d(dt.tong)} dam />
-            <div style={{ marginTop: 10, background: color.subtle, borderRadius: radius.md, padding: "9px 12px",
-                          fontSize: 12.5, color: color.ink70 }}>
-              Tiền thực thu trong tháng (sổ giao dịch, gồm cả cọc và tiền nộp trước): <b>{d(dt.thuc_thu)}</b>
-            </div>
+        <CardHead title={`Hiệu suất kinh doanh năm ${nam}`} sub="Doanh thu (thực học + khác), chi phí và lợi nhuận từng tháng" />
+        <div style={{ padding: "8px 22px 18px" }}>
+          <div style={{ display: "flex", gap: 16, fontSize: 12.5, color: color.ink70, marginBottom: 6, flexWrap: "wrap" }}>
+            <span><b style={{ color: "#F26522" }}>■</b> Doanh thu</span>
+            <span><b style={{ color: "#F5C9A9" }}>■</b> Chi phí</span>
+            <span><b style={{ color: "#16A34A" }}>●</b> Lợi nhuận</span>
           </div>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: color.amber, marginBottom: 4 }}>II. CHI PHÍ</div>
-            <Dong nhan={`Lương nhân sự (${ns.so_nguoi} người)`} so={d(ns.luong)}
-                  phu={tamTinh ? "Tạm tính theo bảng lương — chốt lương xong số sẽ cập nhật" : "Theo bảng lương đã chốt"} />
-            <Dong nhan="BHXH doanh nghiệp đóng" so={d(ns.bh_dn)} />
-            <Dong nhan={`Chi phí khác (${cp.so_dong_chi_khac} khoản trên sổ)`} so={d(cp.chi_khac)}
-                  phu={cp.so_dong_chi_khac ? null : "Chưa ghi khoản chi nào — ghi ở Sổ giao dịch (nút Ghi giao dịch → Chi)"} />
-            {cp.chi_khac_dong.map((g, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 10, fontSize: 12.5,
-                                    color: color.ink70, padding: "3px 0 3px 14px" }}>
-                <span>{g.mo_ta || "—"}</span><span style={{ whiteSpace: "nowrap" }}>{d(g.so_tien)}</span>
-              </div>
-            ))}
-            <Dong nhan="Tổng chi phí" so={d(cp.tong)} dam />
-          </div>
-        </div>
-        <div style={{ margin: "0 22px 20px", padding: "14px 16px", borderRadius: radius.md,
-                      background: ln >= 0 ? color.greenSoft : color.redSoft,
-                      display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-          <div style={{ fontWeight: 700 }}>III. LỢI NHUẬN THUẦN = I − II</div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: ln >= 0 ? color.green : color.red }}>{d(ln)}</div>
+          {nam12 ? <BieuDoNam ds={nam12.length ? nam12 : Array.from({ length: 12 }, (_, i) => ({ thang: i + 1 }))} />
+            : <div style={{ color: color.muted, fontSize: 13, padding: 20 }}>Đang tính 12 tháng…</div>}
         </div>
       </Card>
-      {Number(cp.chi_luong_tren_so) ? (
-        <NoteStrip>
-          Sổ có {d(cp.chi_luong_tren_so)} chi trả lương trong tháng — không cộng vào chi phí vì lương đã tính theo
-          bảng lương ở trên.
-        </NoteStrip>
-      ) : null}
+
+      <NoteStrip>
+        <b>Nguồn doanh thu:</b> Điểm danh thực học × Học phí áp dụng từng học sinh (học phí của em ÷ số buổi khoản đó bao phủ).
+        Buổi chưa điểm danh từng em tạm tính theo sĩ số giáo viên báo cáo × giá trung vị của lớp — cột “Đối soát” chỉ ra lớp cần kiểm.
+      </NoteStrip>
+
+      <Card style={{ paddingBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "18px 22px 10px", flexWrap: "wrap" }}>
+          <div style={{ fontSize: 16, fontWeight: 700 }}>Doanh thu thực học theo {kieu === "lop" ? "lớp" : "chương trình"}</div>
+          {[["lop", "Theo lớp"], ["ct", "Theo chương trình"]].map(([k, n]) => (
+            <button key={k} type="button" onClick={() => setKieu(k)}
+                    style={{ border: 0, borderRadius: 999, padding: "6px 12px", cursor: "pointer", fontWeight: 600, fontSize: 12.5,
+                             background: kieu === k ? color.orange : "#F1F4F8", color: kieu === k ? "#fff" : color.ink70 }}>{n}</button>
+          ))}
+          <Input placeholder="Tìm lớp…" value={tim} onChange={(e) => setTim(e.target.value)} style={{ marginLeft: "auto", width: 180 }} />
+        </div>
+        <div style={{ padding: "0 22px" }}>
+          <Table
+            columns={[kieu === "lop" ? "Lớp" : "Chương trình", kieu === "lop" ? "Chương trình" : "Số lớp", "Buổi thực học", "Lượt học thực",
+                      "Doanh thu thực học", "Đối soát", ""]}
+            align={{ 2: "right", 3: "right", 4: "right" }}
+            rows={[...hang.map((r) => [
+              <b key="l">{r.lop}</b>, r.chuong_trinh, r.so_buoi, r.luot_hoc, <b key="d">{d(r.doanh_thu)}</b>,
+              r.can_kiem.length ? <span key="k" title={r.can_kiem.join("\n")}><Pill tone="amber">Cần kiểm ({r.can_kiem.length})</Pill></span>
+                : <Pill key="k" tone="green">Khớp</Pill>,
+              kieu === "lop" ? (
+                <button key="c" type="button" onClick={() => moLop(r.classroom_id)}
+                        style={{ border: 0, background: "none", color: color.orange, fontWeight: 700, cursor: "pointer" }}>
+                  {lopMo === r.classroom_id ? "Đóng" : "Chi tiết →"}
+                </button>
+              ) : null,
+            ]), [<b key="t">TỔNG DOANH THU THỰC HỌC</b>, "", dt.so_buoi, dt.luot_hoc, <b key="d">{d(dt.thuc_hoc)}</b>, "", ""]]}
+          />
+          {lopDangMo ? (
+            <div style={{ marginTop: 12, border: "1px solid " + color.border, borderRadius: radius.md, padding: 14, background: color.subtle }}>
+              <div style={{ fontWeight: 700, marginBottom: 8 }}>Chi tiết lớp {lopDangMo.lop} → Buổi học → Điểm danh học sinh</div>
+              {lopDangMo.can_kiem.map((x) => <div key={x} style={{ fontSize: 12.5, color: color.amber }}>• {x}</div>)}
+              {chiTiet == null ? <div style={{ color: color.muted, fontSize: 13 }}>Đang tải…</div> : chiTiet.map((c) => (
+                <div key={c.session_id} style={{ borderTop: "1px dashed " + color.border, padding: "8px 0" }}>
+                  <div role="button" tabIndex={0} onClick={() => setCaMo(caMo === c.session_id ? null : c.session_id)}
+                       onKeyDown={(e) => e.key === "Enter" && setCaMo(caMo === c.session_id ? null : c.session_id)}
+                       style={{ display: "flex", gap: 12, flexWrap: "wrap", fontSize: 13, cursor: "pointer" }}>
+                    <b style={{ minWidth: 92 }}>{ngayVN(c.ngay)} {gio(c.bat_dau)}</b>
+                    <span style={{ flex: 1, minWidth: 140 }}>{c.giao_vien}</span>
+                    <span>{c.co_mat} HS có mặt</span>
+                    <span style={{ color: c.nguon === "diem_danh" ? color.muted : color.amber }}>{NGUON_CA[c.nguon]}</span>
+                    <b style={{ minWidth: 110, textAlign: "right" }}>{d(c.doanh_thu)}</b>
+                  </div>
+                  {caMo === c.session_id && c.hoc_sinh.length ? (
+                    <div style={{ margin: "6px 0 0 16px", display: "grid", gap: 3 }}>
+                      {c.hoc_sinh.map((h) => (
+                        <div key={h.student_id} style={{ display: "flex", gap: 10, fontSize: 12.5, flexWrap: "wrap" }}>
+                          <span style={{ flex: 1 }}>{h.ten}{h.hoc_bu ? " (học bù)" : ""}</span>
+                          <span style={{ color: ["trung_vi_lop", "tb_trung_tam"].includes(h.nguon) ? color.amber : color.muted }}>{NGUON_GIA[h.nguon] || h.nguon}</span>
+                          <b style={{ minWidth: 90, textAlign: "right" }}>{d(h.gia)}</b>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </Card>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16 }}>
+        <Card>
+          <CardHead title="Doanh thu khác" sub="Ngoài học phí thực học — kế toán nhập tay" />
+          <div style={{ padding: "6px 22px 18px" }}>
+            {dt.khac_dong.length ? dt.khac_dong.map((k) => (
+              <Dong key={k.id} nhan={k.noi_dung} phu={[ngayVN(k.ngay), k.nguoi].filter(Boolean).join(" · ")}
+                    so={<span>{d(k.so_tien)}{coTheGhi ? (
+                      <button type="button" onClick={() => xoaKhac(k.id)} title="Xoá"
+                              style={{ border: 0, background: "none", color: color.red, cursor: "pointer", marginLeft: 6 }}>✕</button>
+                    ) : null}</span>} />
+            )) : <div style={{ fontSize: 13, color: color.muted, padding: "6px 0" }}>Chưa có doanh thu khác.</div>}
+            <Dong nhan="Tổng doanh thu khác" so={d(dt.khac)} dam />
+            {coTheGhi ? (
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+                <Input placeholder="Nội dung" value={moi.noi_dung} onChange={(e) => setMoi((x) => ({ ...x, noi_dung: e.target.value }))}
+                       style={{ flex: 2, minWidth: 140 }} />
+                <Input placeholder="Số tiền" value={moi.so_tien ? dinhDangTien(moi.so_tien) : ""} style={{ flex: 1, minWidth: 110, textAlign: "right" }}
+                       onChange={(e) => setMoi((x) => ({ ...x, so_tien: e.target.value.replace(/[^0-9]/g, "") }))} />
+                <Button onClick={themKhac} disabled={!moi.noi_dung.trim() || !moi.so_tien}>Thêm</Button>
+              </div>
+            ) : null}
+          </div>
+        </Card>
+        <Card>
+          <CardHead title="Chi phí trong tháng" />
+          <div style={{ padding: "6px 22px 18px" }}>
+            <Dong nhan={`Lương nhân sự (${ns.so_nguoi} người)`} so={d(ns.luong)}
+                  phu={tamTinh ? "Tạm tính — chốt lương xong số sẽ cập nhật" : "Theo bảng lương đã chốt"} />
+            <Dong nhan="BHXH doanh nghiệp đóng" so={d(ns.bh_dn)} />
+            <Dong nhan={`Chi phí vận hành (${cp.so_dong_van_hanh} khoản)`} so={d(cp.van_hanh)}
+                  phu={cp.so_dong_van_hanh ? null : "Ghi ở Sổ giao dịch (Ghi giao dịch → Chi)"} />
+            <Dong nhan="Tổng chi phí" so={d(cp.tong)} dam />
+          </div>
+        </Card>
+        <Card>
+          <CardHead title="Thu – chi tiền trong tháng" sub="Dòng tiền thực, khác với doanh thu" />
+          <div style={{ padding: "6px 22px 18px" }}>
+            <Dong nhan="Tiền thu" phu="Học phí phụ huynh thực đóng trong tháng" so={d(bc.dong_tien.thuc_thu)} />
+            <Dong nhan="Tiền chi" phu="Dòng chi trên sổ giao dịch" so={d(bc.dong_tien.thuc_chi)} />
+            <Dong nhan="Chênh lệch thu − chi" so={d(bc.dong_tien.chenh_lech)} dam am={Number(bc.dong_tien.chenh_lech) < 0} />
+          </div>
+        </Card>
+      </div>
+
+      <div style={{ fontSize: 13, color: color.ink70, display: "flex", gap: 16, flexWrap: "wrap" }}>
+        <span>● Trạng thái kỳ: <b>{bc.trang_thai_ky}</b></span>
+        <span>Doanh thu: <b style={{ color: canKiem ? color.amber : color.green }}>{canKiem ? `${canKiem} lớp cần đối soát` : "Khớp"}</b></span>
+        <span>Bảng lương: <b style={{ color: tamTinh ? color.amber : color.green }}>{tamTinh ? "Chưa chốt" : "Đã chốt"}</b></span>
+      </div>
     </div>
   );
 }
