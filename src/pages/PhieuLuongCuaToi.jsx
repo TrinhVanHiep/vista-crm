@@ -77,7 +77,7 @@ export default function PhieuLuongCuaToi() {
         <div className="no-print" style={{ maxWidth: 760, marginBottom: 12, padding: "12px 14px", borderRadius: 12,
                                            background: xn.da_xac_nhan?.ket_qua === "dong_y" ? "#E8F7EE" : "#FFF6EF",
                                            border: "1px solid #F3D3C2", display: "grid", gap: 8 }}>
-          {xn.da_xac_nhan ? (
+          {xn.da_xac_nhan && xn.da_xac_nhan.ket_qua !== "cho_xac_nhan_lai" ? (
             <div style={{ fontSize: 13.5 }}>
               {xn.da_xac_nhan.ket_qua === "dong_y" ? "✓ Bạn đã xác nhận phiếu lương này đúng." : `⚠ Bạn đã báo sai sót: ${xn.da_xac_nhan.ghi_chu}`}
               {" "}
@@ -93,7 +93,7 @@ export default function PhieuLuongCuaToi() {
             </div>
           ) : (
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", fontSize: 13.5 }}>
-              <b>Xác nhận phiếu lương tháng {thang}/{nam}</b>
+              <b>{xn.hoi_lai ? `Kế toán đã sửa lương tháng ${thang}/${nam} — xác nhận lại` : `Xác nhận phiếu lương tháng ${thang}/${nam}`}</b>
               <span className="muted small">— xác nhận đúng thì kế toán chuyển lương (hạn ngày 15)</span>
               <span style={{ flex: 1 }} />
               <button type="button" className="btn ghost sm" onClick={() => setBaoSai("")}>Báo sai sót</button>

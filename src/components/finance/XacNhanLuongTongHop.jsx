@@ -2,18 +2,22 @@ import { useEffect, useState } from "react";
 import apiClient from "../../services/apiClient";
 import { Card, Pill } from "./v3/ui";
 import { color } from "./v3/theme";
+import SuaLuongChot from "./SuaLuongChot";
 
 /**
  * Kế toán theo dõi nhân sự đã xác nhận phiếu lương tháng chưa (16/10/2026). Xác nhận
  * đúng -> chuyển khoản; báo sai -> xem lại trước. Nhân sự xác nhận qua popup ngày 10–15.
  */
 const ngayGio = (s) => (s ? new Date(s).toLocaleString("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" }) : "");
-const NHAN = { dong_y: ["Đã xác nhận đúng", "green"], khieu_nai: ["Báo sai sót", "red"], chua: ["Chưa trả lời", "amber"] };
+const NHAN = { dong_y: ["Đã xác nhận đúng", "green"], khieu_nai: ["Báo sai sót", "red"], chua: ["Chưa trả lời", "amber"],
+               cho_xac_nhan_lai: ["Đã sửa — chờ xác nhận lại", "blue"] };
 
 export default function XacNhanLuongTongHop({ thang, nam, coTheGhi = false }) {
   const [bc, setBc] = useState(null);
   const [mo, setMo] = useState(false);
   const [taiLai, setTaiLai] = useState(0);
+  const [sua, setSua] = useState(null);
+  const [tb, setTb] = useState("");
 
   const daChuyen = async (ids) => {
     try {
@@ -38,6 +42,7 @@ export default function XacNhanLuongTongHop({ thang, nam, coTheGhi = false }) {
         <b style={{ fontSize: 14 }}>Nhân sự xác nhận phiếu lương T{thang}/{nam}</b>
         <Pill tone="green">{dem.dong_y} đúng</Pill>
         {dem.khieu_nai ? <Pill tone="red">{dem.khieu_nai} báo sai</Pill> : null}
+        {dem.cho_xac_nhan_lai ? <Pill tone="blue">{dem.cho_xac_nhan_lai} chờ xác nhận lại</Pill> : null}
         <Pill tone="amber">{dem.chua} chưa trả lời</Pill>
         {choChuyen.length ? <Pill tone="blue">{choChuyen.length} chờ chuyển khoản</Pill> : null}
         {coTheGhi && choChuyen.length ? (
@@ -68,9 +73,22 @@ export default function XacNhanLuongTongHop({ thang, nam, coTheGhi = false }) {
                 ) : null}
               {r.ghi_chu ? <span style={{ color: color.red, flex: 1 }}>{r.ghi_chu}</span> : <span style={{ flex: 1 }} />}
               <span style={{ color: color.muted }}>{ngayGio(r.luc)}</span>
+              {coTheGhi && r.teacher_id ? (
+                <button type="button" onClick={() => setSua(r)}
+                        style={{ border: "1px solid " + (r.trang_thai === "khieu_nai" ? color.red : color.border), borderRadius: 8, padding: "3px 10px",
+                                 background: "#fff", color: r.trang_thai === "khieu_nai" ? color.red : color.ink70, cursor: "pointer", fontSize: 12.5,
+                                 fontWeight: r.trang_thai === "khieu_nai" ? 700 : 500 }}>
+                  Sửa lương chốt
+                </button>
+              ) : null}
             </div>
           ))}
         </div>
+      ) : null}
+      {tb ? <div style={{ padding: "0 18px 12px", color: color.green, fontSize: 13 }}>{tb}</div> : null}
+      {sua ? (
+        <SuaLuongChot nguoi={sua} thang={thang} nam={nam} onDong={() => setSua(null)}
+                      onXong={(m) => { setSua(null); setTb(m); setTaiLai((v) => v + 1); }} />
       ) : null}
     </Card>
   );

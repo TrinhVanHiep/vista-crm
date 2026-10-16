@@ -58,8 +58,13 @@ export default function XacNhanLuong({ userId }) {
       <div className="ui-modal ui-modal--sm">
         <header className="ui-modal__head">
           <div>
-            <h2 className="ui-modal__title">💰 Xác nhận phiếu lương tháng {tt.thang}/{tt.nam}</h2>
-            <p className="ui-modal__sub">Hạn xác nhận: hết ngày {ngayVN(tt.han)} — xác nhận đúng thì kế toán chuyển lương.</p>
+            <h2 className="ui-modal__title">
+              💰 {tt.hoi_lai ? `Kế toán đã sửa lương tháng ${tt.thang}/${tt.nam} — xác nhận lại` : `Xác nhận phiếu lương tháng ${tt.thang}/${tt.nam}`}
+            </h2>
+            <p className="ui-modal__sub">
+              {tt.hoi_lai ? "Kế toán đã sửa theo phản hồi của bạn. Kiểm tra lại số mới rồi xác nhận."
+                : `Hạn xác nhận: hết ngày ${ngayVN(tt.han)} — xác nhận đúng thì kế toán chuyển lương.`}
+            </p>
           </div>
         </header>
         <div className="ui-modal__body" style={{ display: "grid", gap: 12 }}>
