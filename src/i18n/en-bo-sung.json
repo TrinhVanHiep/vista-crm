@@ -504,5 +504,8 @@
  "— xác nhận đúng thì kế toán chuyển lương (hạn ngày 15)": "— once confirmed, accounting pays (deadline: the 15th)",
  "Gửi kế toán": "Send to accounting",
  "Chọn Xác nhận đúng hoặc Báo sai sót.": "Choose Confirm or Report an error.",
- "Bạn chưa có phiếu lương — liên hệ kế toán.": "You don't have a payslip yet — contact accounting."
+ "Bạn chưa có phiếu lương — liên hệ kế toán.": "You don't have a payslip yet — contact accounting.",
+ "✓ {0} đã xác nhận lương T{1}": "✓ {0} confirmed their payslip {1}",
+ "⚠ {0} báo sai phiếu lương T{1}": "⚠ {0} reported a payslip error {1}",
+ "Thực nhận {0} đ — có thể chuyển khoản.": "Net pay {0} VND — ready to transfer."
 }
