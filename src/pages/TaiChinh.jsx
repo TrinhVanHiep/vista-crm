@@ -51,8 +51,16 @@ export default function TaiChinh() {
   const tabUrl = thamSo.get("tab");
   const tab = phanHe.some(([ma]) => ma === tabUrl) ? tabUrl : (phanHe[0]?.[0] || "overview");
   const setTab = (ma) => setThamSo(ma === phanHe[0]?.[0] ? {} : { tab: ma }, { replace: true });
-  const [thang, setThang] = useState(bayGio.getMonth() + 1);
-  const [nam, setNam] = useState(bayGio.getFullYear());
+  // ?thang=&nam= trên đường dẫn (vd. từ popup "chờ chuyển lương T9") mở đúng kỳ (16/10/2026).
+  const [thang, setThang] = useState(() => Number(thamSo.get("thang")) || bayGio.getMonth() + 1);
+  const [nam, setNam] = useState(() => Number(thamSo.get("nam")) || bayGio.getFullYear());
+  // Đang ở sẵn màn Tài chính mà bấm link có kỳ khác (popup việc cần làm) -> đổi kỳ theo link.
+  const thangUrl = Number(thamSo.get("thang")) || 0;
+  const namUrl = Number(thamSo.get("nam")) || 0;
+  useEffect(() => {
+    if (thangUrl) setThang(thangUrl);
+    if (namUrl) setNam(namUrl);
+  }, [thangUrl, namUrl]);
   const [thongBao, setThongBao] = useState("");
 
   // Người duyệt giảm trừ / khoá kỳ: chỉ admin, super admin (IsFinanceApprover).

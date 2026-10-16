@@ -394,7 +394,7 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-      <XacNhanLuongTongHop thang={thang} nam={nam} />
+      <XacNhanLuongTongHop thang={thang} nam={nam} coTheGhi={coTheGhi} />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
         {oKhoi("Tổng lương thực nhận", tong, ds.length, `Chi phí lương công ty ${rutGonM(tongChiPhi)} (gồm BHXH công ty đóng)`)}
         {oKhoi("Khối giáo viên", tongGv, khoiGv.length, `Lương dạy ${rutGonM(tongGv.day || 0)} · cơ bản ${rutGonM(tongGv.coBan || 0)}`)}

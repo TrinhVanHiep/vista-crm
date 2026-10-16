@@ -507,5 +507,12 @@
  "Bạn chưa có phiếu lương — liên hệ kế toán.": "You don't have a payslip yet — contact accounting.",
  "✓ {0} đã xác nhận lương T{1}": "✓ {0} confirmed their payslip {1}",
  "⚠ {0} báo sai phiếu lương T{1}": "⚠ {0} reported a payslip error {1}",
- "Thực nhận {0} đ — có thể chuyển khoản.": "Net pay {0} VND — ready to transfer."
+ "Thực nhận {0} đ — có thể chuyển khoản.": "Net pay {0} VND — ready to transfer.",
+ "{0} chờ chuyển khoản": "{0} awaiting transfer",
+ "✓ Đã chuyển tất cả ({0})": "✓ Mark all paid ({0})",
+ "Đã chuyển": "Paid",
+ "Đã chuyển lương {0}": "Salary paid {0}",
+ "Đánh dấu đã chuyển lương cho {0} người đã xác nhận đúng?": "Mark salary as paid for {0} confirmed people?",
+ "{0} nhân sự đã xác nhận lương {1} — chờ chuyển khoản": "{0} staff confirmed salary {1} — awaiting transfer",
+ "{0} nhân sự báo sai phiếu lương — cần kiểm tra: {1}": "{0} staff reported payslip errors — check: {1}"
 }
