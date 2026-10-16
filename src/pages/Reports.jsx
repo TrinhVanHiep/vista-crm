@@ -14,6 +14,7 @@ const categoryOptions = [
   { value: "marketing", label: "Truyền thông - Bán hàng", color: "#de5555" },
   { value: "finance", label: "Tài chính - Kế toán", color: "#1f8f55" },
   { value: "hr", label: "Hành chính - Nhân sự", color: "#7656d9" },
+  { value: "design", label: "Thiết kế - Designer", color: "#0ea5e9" },
 ];
 
 const statusOptions = [

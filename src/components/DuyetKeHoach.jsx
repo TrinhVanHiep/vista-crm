@@ -9,7 +9,7 @@ import styles from "../styles/calendarDetail.module.css";
  * tiến độ + minh chứng và quản lý nghiệm thu Đạt / Không đạt ở từng đầu mục.
  */
 
-const LOAI = { student: "Học sinh - Lớp học", marketing: "Truyền thông", finance: "Tài chính", hr: "Hành chính - Nhân sự" };
+const LOAI = { student: "Học sinh - Lớp học", marketing: "Truyền thông", finance: "Tài chính", hr: "Hành chính - Nhân sự", design: "Thiết kế" };
 const ngayVN = (iso) => (iso ? iso.split("-").reverse().join("/") : "—");
 const ten = (u) => (u ? u.name || u.email : "");
 

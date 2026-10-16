@@ -86,6 +86,8 @@ const ROLE_DEFAULT_ROUTES = {
   // '/unauthorized' và họ đăng nhập xong là kẹt ở màn "Không đủ quyền" —
   // có quyền gọi API nhưng không có đường vào.
   accountant: '/finance',
+  // 16/10/2026: thiếu dòng này nên designer đăng nhập xong rơi thẳng vào "Không đủ quyền".
+  designer: '/calendar-detail',
 };
 
 export function getDefaultRouteForRole(role) {

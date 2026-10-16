@@ -210,6 +210,8 @@ const WORK_CARDS = [
   { id: "marketing", label: "Truyền thông", fullLabel: "Truyền thông - Bán hàng", color: "#ff6b6b", source: "schedule" },
   { id: "finance", label: "Tài chính", fullLabel: "Tài chính - Kế toán", color: "#2f9e44", source: "schedule" },
   { id: "hr", label: "Hành chính - Nhân sự", fullLabel: "Hành chính - Nhân sự", color: "#845ef7", source: "schedule" },
+  // 16/10/2026: việc của designer tách khỏi truyền thông giáo viên cho đỡ rối.
+  { id: "design", label: "Thiết kế", fullLabel: "Thiết kế - Designer", color: "#0ea5e9", source: "schedule" },
 ];
 
 // Tên sheet trong file mẫu. Excel cấm : \\ / ? * [ ] và giới hạn 31 ký tự, nên
@@ -220,11 +222,12 @@ const SHEET_NAMES = {
   marketing: "Truyen thong - Ban hang",
   finance: "Tai chinh - Ke toan",
   hr: "Hanh chinh - Nhan su",
+  design: "Thiet ke - Designer",
 };
 
 // 4 loại lịch công tác (mọi loại trừ lịch báo giảng — loại đó dùng model và
 // endpoint khác nên có sheet với bộ cột riêng).
-const LOAI_GIAO_VIEC = ["teaching_plan", "student", "marketing", "hr"];
+const LOAI_GIAO_VIEC = ["teaching_plan", "student", "marketing", "hr", "design"];
 const SCHEDULE_SHEET_TYPES = WORK_CARDS.filter((c) => c.source === "schedule").map((c) => c.id);
 
 // Bộ cột của sheet lịch báo giảng — mô tả để sinh trang hướng dẫn. Danh sách này
@@ -852,7 +855,8 @@ function CalendarDetail() {
   const [reloadKey, setReloadKey] = useState(0);
   const [detailSession, setDetailSession] = useState(null);
   // Trang Lịch mới: thẻ công việc + chế độ xem + lịch công tác.
-  const [selectedCard, setSelectedCard] = useState("teaching_plan");
+  // Designer / kế toán không có lịch báo giảng: mở thẳng loại việc của mình (16/10/2026).
+  const [selectedCard, setSelectedCard] = useState(() => ({ designer: "design", accountant: "finance" }[role] || "teaching_plan"));
   // "week" = lưới giờ của một tuần, "month" = lưới cả tháng.
   // Trước đây state này được đặt "month" rồi KHÔNG BAO GIỜ đổi (setCalendarView
   // không được gọi ở đâu), nên màn chỉ có đúng một cách xem dù yêu cầu là xem
@@ -1001,10 +1005,12 @@ function CalendarDetail() {
     const duocPhep = [];
     if (canCreateTeachingPlan) duocPhep.push("teaching_plan");
     if (role !== "student") {
-      duocPhep.push(...(isTeacherRole ? ["student", "marketing"] : SCHEDULE_SHEET_TYPES));
+      // Khớp schedules/permissions.py VAI_LOAI_LICH — lệch là chọn được loại rồi bị 403.
+      const theoVai = { teacher: ["student", "marketing"], designer: ["design", "marketing", "hr"], accountant: ["finance", "hr"] };
+      duocPhep.push(...(theoVai[role] || SCHEDULE_SHEET_TYPES));
     }
     return WORK_CARDS.filter((card) => duocPhep.includes(card.id));
-  }, [canCreateTeachingPlan, isTeacherRole, role]);
+  }, [canCreateTeachingPlan, role]);
 
   // Có được nhập lịch công tác không — cùng luật với ô chọn loại lịch.
   // Phải đặt SAU calendarTypeOptions: const trong thân component nằm trong vùng
