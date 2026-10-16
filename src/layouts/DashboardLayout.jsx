@@ -27,6 +27,7 @@ import {
 import styles from "../styles/dashboard.module.css";
 import CanhBaoViecGap from "../components/CanhBaoViecGap";
 import HoanThienHoSo from "../components/HoanThienHoSo";
+import XacNhanLuong from "../components/XacNhanLuong";
 import NutNgonNgu from "../i18n/NutNgonNgu";
 import { useAutoCenter, isSingleCenter } from "../utils/centerField";
 
@@ -993,6 +994,7 @@ function DashboardLayout() {
         <main className={styles["dashboard__content"]} aria-live="polite">
           <CanhBaoViecGap userId={user?.id} />
           <HoanThienHoSo userId={user?.id} onDangXuat={handleLogout} />
+          <XacNhanLuong userId={user?.id} />
           <Outlet
             context={{
               centerId: scopeCenterId,
