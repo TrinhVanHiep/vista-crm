@@ -1,6 +1,7 @@
 import XacNhanLuongTongHop from "./XacNhanLuongTongHop";
 import DoiChieuChot from "./DoiChieuChot";
 import SuaLuongChot from "./SuaLuongChot";
+import NhapLuongThang from "./NhapLuongThang";
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { dinhDangTien, loiApi, rutGonM } from "../../services/financeService";
@@ -408,6 +409,7 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <NhapLuongThang thang={thang} nam={nam} onNotice={lamMoi} />
       <XacNhanLuongTongHop thang={thang} nam={nam} coTheGhi={coTheGhi} />
       <DoiChieuChot thang={thang} nam={nam} coTheGhi={coTheGhi} onNotice={onNotice} />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>

@@ -575,5 +575,21 @@
  "Số buổi / ca": "Sessions",
  "Nhập họ tên người được trả lương.": "Enter the payee's full name.",
  "Đã lưu lương T{0} của {1}: thực nhận {2} đ.": "Saved {0} pay for {1}: net {2} VND.",
- "Sửa tay số lương người này": "Edit this person's pay manually"
+ "Sửa tay số lương người này": "Edit this person's pay manually",
+ "Nhập lương tháng {0} — theo vị trí": "Monthly pay inputs {0} — by position",
+ "{0} người còn thiếu": "{0} people incomplete",
+ "Đủ dữ liệu": "Complete",
+ "Đã chốt theo file — khoá nhập": "Locked from file — inputs closed",
+ "Chấm công (công)": "Attendance (days)",
+ "Ca trực T2–T6 / T7 / CN": "Duty shifts Mon–Fri / Sat / Sun",
+ "Thưởng sale (đ)": "Sales bonus (VND)",
+ "Ca dạy (duyệt/lịch)": "Sessions (approved/scheduled)",
+ "Còn thiếu": "Missing",
+ "hệ thống: {0}": "system: {0}",
+ "cấu hình: {0}": "config: {0}",
+ "Đủ": "Complete",
+ "{0} ca chưa duyệt báo cáo": "{0} sessions with unapproved reports",
+ "QLCS nhập công · trực · sale; QLĐT nhập công · trực; ca dạy nhập ở Lịch làm việc. Ô trống = lấy từ file chấm công / cấu hình.": "Centre manager enters attendance · duty · sales; training manager enters attendance · duty; sessions are entered in the Work schedule. Empty = taken from the attendance file / config.",
+ "Ô viền cam = số nhập tay (thay số hệ thống). Xoá trống rồi Lưu = quay về số hệ thống. Thưởng thi đua GV part-time tính trên lương ca dạy.": "Orange border = manual figure (replaces system figure). Clear and Save = back to system figure. Part-time teachers' competition bonus is based on teaching pay.",
+ "Đã lưu nhập lương T{0} của {1}.": "Saved pay inputs {0} for {1}."
 }
