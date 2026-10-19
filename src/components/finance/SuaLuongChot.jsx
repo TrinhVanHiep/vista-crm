@@ -2,12 +2,15 @@ import { useEffect, useState } from "react";
 import apiClient from "../../services/apiClient";
 import { Button, Field, Input, Modal } from "./v3/ui";
 import { color } from "./v3/theme";
+import BangCaDayLuong from "./BangCaDayLuong";
 
 /**
  * Sửa số lương CHỐT của một người (16/10/2026). Tháng đã chốt thì bảng lương không tự
  * tính lại khi sửa đơn giá / điểm danh — phản hồi "tính sai" phải sửa thẳng số chốt ở đây.
  * Lưu xong: gross, thực nhận tự tính lại; người đó nhận thông báo và được hỏi xác nhận lại.
+ * Lương dạy + số buổi KHÔNG gõ tổng: sửa từng ca ở bảng ca dạy (lớp · sĩ số · đơn giá · % hưởng), 19/10/2026.
  */
+const TU_TINH = new Set(["so_buoi", "luong_day"]);
 const KHOAN = [["so_buoi", "Số buổi / ca"], ["luong_nen", "Lương cơ bản"], ["luong_day", "Lương dạy"], ["truc_demo", "Trực / demo"],
   ["phu_cap_khac", "Phụ cấp khác"], ["bh_nld", "BHXH người lao động"], ["khau_tru", "Khấu trừ cơ chế"],
   ["tam_ung", "Tạm ứng"], ["bh_dn", "BHXH doanh nghiệp (không trừ vào lương)"]];
@@ -23,6 +26,8 @@ export default function SuaLuongChot({ nguoi, thang, nam, onDong, onXong }) {
   const [phanHoi, setPhanHoi] = useState("");
   const [loi, setLoi] = useState("");
   const [dang, setDang] = useState(false);
+  const [baoCa, setBaoCa] = useState("");
+  const [taiLai, setTaiLai] = useState(0);
 
   useEffect(() => {
     const params = { month: thang, year: nam };
@@ -31,7 +36,8 @@ export default function SuaLuongChot({ nguoi, thang, nam, onDong, onXong }) {
     apiClient.get("/payroll/luong-chot/sua/", { params, timeout: 60000 })
       .then(({ data }) => setF(data))
       .catch((e) => setLoi(e?.response?.data?.detail || "Không tải được lương."));
-  }, [nguoi.id, nguoi.teacher_id, thang, nam]);
+  }, [nguoi.id, nguoi.teacher_id, thang, nam, taiLai]);
+  const gvId = f?.teacher_id || nguoi.teacher_id;
 
   const gross = f ? so(f.luong_nen) + so(f.luong_day) + so(f.truc_demo) + so(f.phu_cap_khac) : 0;
   const thucNhan = f ? gross - so(f.bh_nld) - so(f.khau_tru) - so(f.tam_ung) : 0;
@@ -62,7 +68,7 @@ export default function SuaLuongChot({ nguoi, thang, nam, onDong, onXong }) {
            sub={them ? "Người chưa có trong bảng lương (vd. hỗ trợ cơ sở ngoài CRM) — nhập thẳng các khoản."
              : f?.moi ? "Chưa có số sửa tay — đang hiện số TẠM TÍNH để sửa. Lưu xong, người này dùng số bạn nhập; người khác vẫn tạm tính."
                : "Sửa trực tiếp số lương của người này. Nếu họ đã trả lời phiếu lương, họ sẽ nhận phản hồi và được hỏi xác nhận lại."}
-           width={620} onClose={onDong}
+           width={860} onClose={onDong}
            footer={<>
              {f?.nhap_tay && f?.id ? (
                <Button variant="ghost" style={{ marginRight: "auto", color: color.red }} disabled={dang}
@@ -88,13 +94,25 @@ export default function SuaLuongChot({ nguoi, thang, nam, onDong, onXong }) {
               <Input value={ten} onChange={(e) => setTen(e.target.value)} placeholder="VD: Bà Lĩnh — hỗ trợ cơ sở" />
             </Field>
           ) : null}
+          {gvId ? (
+            <BangCaDayLuong teacherId={gvId} thang={thang} nam={nam} lyDo={lyDo} phanHoi={phanHoi}
+                            onDaLuu={(r) => {
+                              setBaoCa(`Đã tính lại lương dạy: ${tien(r.luong_day)} đ (${r.so_buoi} ca)`
+                                + (r.da_ghi_chot ? ` — đã ghi vào bảng chốt, thực nhận ${tien(r.thuc_nhan)} đ.` : " — số tạm tính đã cập nhật."));
+                              setTaiLai((v) => v + 1);
+                            }} />
+          ) : null}
+          {baoCa ? <div style={{ background: "#EEF8F0", color: color.green, borderRadius: 8, padding: "8px 12px", fontSize: 13 }}>{baoCa}</div> : null}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 10 }}>
-            {KHOAN.map(([k, nhan]) => (
-              <Field key={k} label={nhan}>
-                <Input value={tien(f[k])} style={{ textAlign: "right" }}
-                       onChange={(e) => setF((x) => ({ ...x, [k]: so(e.target.value) }))} />
-              </Field>
-            ))}
+            {KHOAN.map(([k, nhan]) => {
+              const khoa = gvId && TU_TINH.has(k);
+              return (
+                <Field key={k} label={khoa ? `${nhan} (tự tính từ bảng ca)` : nhan}>
+                  <Input value={tien(f[k])} style={{ textAlign: "right", background: khoa ? "#F6F7F9" : undefined }} disabled={khoa}
+                         onChange={(e) => setF((x) => ({ ...x, [k]: so(e.target.value) }))} />
+                </Field>
+              );
+            })}
           </div>
           <div style={{ display: "flex", gap: 18, flexWrap: "wrap", fontSize: 14, background: color.subtle, borderRadius: 8, padding: "10px 12px" }}>
             <span>Gross: <b>{tien(gross)} đ</b></span>
