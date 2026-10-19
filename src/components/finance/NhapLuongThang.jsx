@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import apiClient from "../../services/apiClient";
 import { Card, Pill } from "./v3/ui";
@@ -29,6 +29,8 @@ export default function NhapLuongThang({ thang, nam, onNotice }) {
   const [dang, setDang] = useState(null);
   const [taiLai, setTaiLai] = useState(0);
   const [loi, setLoi] = useState("");
+  const oSale = useRef(null);
+  const [sale, setSale] = useState(null); // {tep, kq}
 
   useEffect(() => {
     let con = true;
@@ -58,6 +60,26 @@ export default function NhapLuongThang({ thang, nam, onNotice }) {
     }
   };
   const thieuTong = bc.ds.filter((r) => r.thieu.length).length;
+  // File sale (19/10/2026): danh sách HS vào & đóng học phí -> đếm HS × mức thưởng/HS -> thưởng sale QLCS.
+  const guiSale = async (tep, ghi) => {
+    const fd = new FormData();
+    fd.append("file", tep);
+    fd.append("month", thang);
+    fd.append("year", nam);
+    if (ghi) fd.append("ghi", "1");
+    try {
+      const { data } = await apiClient.post("/payroll/nhap-sale/", fd, { headers: { "Content-Type": "multipart/form-data" } });
+      if (ghi) {
+        setSale(null);
+        onNotice?.(`Đã nhập file sale T${thang}/${nam}: ${data.ds.map((x) => `${x.ten} ${x.so_hs} HS`).join(", ")}.`);
+        setTaiLai((v) => v + 1);
+      } else setSale({ tep, kq: data });
+    } catch (e) {
+      window.alert(e?.response?.data?.detail || "Không đọc được file sale.");
+    } finally {
+      if (oSale.current) oSale.current.value = "";
+    }
+  };
 
   return (
     <Card>
@@ -66,13 +88,42 @@ export default function NhapLuongThang({ thang, nam, onNotice }) {
         {khoa ? <Pill tone="blue">Đã chốt theo file — khoá nhập</Pill>
           : thieuTong ? <Pill tone="amber">{thieuTong} người còn thiếu</Pill> : <Pill tone="green">Đủ dữ liệu</Pill>}
         <span style={{ fontSize: 12.5, color: color.muted }}>
-          QLCS nhập công · trực · sale; QLĐT nhập công · trực; ca dạy nhập ở Lịch làm việc. Ô trống = lấy từ file chấm công / cấu hình.
+          QLCS nhập công · trực · sale (hoặc file sale); QLĐT nhập công · trực; ca dạy lấy từ sổ điểm danh chuẩn. Ô trống = lấy từ file chấm công / cấu hình.
         </span>
+        {duoc.has("sale") && !khoa ? (
+          <>
+            <input ref={oSale} type="file" accept=".xlsx" hidden onChange={(e) => e.target.files[0] && guiSale(e.target.files[0], false)} />
+            <button type="button" onClick={() => oSale.current?.click()}
+                    style={{ marginLeft: "auto", border: "1px solid " + color.borderStrong, background: "#fff", borderRadius: 8, padding: "5px 10px", cursor: "pointer", fontSize: 12.5 }}>
+              ⬆ Nhập file sale
+            </button>
+          </>
+        ) : null}
         <button type="button" onClick={() => setMo((v) => !v)}
-                style={{ marginLeft: "auto", border: 0, background: "none", color: color.orange, fontWeight: 700, cursor: "pointer" }}>
+                style={{ marginLeft: duoc.has("sale") && !khoa ? 0 : "auto", border: 0, background: "none", color: color.orange, fontWeight: 700, cursor: "pointer" }}>
           {mo ? "Thu gọn" : "Mở"}
         </button>
       </div>
+      {sale ? (
+        <div style={{ margin: "0 18px 12px", background: "#FFF6EF", borderRadius: 10, padding: "10px 14px", fontSize: 13, display: "grid", gap: 6 }}>
+          <b>File sale {sale.tep.name}: {sale.kq.tong_hs} học sinh</b>
+          {sale.kq.ds.map((x) => (
+            <div key={x.teacher_id}>{x.ten}: {x.so_hs} HS × {tien(x.don_gia)} = <b>{tien(x.thuong)} đ</b>
+              <span style={{ color: color.muted }}> ({x.hoc_sinh.slice(0, 8).join(", ")}{x.hoc_sinh.length > 8 ? "…" : ""})</span></div>
+          ))}
+          {sale.kq.khong_ghep.length ? (
+            <div style={{ color: color.red }}>{sale.kq.khong_ghep.length} dòng chưa ghép được người sale: {sale.kq.khong_ghep.slice(0, 5).map((x) => `${x.hoc_sinh} (${x.nguoi_sale || "trống"})`).join(", ")}</div>
+          ) : null}
+          <div style={{ display: "flex", gap: 8 }}>
+            <button type="button" disabled={!!sale.kq.khong_ghep.length} onClick={() => guiSale(sale.tep, true)}
+                    style={{ border: 0, borderRadius: 8, padding: "5px 12px", background: color.orange, color: "#fff", fontWeight: 700, cursor: "pointer" }}>
+              Ghi thưởng sale
+            </button>
+            <button type="button" onClick={() => setSale(null)}
+                    style={{ border: "1px solid " + color.borderStrong, borderRadius: 8, padding: "5px 12px", background: "#fff", cursor: "pointer" }}>Huỷ</button>
+          </div>
+        </div>
+      ) : null}
       {mo ? (
         <div style={{ padding: "0 18px 16px", overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 900 }}>

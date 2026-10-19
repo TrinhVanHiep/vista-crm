@@ -12,6 +12,7 @@ import {
 import { Button, Card, CardHead, NoteStrip, Num, Pill, Table } from "./v3/ui";
 import PhieuLuong from "./PhieuLuong";
 import ChotLuong from "./ChotLuong";
+import ChotDauVao from "./ChotDauVao";
 import { DonGiaTheoLop, HopDieuChinhThang } from "./DieuChinhLuong";
 import CauHinhLuong from "./CauHinhLuong";
 import { DiemDanhHsBoSung, DuyetCongBoSung, GanNguoiChamCong, SoDiemDanhGoc } from "./MayChamCong";
@@ -168,6 +169,7 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
     window.scrollTo({ top: 0 });
   };
   const [moBuoc, setMoBuoc] = useState("");
+  const [fileDoiSoat, setFileDoiSoat] = useState(false);
   const [chuaCoLuong, setChuaCoLuong] = useState([]);
   const [congChoDuyet, setCongChoDuyet] = useState(0);
   const [donGia, setDonGia] = useState(null);
@@ -313,7 +315,8 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
       ma: "chamcong", ten: "Chấm công",
       tt: congChoDuyet ? ["warn", `${congChoDuyet} người có công chờ duyệt`]
         : chuaCong ? ["warn", `${chuaCong}/${fullTime.length} người chưa có công`] : ["ok", "Đủ công cả tháng"],
-      can: ["File chấm công tháng theo mẫu (X = đi làm, T = ca trực).",
+      can: ["File chấm công tháng theo mẫu (X = đi làm, T = ca trực) — QLCS, QLĐT, nhân viên văn phòng.",
+            "Quản lý cơ sở: thêm file sale (danh sách học sinh vào & đóng học phí) ở “Nhập lương tháng”.",
             "Sau khi tải lên, quản lý hoặc super admin bấm Duyệt thì mới tính công."],
     },
     {
@@ -335,8 +338,8 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
     },
     {
       ma: "xuat", ten: "Chốt & xuất",
-      tt: daChot ? ["ok", "Đã chốt theo đối soát"] : ["info", "Chưa chốt — đang tạm tính"],
-      can: ["Kế toán đối soát xong thì nhập file đối soát (sheet “Bang luong”) để CHỐT số chính thức.",
+      tt: daChot ? ["ok", "Đã chốt"] : ["info", "Chưa chốt — đang tạm tính"],
+      can: ["Đủ đầu vào thì bấm “Chốt lương từ đầu vào” — số hệ thống tính thành số chính thức, không cần file đối soát đầu ra.",
             "Xuất Excel bảng thanh toán lương (đúng mẫu giấy) để trình ký.",
             "Mỗi nhân sự tự xem và in phiếu lương của mình ở menu \"Phiếu lương\"."],
     },
@@ -542,7 +545,14 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
         </NoteStrip>
       ) : null}
 
-      {moBuoc === "xuat" ? (
+      {moBuoc === "xuat" && coTheGhi && !daChot ? <ChotDauVao thang={thang} nam={nam} onXong={lamMoi} /> : null}
+      {moBuoc === "xuat" && !daChot && !fileDoiSoat ? (
+        <button type="button" onClick={() => setFileDoiSoat(true)}
+                style={{ justifySelf: "start", border: 0, background: "none", color: color.muted, fontSize: 12.5, cursor: "pointer", textDecoration: "underline" }}>
+          Cách cũ: nhập file đối soát kế toán
+        </button>
+      ) : null}
+      {moBuoc === "xuat" && (daChot || fileDoiSoat) ? (
         <ChotLuong thang={thang} nam={nam} ds={ds} coTheGhi={coTheGhi} onXong={lamMoi} />
       ) : null}
       {moBuoc === "xuat" ? (
