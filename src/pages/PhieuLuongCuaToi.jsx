@@ -100,6 +100,11 @@ export default function PhieuLuongCuaToi() {
               <button type="button" className="btn primary sm" onClick={() => guiXn("dong_y")}>✓ Xác nhận đúng</button>
             </div>
           )}
+          {xn.da_xac_nhan?.phan_hoi ? (
+            <div style={{ fontSize: 13, background: "#EAF1FE", borderRadius: 8, padding: "8px 10px", whiteSpace: "pre-line" }}>
+              <b>Kế toán đã đối soát:</b> {xn.da_xac_nhan.phan_hoi}
+            </div>
+          ) : null}
           {baoSai != null ? (
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <input type="text" value={baoSai} onChange={(e) => setBaoSai(e.target.value)} placeholder="Khoản nào chưa đúng?"

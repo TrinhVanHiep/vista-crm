@@ -17,6 +17,7 @@ const so = (s) => Number(String(s ?? "").replace(/[^0-9]/g, "")) || 0;
 export default function SuaLuongChot({ nguoi, thang, nam, onDong, onXong }) {
   const [f, setF] = useState(null);
   const [lyDo, setLyDo] = useState(nguoi.ghi_chu ? `Theo phản hồi: ${nguoi.ghi_chu}` : "");
+  const [phanHoi, setPhanHoi] = useState("");
   const [loi, setLoi] = useState("");
   const [dang, setDang] = useState(false);
 
@@ -34,7 +35,7 @@ export default function SuaLuongChot({ nguoi, thang, nam, onDong, onXong }) {
     if (!lyDo.trim()) { setLoi("Ghi lý do sửa."); return; }
     setDang(true);
     try {
-      const body = { teacher: nguoi.teacher_id, month: thang, year: nam, ly_do: lyDo.trim() };
+      const body = { teacher: nguoi.teacher_id, month: thang, year: nam, ly_do: lyDo.trim(), phan_hoi: phanHoi.trim() };
       KHOAN.forEach(([k]) => { body[k] = so(f[k]); });
       const { data } = await apiClient.post("/payroll/luong-chot/sua/", body);
       onXong?.(`Đã sửa lương T${thang}/${nam} của ${nguoi.ten}: thực nhận ${tien(data.thuc_nhan)} đ. Đã báo nhân sự xác nhận lại.`);
@@ -74,6 +75,12 @@ export default function SuaLuongChot({ nguoi, thang, nam, onDong, onXong }) {
           </div>
           <Field label="Lý do sửa (bắt buộc)">
             <Input value={lyDo} onChange={(e) => setLyDo(e.target.value)} placeholder="VD: tính lại lương lớp Kid theo đơn giá 65.000/lượt" />
+          </Field>
+          <Field label="Phản hồi cho nhân sự — đã đối soát những gì (nhân sự sẽ đọc)">
+            <textarea rows={3} value={phanHoi} onChange={(e) => setPhanHoi(e.target.value)}
+                      placeholder="VD: Đã bổ sung 2 ca lớp 703 ngày 4/9, 11/9; ca 17/9 ST105 là cô Trang dạy thay nên không tính."
+                      style={{ width: "100%", padding: "10px 12px", border: "1px solid " + color.borderStrong, borderRadius: 10, fontSize: 13.5, fontFamily: "inherit" }} />
+            <span style={{ fontSize: 12, color: color.muted }}>Để trống thì gửi lý do sửa. Các khoản thay đổi (cũ → mới) tự kèm theo.</span>
           </Field>
         </div>
       )}

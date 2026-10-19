@@ -554,5 +554,12 @@
  "Thực nhận mới": "New net pay",
  "Áp số mới": "Apply new figure",
  "Áp số tính lại cho cả {0} người lệch": "Apply recalculated pay to all {0}",
- "Ca đã qua bị thiếu thì nhờ quản lý bổ sung.": "Ask a manager to add missing past sessions."
+ "Ca đã qua bị thiếu thì nhờ quản lý bổ sung.": "Ask a manager to add missing past sessions.",
+ "Kế toán đã đối soát:": "Accounting reconciled:",
+ "Bạn đã báo: {0}": "You reported: {0}",
+ "↳ Kế toán: {0}": "↳ Accounting: {0}",
+ "Phản hồi cho nhân sự — đã đối soát những gì (nhân sự sẽ đọc)": "Reply to staff — what was reconciled (staff will read this)",
+ "Để trống thì gửi lý do sửa. Các khoản thay đổi (cũ → mới) tự kèm theo.": "Leave empty to send the reason. Changed items (old → new) are attached automatically.",
+ "Đã nhập sổ chuẩn lúc {0}": "Standard book imported at {0}",
+ "Kế toán đã đối soát lương T{0} — vui lòng xác nhận lại": "Accounting reconciled your {0} salary — please re-confirm"
 }

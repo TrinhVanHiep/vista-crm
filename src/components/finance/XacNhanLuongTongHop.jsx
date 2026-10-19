@@ -71,7 +71,10 @@ export default function XacNhanLuongTongHop({ thang, nam, coTheGhi = false }) {
                     Đã chuyển
                   </button>
                 ) : null}
-              {r.ghi_chu ? <span style={{ color: color.red, flex: 1 }}>{r.ghi_chu}</span> : <span style={{ flex: 1 }} />}
+              <span style={{ flex: 1, display: "grid", gap: 2 }}>
+                {r.ghi_chu ? <span style={{ color: color.red }}>{r.ghi_chu}</span> : null}
+                {r.phan_hoi ? <span style={{ color: color.blue, whiteSpace: "pre-line" }}>↳ Kế toán: {r.phan_hoi}</span> : null}
+              </span>
               <span style={{ color: color.muted }}>{ngayGio(r.luc)}</span>
               {coTheGhi && r.teacher_id ? (
                 <button type="button" onClick={() => setSua(r)}
