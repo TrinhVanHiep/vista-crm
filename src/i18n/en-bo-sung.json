@@ -591,5 +591,6 @@
  "{0} ca chưa duyệt báo cáo": "{0} sessions with unapproved reports",
  "QLCS nhập công · trực · sale; QLĐT nhập công · trực; ca dạy nhập ở Lịch làm việc. Ô trống = lấy từ file chấm công / cấu hình.": "Centre manager enters attendance · duty · sales; training manager enters attendance · duty; sessions are entered in the Work schedule. Empty = taken from the attendance file / config.",
  "Ô viền cam = số nhập tay (thay số hệ thống). Xoá trống rồi Lưu = quay về số hệ thống. Thưởng thi đua GV part-time tính trên lương ca dạy.": "Orange border = manual figure (replaces system figure). Clear and Save = back to system figure. Part-time teachers' competition bonus is based on teaching pay.",
- "Đã lưu nhập lương T{0} của {1}.": "Saved pay inputs {0} for {1}."
+ "Đã lưu nhập lương T{0} của {1}.": "Saved pay inputs {0} for {1}.",
+ "{0} ca CRM KHÔNG có trong sổ (ca trùng / không dạy) sẽ bị HUỶ và bỏ khỏi lương": "{0} CRM sessions NOT in the book (duplicates / not taught) will be CANCELLED and removed from pay"
 }

@@ -382,7 +382,7 @@ export function SoDiemDanhGoc({ thang, nam, onXong }) {
       setXem(null);
       setTep(null);
       onXong?.(`Đã ghi ${kq.so_luot} lượt điểm danh (${kq.co_mat} có mặt) từ sổ điểm danh tháng ${thang}/${nam}`
-        + (kq.so_chuan ? `; tạo ${kq.tao_ca.length} ca thiếu, đổi GV ${kq.doi_gv.length} ca, cập nhật ${kq.duyet_bao_cao.length} báo cáo.` : "."));
+        + (kq.so_chuan ? `; tạo ${kq.tao_ca.length} ca thiếu, đổi GV ${kq.doi_gv.length} ca, huỷ ${kq.huy_ca.length} ca không có trong sổ, cập nhật ${kq.duyet_bao_cao.length} báo cáo.` : "."));
     } catch (e) {
       setLoi(loiApi(e, "Không ghi được."));
     } finally {
@@ -419,6 +419,8 @@ export function SoDiemDanhGoc({ thang, nam, onXong }) {
               <div style={{ display: "grid", gap: 6 }}>
                 {[["tao_ca", "ca CRM chưa có sẽ được TẠO", (x) => `${x.lop} · ${x.ngay.split("-").reverse().join("/")} · ${x.gv} · ${x.si_so} em`],
                   ["doi_gv", "ca sẽ ĐỔI người dạy theo sổ", (x) => `${x.lop} · ${x.ngay.split("-").reverse().join("/")} · ${x.tu} → ${x.sang}`],
+                  ["huy_ca", "ca CRM KHÔNG có trong sổ (ca trùng / không dạy) sẽ bị HUỶ và bỏ khỏi lương",
+                   (x) => `${x.lop} · ${x.ngay.split("-").reverse().join("/")} · ${x.gv} · báo cáo: ${x.bao_cao}${x.trung ? " · CA TRÙNG" : ""}`],
                   ["duyet_bao_cao", "báo cáo ca sẽ được cập nhật sĩ số theo sổ + duyệt tính lương",
                    (x) => `${x.lop} · ${x.ngay.split("-").reverse().join("/")} · ${x.trang_thai_cu} · sĩ số ${x.si_so_cu ?? "—"} → ${x.si_so_moi}`]]
                   .map(([k, nhan, dong]) => (xem[k]?.length ? (
