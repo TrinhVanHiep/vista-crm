@@ -537,5 +537,22 @@
  "Kế toán đã sửa lương tháng {0} — xác nhận lại": "Accounting updated your {0} salary — please re-confirm",
  "Kế toán đã sửa lương T{0} — vui lòng xác nhận lại": "Accounting updated your {0} salary — please re-confirm",
  "Thiết kế": "Design",
- "Thiết kế - Designer": "Design - Designer"
+ "Thiết kế - Designer": "Design - Designer",
+ "Đây là sổ CHUẨN của tháng": "This is the month's STANDARD book",
+ "{0} ca CRM chưa có sẽ được TẠO": "{0} sessions missing in CRM will be CREATED",
+ "{0} ca sẽ ĐỔI người dạy theo sổ": "{0} sessions will CHANGE teacher per the book",
+ "{0} báo cáo ca sẽ được cập nhật sĩ số theo sổ + duyệt tính lương": "{0} session reports will get the book's head-count + payroll approval",
+ "Đối chiếu lương dạy đã chốt T{0} với ca + điểm danh hiện có": "Compare locked teaching pay {0} with current sessions + attendance",
+ "{0} người lệch": "{0} people differ",
+ "Nhập sổ điểm danh chuẩn trước, rồi áp số tính lại cho người lệch.": "Import the standard attendance book first, then apply recalculated pay to those who differ.",
+ "Xem bảng đối chiếu": "View comparison",
+ "Ca chốt": "Locked sessions",
+ "Ca tính lại": "Recalculated sessions",
+ "Lương dạy chốt": "Locked teaching pay",
+ "Lương dạy tính lại": "Recalculated teaching pay",
+ "Chênh": "Difference",
+ "Thực nhận mới": "New net pay",
+ "Áp số mới": "Apply new figure",
+ "Áp số tính lại cho cả {0} người lệch": "Apply recalculated pay to all {0}",
+ "Ca đã qua bị thiếu thì nhờ quản lý bổ sung.": "Ask a manager to add missing past sessions."
 }

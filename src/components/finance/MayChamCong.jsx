@@ -357,15 +357,18 @@ export function SoDiemDanhGoc({ thang, nam, onXong }) {
   const [dang, setDang] = useState("");
   const [loi, setLoi] = useState("");
   const [moCanhBao, setMoCanhBao] = useState(false);
+  // Sổ chuẩn (19/10/2026): sổ là sự thật của tháng — tạo ca thiếu, đổi GV dạy thay, duyệt báo cáo theo sổ.
+  const [soChuan, setSoChuan] = useState(true);
+  const [moChiTiet, setMoChiTiet] = useState("");
 
-  const chon = async (f) => {
+  const chon = async (f, chuan = soChuan) => {
     setTep(f);
     setXem(null);
     setLoi("");
     if (!f) return;
     setDang("xem");
     try {
-      setXem(await nhapSoDiemDanh(f, { thang, nam }));
+      setXem(await nhapSoDiemDanh(f, { thang, nam, soChuan: chuan }));
     } catch (e) {
       setLoi(loiApi(e, "Không đọc được sổ điểm danh."));
     } finally {
@@ -375,10 +378,11 @@ export function SoDiemDanhGoc({ thang, nam, onXong }) {
   const ghi = async () => {
     setDang("ghi");
     try {
-      const kq = await nhapSoDiemDanh(tep, { thang, nam, ghi: true });
+      const kq = await nhapSoDiemDanh(tep, { thang, nam, ghi: true, soChuan });
       setXem(null);
       setTep(null);
-      onXong?.(`Đã ghi ${kq.so_luot} lượt điểm danh (${kq.co_mat} có mặt) từ sổ điểm danh tháng ${thang}/${nam}.`);
+      onXong?.(`Đã ghi ${kq.so_luot} lượt điểm danh (${kq.co_mat} có mặt) từ sổ điểm danh tháng ${thang}/${nam}`
+        + (kq.so_chuan ? `; tạo ${kq.tao_ca.length} ca thiếu, đổi GV ${kq.doi_gv.length} ca, cập nhật ${kq.duyet_bao_cao.length} báo cáo.` : "."));
     } catch (e) {
       setLoi(loiApi(e, "Không ghi được."));
     } finally {
@@ -393,6 +397,12 @@ export function SoDiemDanhGoc({ thang, nam, onXong }) {
         sub={`File sổ điểm danh trung tâm đang dùng: mỗi lớp một sheet, cột là từng ca (ngày + giáo viên), ô 1 = có mặt, 0 = vắng, mp = có phép. Ghi vào tháng ${thang}/${nam}; ghi đè điểm danh máy / tay của cùng ca.`}
       />
       <div style={{ padding: "14px 22px 18px", display: "grid", gap: 12 }}>
+        <label style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 13.5, cursor: "pointer" }}>
+          <input type="checkbox" checked={soChuan} style={{ marginTop: 3 }}
+                 onChange={(e) => { setSoChuan(e.target.checked); if (tep) chon(tep, e.target.checked); }} />
+          <span><b>Đây là sổ CHUẨN của tháng</b> — tạo ca CRM còn thiếu, đổi người dạy theo sổ (dạy thay), báo cáo ca lấy
+            sĩ số theo sổ và được duyệt tính lương. Bỏ chọn nếu chỉ muốn nhập điểm danh từng em.</span>
+        </label>
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           <input type="file" accept=".xlsx" onChange={(e) => chon(e.target.files?.[0] || null)} />
           {dang === "xem" ? <span style={{ color: color.muted, fontSize: 13 }}>Đang đọc sổ...</span> : null}
@@ -405,6 +415,27 @@ export function SoDiemDanhGoc({ thang, nam, onXong }) {
               align={{ 2: "right", 3: "right", 4: "right" }}
               rows={xem.theo_lop.map((l) => [l.sheet, <b key="l">{l.lop}</b>, l.so_ca, l.so_luot, l.co_mat])}
             />
+            {xem.so_chuan ? (
+              <div style={{ display: "grid", gap: 6 }}>
+                {[["tao_ca", "ca CRM chưa có sẽ được TẠO", (x) => `${x.lop} · ${x.ngay.split("-").reverse().join("/")} · ${x.gv} · ${x.si_so} em`],
+                  ["doi_gv", "ca sẽ ĐỔI người dạy theo sổ", (x) => `${x.lop} · ${x.ngay.split("-").reverse().join("/")} · ${x.tu} → ${x.sang}`],
+                  ["duyet_bao_cao", "báo cáo ca sẽ được cập nhật sĩ số theo sổ + duyệt tính lương",
+                   (x) => `${x.lop} · ${x.ngay.split("-").reverse().join("/")} · ${x.trang_thai_cu} · sĩ số ${x.si_so_cu ?? "—"} → ${x.si_so_moi}`]]
+                  .map(([k, nhan, dong]) => (xem[k]?.length ? (
+                    <div key={k}>
+                      <button type="button" onClick={() => setMoChiTiet((v) => (v === k ? "" : k))}
+                              style={{ border: 0, background: "none", color: color.orange, fontWeight: 700, cursor: "pointer", padding: 0 }}>
+                        {moChiTiet === k ? "▾" : "▸"} {xem[k].length} {nhan}
+                      </button>
+                      {moChiTiet === k ? (
+                        <ul style={{ margin: "6px 0 0", paddingLeft: 18, fontSize: 12.5, display: "grid", gap: 2, maxHeight: 260, overflowY: "auto" }}>
+                          {xem[k].map((x, i) => <li key={i}>{dong(x)}</li>)}
+                        </ul>
+                      ) : null}
+                    </div>
+                  ) : null))}
+              </div>
+            ) : null}
             {xem.canh_bao?.length ? (
               <div>
                 <button type="button" onClick={() => setMoCanhBao((v) => !v)}
@@ -419,7 +450,7 @@ export function SoDiemDanhGoc({ thang, nam, onXong }) {
               </div>
             ) : null}
             <div style={{ display: "flex", gap: 10 }}>
-              <Button disabled={!xem.so_luot || dang === "ghi"} onClick={ghi}>{dang === "ghi" ? "Đang ghi..." : "Ghi vào CRM"}</Button>
+              <Button disabled={(!xem.so_luot && !xem.tao_ca?.length) || dang === "ghi"} onClick={ghi}>{dang === "ghi" ? "Đang ghi..." : "Ghi vào CRM"}</Button>
               <Button variant="ghost" onClick={() => chon(null)}>Huỷ</Button>
             </div>
           </div>

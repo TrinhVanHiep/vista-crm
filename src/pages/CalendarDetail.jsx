@@ -2,7 +2,7 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import AnhMinhChung from "../components/AnhMinhChung";
 import MinhChungLich from "../components/MinhChungLich";
 import { VAI_QUAN_TRI } from "../auth/permissions";
-import { Link, useOutletContext, useSearchParams } from "react-router-dom";
+import { Link, useOutletContext, useSearchParams, useLocation } from "react-router-dom";
 import DiemDanhCa from "../components/reports/DiemDanhCa";
 import NganDoiCa from "../components/NganDoiCa";
 import DuyetKeHoach from "../components/DuyetKeHoach";
@@ -801,7 +801,9 @@ function CalendarDetail() {
   };
   const canReviewLeaveShift = canReviewStaffType("leave") || canReviewStaffType("shift_change");
   const canReviewProposal = canReviewStaffType("proposal");
-  const canCreateTeachingPlan = ["superadmin", "admin", "teacher", "staff"].includes(role);
+  // Cả tầng quản trị (gồm QLCS, QLĐT) — 19/10/2026: thiếu 2 vai quản lý nên form Sửa ca của họ
+  // không tải được lớp / giáo viên (ô chọn rỗng), không đổi được người dạy.
+  const canCreateTeachingPlan = [...VAI_QUAN_TRI, "teacher", "staff"].includes(role);
   // Quản lý cơ sở / đào tạo cũng phải đổi được người dạy ca (15/10/2026) — trước chỉ admin/nhân viên.
   const canSelectTeacherForCreate = [...VAI_QUAN_TRI, "staff"].includes(role);
   const canSubmitTeachingPlan = ["teacher", "staff"].includes(role);
@@ -867,6 +869,8 @@ function CalendarDetail() {
   const [doiCa, setDoiCa] = useState(null);
   // Duyệt kế hoạch việc nhân sự tự đăng (15/10/2026); ?duyet_ke_hoach=1 từ popup mở thẳng.
   const [moDuyetKh, setMoDuyetKh] = useState(() => searchParams.get("duyet_ke_hoach") === "1");
+  const duyetKhTrenLink = searchParams.get("duyet_ke_hoach") === "1";
+  useEffect(() => { if (duyetKhTrenLink) setMoDuyetKh(true); }, [duyetKhTrenLink]);
   const [soKeHoach, setSoKeHoach] = useState(0); // { ca, tenLop } — GV xin đổi ca / nhờ dạy thay
   // Khung lịch phủ kín màn hình — xem được nhiều ca trong tuần mà không cuộn.
   const [toanManHinh, setToanManHinh] = useState(false);
@@ -2426,8 +2430,9 @@ function CalendarDetail() {
       return;
     }
     const sessionDate = createForm.start_at.slice(0, 10);
-    if (sessionDate < todayString) {
-      setCreateError("Chỉ được tạo lịch cho ngày hiện tại hoặc tương lai.");
+    // Quản lý được bổ sung ca đã qua (nhân sự báo thiếu ca) — 19/10/2026; giáo viên thì không.
+    if (sessionDate < todayString && !canManageSessions) {
+      setCreateError("Chỉ được tạo lịch cho ngày hiện tại hoặc tương lai. Ca đã qua bị thiếu thì nhờ quản lý bổ sung.");
       return;
     }
     const [sessionYear, sessionMonth, sessionDay] = sessionDate.split("-").map(Number);
@@ -2568,14 +2573,15 @@ function CalendarDetail() {
   };
 
   // Mở thẳng một đầu mục từ cảnh báo việc cần làm: /calendar-detail?lich=<id>.
-  const lichCanMoRef = useRef(searchParams.get("lich") || "");
+  // Mở đầu mục theo ?lich=… — theo dõi cả khi ĐANG ở sẵn màn này mà bấm link khác (popup việc
+  // cần làm): trước chỉ đọc lúc tải trang nên bấm vào "không có gì xảy ra" (19/10/2026).
+  const lichTrenLink = searchParams.get("lich") || "";
+  const viTri = useLocation();
   useEffect(() => {
-    const id = lichCanMoRef.current;
-    if (!id) return;
-    lichCanMoRef.current = "";
-    getSchedule(id).then(openEditSchedule).catch(() => setScheduleError("Không mở được đầu mục lịch công tác."));
+    if (!lichTrenLink) return;
+    getSchedule(lichTrenLink).then(openEditSchedule).catch(() => setScheduleError("Không mở được đầu mục lịch công tác."));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [lichTrenLink, viTri.key]);
 
   const handleDeleteSchedule = async (raw) => {
     if (!raw?.id) return;
@@ -4818,7 +4824,7 @@ function CalendarDetail() {
                   <input
                     type="datetime-local"
                     value={createForm.start_at}
-                    min={`${todayString}T00:00`}
+                    min={canManageSessions ? undefined : `${todayString}T00:00`}
                     onChange={(event) => {
                       const value = event.target.value;
                       const [year, month, day] = value.slice(0, 10).split("-").map(Number);
@@ -4854,7 +4860,7 @@ function CalendarDetail() {
                   <input
                     type="datetime-local"
                     value={createForm.end_at}
-                    min={`${todayString}T00:00`}
+                    min={canManageSessions ? undefined : `${todayString}T00:00`}
                     onChange={(event) =>
                       setCreateForm((prev) => ({
                         ...prev,

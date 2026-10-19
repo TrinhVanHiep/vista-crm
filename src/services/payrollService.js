@@ -165,12 +165,13 @@ export async function xuatBangLuong({ thang, nam }) {
 }
 
 /** Nhập SỔ ĐIỂM DANH GỐC theo ca (file Excel trung tâm đang dùng). ghi=false: xem trước. */
-export async function nhapSoDiemDanh(tep, { thang, nam, ghi = false }) {
+export async function nhapSoDiemDanh(tep, { thang, nam, ghi = false, soChuan = false }) {
   const fd = new FormData();
   fd.append("file", tep);
   fd.append("month", thang);
   fd.append("year", nam);
   if (ghi) fd.append("ghi", "1");
+  if (soChuan) fd.append("so_chuan", "1");
   const { data } = await apiClient.post("/so-diem-danh/nhap/", fd, { timeout: 180000 });
   return data;
 }

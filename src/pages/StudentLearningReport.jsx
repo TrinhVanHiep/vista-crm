@@ -383,8 +383,11 @@ export default function StudentLearningReport() {
 
   const theoLop = useMemo(() => {
     const nhom = new Map();
+    // Lớp đã giải tán (vd. ST04 -> ST204) không đưa vào so sánh (19/10/2026).
+    const daGiaiTan = new Set(lops.filter((l) => l.status === "dissolved").map((l) => l.id));
     items.forEach((i) => {
       const khoa = i.classroom;
+      if (daGiaiTan.has(khoa)) return;
       if (!nhom.has(khoa)) {
         nhom.set(khoa, { id: khoa, ten: i.classroom_name || "--", ds: [] });
       }
@@ -410,7 +413,7 @@ export default function StudentLearningReport() {
         ).length,
       }))
       .sort((a, b) => (b.diemTB ?? -1) - (a.diemTB ?? -1));
-  }, [items, diemTruocTheoHS]);
+  }, [items, diemTruocTheoHS, lops]);
 
   // Báo cáo tổng theo CHƯƠNG TRÌNH học (Starter, Movers, cấp 2...): ban giám đốc
   // nhìn theo chương trình chứ không theo từng lớp. Cùng các phiếu đang lọc trên
