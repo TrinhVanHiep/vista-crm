@@ -26,11 +26,11 @@ const TRAN_TRU = 15;
 // Thang xếp loại đúng theo hàm xep_loai() ở backend (kpi/serializers.py) —
 // để bảng chú thích không bao giờ nói khác con số phiếu trả về.
 const THANG_XEP_LOAI = [
-  { ten: "Xuất sắc", mo_ta: "91 - 100 điểm", sao: 5, tone: "green" },
-  { ten: "Tốt", mo_ta: "81 - 90 điểm", sao: 4, tone: "blue" },
-  { ten: "Khá", mo_ta: "71 - 80 điểm", sao: 3, tone: "orange" },
-  { ten: "Trung bình", mo_ta: "61 - 70 điểm", sao: 2, tone: "purple" },
-  { ten: "Không đạt", mo_ta: "Dưới 60 điểm", sao: 1, tone: "red" },
+  { ten: "Xuất sắc", mo_ta: "91 - 100 điểm · thưởng 10%", sao: 5, tone: "green" },
+  { ten: "Tốt", mo_ta: "81 - 90 điểm · thưởng 7%", sao: 4, tone: "blue" },
+  { ten: "Khá", mo_ta: "71 - 80 điểm · thưởng 5%", sao: 3, tone: "orange" },
+  { ten: "Trung bình", mo_ta: "61 - 70 điểm · không thưởng", sao: 2, tone: "purple" },
+  { ten: "Không đạt", mo_ta: "Dưới 60 điểm · không thưởng", sao: 1, tone: "red" },
 ];
 
 // Ba ô ký khớp đúng MonthlyKpiReport.STAGES. Ban giám đốc chốt XẾP LOẠI chứ

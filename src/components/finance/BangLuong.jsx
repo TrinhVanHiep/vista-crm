@@ -333,7 +333,7 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
     {
       ma: "dieuchinh", ten: "Thi đua & điều chỉnh",
       tt: ["info", `${kpiDuyet}/${ds.length} phiếu thi đua đã duyệt`],
-      can: ["Duyệt phiếu thi đua tháng (đạt ngưỡng thì thưởng 10%).",
+      can: ["Duyệt phiếu thi đua tháng — thưởng theo xếp loại: Xuất sắc 10%, Tốt 7%, Khá 5%, dưới Khá 0%.",
             "Nếu có: thưởng sale, thuế TNCN, phạt, BHXH khác mức — bấm \"Chỉnh\" ở dòng của người đó trong bảng lương."],
     },
     {
