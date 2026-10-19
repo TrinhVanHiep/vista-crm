@@ -1,5 +1,6 @@
 import XacNhanLuongTongHop from "./XacNhanLuongTongHop";
 import DoiChieuChot from "./DoiChieuChot";
+import SuaLuongChot from "./SuaLuongChot";
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { dinhDangTien, loiApi, rutGonM } from "../../services/financeService";
@@ -153,6 +154,8 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
   const [dangTai, setDangTai] = useState(true);
   const [loi, setLoi] = useState("");
   const [dangChinh, setDangChinh] = useState(null);
+  // Sửa tay / thêm dòng lương từng người (19/10/2026): { teacher_id?, id?, ten } — rỗng = thêm mới.
+  const [suaTay, setSuaTay] = useState(null);
   const [cauHinh, setCauHinh] = useState(undefined); // undefined = đóng, null = thêm mới, id = sửa
   const [gvMinhHoa, setGvMinhHoa] = useState("");
   const [thamSo, setThamSo] = useSearchParams();
@@ -249,7 +252,7 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
           {x.position_label || LOAI[x.employment_type] || x.employment_type}
         </div>
         {x.chot && !x.chot.khong_co_trong_file
-          ? phu(`ĐÃ CHỐT · ${x.chot.so_buoi || 0} buổi${x.chot.ghi_chu ? ` · ${x.chot.ghi_chu}` : ""}`)
+          ? phu(`${x.chot.nhap_tay ? "SỬA TAY" : "ĐÃ CHỐT"} · ${x.chot.so_buoi || 0} buổi${x.chot.ghi_chu ? ` · ${x.chot.ghi_chu.split("\n").pop()}` : ""}`)
           : x.chot?.khong_co_trong_file
             ? <div style={{ fontSize: 11.5, color: color.red, marginTop: 2 }}>Không có trong bảng chốt — số tạm tính</div>
             : phu(`${cc.attendance_days || 0} công · ${soCa} ca dạy${Number(cc.pending_file_days) ? ` · ${cc.pending_file_days} ngày chờ duyệt` : ""}`)}
@@ -279,7 +282,13 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
       </div>,
       <div key="tax">{am(c.tax_deduction)}</div>,
       <div key="kt" title={c.penalty_note || ""}>{am(khauTru)}</div>,
-      x.teacher_id ? <Button key="c" variant="ghost" onClick={() => moNguoi(x.teacher_id)}>Xem →</Button> : <span key="c" />,
+      <div key="c" style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+        {coTheGhi && (x.teacher_id || x.chot?.id) ? (
+          <Button variant="ghost" title="Sửa tay số lương người này"
+                  onClick={() => setSuaTay({ teacher_id: x.teacher_id, id: x.chot?.id, ten: x.teacher_name, ghi_chu: "" })}>✎ Sửa</Button>
+        ) : null}
+        {x.teacher_id ? <Button variant="ghost" onClick={() => moNguoi(x.teacher_id)}>Xem →</Button> : null}
+      </div>,
     ];
   });
 
@@ -290,7 +299,7 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
   const chuaCong = fullTime.filter((x) => !Number(x.attendance?.attendance_days)).length;
   const soCa = ds.reduce((n, x) => n + (x.classrooms || []).reduce((m, l) => m + (l.session_attendance || []).length, 0), 0);
   const lopThieuGia = (donGia || []).filter((l) => !Number(l.manual_rate ?? l.default_rate)).length;
-  const daChot = ds.some((x) => x.chot && !x.chot.khong_co_trong_file);
+  const daChot = ds.some((x) => x.chot && !x.chot.khong_co_trong_file && !x.chot.nhap_tay);
   const kpiDuyet = ds.filter((x) => x.salary_components?.kpi_status === "approved").length;
   const BUOC = [
     {
@@ -343,6 +352,10 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
           onDong={() => setCauHinh(undefined)}
           onDaLuu={(tb) => { setCauHinh(undefined); lamMoi(tb); }}
         />
+      ) : null}
+      {suaTay ? (
+        <SuaLuongChot nguoi={suaTay} thang={thang} nam={nam} onDong={() => setSuaTay(null)}
+                      onXong={(tb) => { setSuaTay(null); lamMoi(tb); }} />
       ) : null}
       {dangChinh ? (
         <HopDieuChinhThang
@@ -558,8 +571,11 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
           ) : (
             [["Khối giáo viên", khoiGv, tongGv], ["Khối quản lý & văn phòng", khoiQl, tongQl]].map(([ten, list, t]) => (list.length ? (
               <div key={ten} style={{ marginTop: 10 }}>
-                <div style={{ padding: "6px 22px", fontWeight: 800, display: "flex", gap: 10 }}>
+                <div style={{ padding: "6px 22px", fontWeight: 800, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
                   {ten} <span style={{ fontWeight: 500, color: color.muted }}>{list.length} người · thực nhận {tien(t.thucNhan)}</span>
+                  {coTheGhi && ten === "Khối quản lý & văn phòng" ? (
+                    <Button variant="ghost" style={{ marginLeft: "auto" }} onClick={() => setSuaTay({ ten: "" })}>+ Thêm dòng lương</Button>
+                  ) : null}
                 </div>
                 <Table
                   columns={[

@@ -561,5 +561,19 @@
  "Phản hồi cho nhân sự — đã đối soát những gì (nhân sự sẽ đọc)": "Reply to staff — what was reconciled (staff will read this)",
  "Để trống thì gửi lý do sửa. Các khoản thay đổi (cũ → mới) tự kèm theo.": "Leave empty to send the reason. Changed items (old → new) are attached automatically.",
  "Đã nhập sổ chuẩn lúc {0}": "Standard book imported at {0}",
- "Kế toán đã đối soát lương T{0} — vui lòng xác nhận lại": "Accounting reconciled your {0} salary — please re-confirm"
+ "Kế toán đã đối soát lương T{0} — vui lòng xác nhận lại": "Accounting reconciled your {0} salary — please re-confirm",
+ "✎ Sửa": "✎ Edit",
+ "+ Thêm dòng lương": "+ Add pay row",
+ "Thêm dòng lương T{0}": "Add pay row {0}",
+ "Sửa lương T{0} — {1}": "Edit pay {0} — {1}",
+ "Người chưa có trong bảng lương (vd. hỗ trợ cơ sở ngoài CRM) — nhập thẳng các khoản.": "Person not in payroll yet (e.g. outside staff) — enter items directly.",
+ "Chưa có số sửa tay — đang hiện số TẠM TÍNH để sửa. Lưu xong, người này dùng số bạn nhập; người khác vẫn tạm tính.": "No manual figures yet — showing the ESTIMATE to edit. After saving, this person uses your figures; others stay estimated.",
+ "Sửa trực tiếp số lương của người này. Nếu họ đã trả lời phiếu lương, họ sẽ nhận phản hồi và được hỏi xác nhận lại.": "Edit this person's pay directly. If they already answered their payslip, they get your reply and are asked to re-confirm.",
+ "Bỏ sửa tay": "Remove manual edit",
+ "Bỏ số sửa tay — người này quay về số lương tạm tính?": "Remove manual figures — return this person to the estimate?",
+ "Họ tên (bắt buộc)": "Full name (required)",
+ "Số buổi / ca": "Sessions",
+ "Nhập họ tên người được trả lương.": "Enter the payee's full name.",
+ "Đã lưu lương T{0} của {1}: thực nhận {2} đ.": "Saved {0} pay for {1}: net {2} VND.",
+ "Sửa tay số lương người này": "Edit this person's pay manually"
 }

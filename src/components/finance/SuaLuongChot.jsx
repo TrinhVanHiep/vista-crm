@@ -8,13 +8,16 @@ import { color } from "./v3/theme";
  * tính lại khi sửa đơn giá / điểm danh — phản hồi "tính sai" phải sửa thẳng số chốt ở đây.
  * Lưu xong: gross, thực nhận tự tính lại; người đó nhận thông báo và được hỏi xác nhận lại.
  */
-const KHOAN = [["luong_nen", "Lương cơ bản"], ["luong_day", "Lương dạy"], ["truc_demo", "Trực / demo"],
+const KHOAN = [["so_buoi", "Số buổi / ca"], ["luong_nen", "Lương cơ bản"], ["luong_day", "Lương dạy"], ["truc_demo", "Trực / demo"],
   ["phu_cap_khac", "Phụ cấp khác"], ["bh_nld", "BHXH người lao động"], ["khau_tru", "Khấu trừ cơ chế"],
   ["tam_ung", "Tạm ứng"], ["bh_dn", "BHXH doanh nghiệp (không trừ vào lương)"]];
 const tien = (v) => Number(v || 0).toLocaleString("vi-VN");
 const so = (s) => Number(String(s ?? "").replace(/[^0-9]/g, "")) || 0;
 
+// nguoi: { teacher_id?, id? (dòng lương), ten, ghi_chu } — không có teacher_id lẫn id = THÊM dòng mới.
 export default function SuaLuongChot({ nguoi, thang, nam, onDong, onXong }) {
+  const them = !nguoi.teacher_id && !nguoi.id;
+  const [ten, setTen] = useState(nguoi.ten || "");
   const [f, setF] = useState(null);
   const [lyDo, setLyDo] = useState(nguoi.ghi_chu ? `Theo phản hồi: ${nguoi.ghi_chu}` : "");
   const [phanHoi, setPhanHoi] = useState("");
@@ -22,10 +25,13 @@ export default function SuaLuongChot({ nguoi, thang, nam, onDong, onXong }) {
   const [dang, setDang] = useState(false);
 
   useEffect(() => {
-    apiClient.get("/payroll/luong-chot/sua/", { params: { teacher: nguoi.teacher_id, month: thang, year: nam } })
+    const params = { month: thang, year: nam };
+    if (nguoi.id) params.id = nguoi.id;
+    else if (nguoi.teacher_id) params.teacher = nguoi.teacher_id;
+    apiClient.get("/payroll/luong-chot/sua/", { params, timeout: 60000 })
       .then(({ data }) => setF(data))
-      .catch((e) => setLoi(e?.response?.data?.detail || "Không tải được lương chốt."));
-  }, [nguoi.teacher_id, thang, nam]);
+      .catch((e) => setLoi(e?.response?.data?.detail || "Không tải được lương."));
+  }, [nguoi.id, nguoi.teacher_id, thang, nam]);
 
   const gross = f ? so(f.luong_nen) + so(f.luong_day) + so(f.truc_demo) + so(f.phu_cap_khac) : 0;
   const thucNhan = f ? gross - so(f.bh_nld) - so(f.khau_tru) - so(f.tam_ung) : 0;
@@ -33,12 +39,16 @@ export default function SuaLuongChot({ nguoi, thang, nam, onDong, onXong }) {
   const luu = async () => {
     setLoi("");
     if (!lyDo.trim()) { setLoi("Ghi lý do sửa."); return; }
+    if (them && !ten.trim()) { setLoi("Nhập họ tên người được trả lương."); return; }
     setDang(true);
     try {
-      const body = { teacher: nguoi.teacher_id, month: thang, year: nam, ly_do: lyDo.trim(), phan_hoi: phanHoi.trim() };
+      const body = { month: thang, year: nam, ly_do: lyDo.trim(), phan_hoi: phanHoi.trim() };
+      if (f?.id || nguoi.id) body.id = f?.id || nguoi.id;
+      else if (nguoi.teacher_id) body.teacher = nguoi.teacher_id;
+      else body.ho_ten = ten.trim();
       KHOAN.forEach(([k]) => { body[k] = so(f[k]); });
       const { data } = await apiClient.post("/payroll/luong-chot/sua/", body);
-      onXong?.(`Đã sửa lương T${thang}/${nam} của ${nguoi.ten}: thực nhận ${tien(data.thuc_nhan)} đ. Đã báo nhân sự xác nhận lại.`);
+      onXong?.(`Đã lưu lương T${thang}/${nam} của ${them ? ten : nguoi.ten}: thực nhận ${tien(data.thuc_nhan)} đ.`);
     } catch (e) {
       const d = e?.response?.data || {};
       setLoi(d.ly_do || d.detail || Object.values(d).flat()[0] || "Không lưu được.");
@@ -48,10 +58,23 @@ export default function SuaLuongChot({ nguoi, thang, nam, onDong, onXong }) {
   };
 
   return (
-    <Modal title={`Sửa lương chốt T${thang}/${nam} — ${nguoi.ten}`}
-           sub="Tháng đã chốt nên bảng lương không tự tính lại — sửa trực tiếp số chốt, người đó sẽ được hỏi xác nhận lại."
+    <Modal title={them ? `Thêm dòng lương T${thang}/${nam}` : `Sửa lương T${thang}/${nam} — ${nguoi.ten}`}
+           sub={them ? "Người chưa có trong bảng lương (vd. hỗ trợ cơ sở ngoài CRM) — nhập thẳng các khoản."
+             : f?.moi ? "Chưa có số sửa tay — đang hiện số TẠM TÍNH để sửa. Lưu xong, người này dùng số bạn nhập; người khác vẫn tạm tính."
+               : "Sửa trực tiếp số lương của người này. Nếu họ đã trả lời phiếu lương, họ sẽ nhận phản hồi và được hỏi xác nhận lại."}
            width={620} onClose={onDong}
-           footer={<><Button variant="ghost" onClick={onDong}>Huỷ</Button><Button onClick={luu} disabled={dang || !f}>{dang ? "Đang lưu…" : "Lưu & báo nhân sự"}</Button></>}>
+           footer={<>
+             {f?.nhap_tay && f?.id ? (
+               <Button variant="ghost" style={{ marginRight: "auto", color: color.red }} disabled={dang}
+                       onClick={async () => {
+                         if (!window.confirm("Bỏ số sửa tay — người này quay về số lương tạm tính?")) return;
+                         await apiClient.delete(`/payroll/luong-chot/sua/?id=${f.id}`);
+                         onXong?.(`Đã bỏ số sửa tay của ${nguoi.ten} — quay về số tạm tính.`);
+                       }}>Bỏ sửa tay</Button>
+             ) : null}
+             <Button variant="ghost" onClick={onDong}>Huỷ</Button>
+             <Button onClick={luu} disabled={dang || !f}>{dang ? "Đang lưu…" : "Lưu"}</Button>
+           </>}>
       {loi ? <div style={{ color: color.red, fontSize: 13, marginBottom: 10 }}>{loi}</div> : null}
       {nguoi.ghi_chu ? (
         <div style={{ background: color.redSoft, color: color.red, borderRadius: 8, padding: "8px 12px", fontSize: 13, marginBottom: 12 }}>
@@ -60,6 +83,11 @@ export default function SuaLuongChot({ nguoi, thang, nam, onDong, onXong }) {
       ) : null}
       {!f ? <div style={{ color: color.muted }}>Đang tải…</div> : (
         <div style={{ display: "grid", gap: 12 }}>
+          {them ? (
+            <Field label="Họ tên (bắt buộc)">
+              <Input value={ten} onChange={(e) => setTen(e.target.value)} placeholder="VD: Bà Lĩnh — hỗ trợ cơ sở" />
+            </Field>
+          ) : null}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 10 }}>
             {KHOAN.map(([k, nhan]) => (
               <Field key={k} label={nhan}>
