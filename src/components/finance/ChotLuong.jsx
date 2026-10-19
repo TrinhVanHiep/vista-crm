@@ -59,8 +59,12 @@ export default function ChotLuong({ thang, nam, ds, coTheGhi, onXong }) {
   };
   const bo = async () => {
     // eslint-disable-next-line no-alert
-    if (!window.confirm(`Bỏ chốt lương tháng ${thang}/${nam}? Bảng lương quay về số tạm tính.`)) return;
-    await boLuongChot({ thang, nam });
+    const go = window.prompt(
+      `BỎ CHỐT lương tháng ${thang}/${nam}: XOÁ toàn bộ số chốt (lương cố định, BHXH, trực, người ngoài CRM…), `
+      + `bảng lương quay về số tạm tính. Muốn sửa 1 người thì dùng nút ✎ Sửa ở dòng người đó.\n\n`
+      + `Gõ đúng: BO CHOT ${thang}/${nam}`);
+    if (!go) return;
+    await boLuongChot({ thang, nam, xacNhan: go });
     await tai();
     onXong?.(`Đã bỏ chốt lương tháng ${thang}/${nam}.`);
   };

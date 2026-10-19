@@ -201,7 +201,7 @@ export async function nhapLuongChot(tep, { thang, nam, ghi = false, gan = {} }) 
   return data;
 }
 
-export async function boLuongChot({ thang, nam }) {
-  const { data } = await apiClient.delete("/payroll/luong-chot/", { params: { month: thang, year: nam } });
+export async function boLuongChot({ thang, nam, xacNhan }) {
+  const { data } = await apiClient.delete("/payroll/luong-chot/", { params: { month: thang, year: nam, xac_nhan: xacNhan } });
   return data;
 }
