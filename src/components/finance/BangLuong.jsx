@@ -100,7 +100,7 @@ function NhapChamCong({ thang, nam, onDaGhi }) {
     <Card>
       <CardHead
         title="Nhập file chấm công"
-        sub={`Bổ sung công tháng ${String(thang).padStart(2, "0")}/${nam} cho ngày máy chấm công lỗi / mất điện và ca trực: X = đi làm, T = ca trực, trống = không bổ sung. File phải được quản lý hoặc super admin duyệt mới tính.`}
+        sub={`Công và ca trực tháng ${String(thang).padStart(2, "0")}/${nam} theo file: X = đi làm, T = ca trực (tính cả công), trống = nghỉ. File được quản lý / super admin duyệt mới tính. Nhập file xong mới sửa tay từng người ở “Nhập lương tháng” — nhập file lại sẽ bỏ số sửa tay cũ.`}
       />
       <div style={{ padding: "14px 22px 20px", display: "grid", gap: 12 }}>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
@@ -126,8 +126,13 @@ function NhapChamCong({ thang, nam, onDaGhi }) {
             </div>
             {xem.rows?.length ? (
               <Table
-                columns={["Nhân sự", "Số công", "Trực T2–T6", "Trực T7", "Trực CN"]}
-                rows={xem.rows.map((r) => [r.ten, r.so_cong, r.truc_t2_t6, r.truc_t7, r.truc_cn])}
+                columns={["Nhân sự", "Số công", "Trực T2–T6", "Trực T7", "Trực CN", "Số sửa tay đang có"]}
+                rows={xem.rows.map((r) => [r.ten, r.so_cong, r.truc_t2_t6, r.truc_t7, r.truc_cn,
+                  r.tay_cu && Object.keys(r.tay_cu).length
+                    ? <span key="t" style={{ color: "#B7791F", fontSize: 12.5 }}>
+                        {[r.tay_cu.so_cong != null ? `${r.tay_cu.so_cong} công` : "", r.tay_cu.ca_truc ? `trực ${r.tay_cu.ca_truc.join("/")}` : ""].filter(Boolean).join(" · ")} — sẽ bỏ, dùng số file
+                      </span>
+                    : "—"])}
                 align={{ 1: "right", 2: "right", 3: "right", 4: "right" }}
               />
             ) : null}
