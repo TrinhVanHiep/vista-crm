@@ -239,7 +239,12 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
     const c = x.salary_components || {};
     const cc = x.attendance || {};
     const dieuChinh = Number(c.manual_adjustment || 0) + Number(c.other_adjustment || 0);
-    const troCap = Number(c.allowance || 0) + Number(c.duty_salary || 0) + Number(c.student_management_pay || 0) + Math.max(dieuChinh, 0);
+    // Ca trực tách cột riêng trên màn (20/10/2026: chủ TT không thấy ca trực của quản lý); file Excel /
+    // phiếu lương vẫn gộp trực vào "Trợ cấp" theo mẫu giấy (payroll/phieu_luong.py dong_phieu).
+    const troCap = Number(c.allowance || 0) + Number(c.student_management_pay || 0) + Math.max(dieuChinh, 0);
+    const truc = [cc.duty_weekday_count || 0, cc.duty_saturday_count || 0, cc.duty_sunday_count || 0];
+    const canTruc = !["part_time", "foreign"].includes(x.employment_type) && x.position !== "director";
+    const trucTay = Array.isArray(x.nhap_tay?.ca_truc);
     const thuong = Number(c.sale_commission || 0) + Number(c.monthly_bonus || 0);
     const khauTru = Number(c.penalty || 0) + Math.max(-dieuChinh, 0);
     const soCa = (x.classrooms || []).reduce((n, l) => n + (l.session_attendance || []).length, 0);
@@ -271,6 +276,14 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
           ? phu(`${x.teaching_summary?.approved_sessions_count || 0} ca × ${tien(c.rate_per_session)}`)
           : Number(c.teaching_salary) > 0 ? phu(`${soCa} ca · ${c.share_percent || 0}%`) : null}
       </div>,
+      <div key="tr">
+        <Num>{tien(c.duty_salary)}</Num>
+        {truc.some(Boolean)
+          ? phu(`T2–T6 ${truc[0]} · T7 ${truc[1]} · CN ${truc[2]}${trucTay ? " · nhập tay" : ""}`)
+          : canTruc && !x.chot
+            ? <div style={{ fontSize: 11.5, color: trucTay ? color.faint : "#B7791F", marginTop: 2 }}>{trucTay ? "0 ca (nhập tay)" : "chưa có ca trực"}</div>
+            : null}
+      </div>,
       <div key="th" title={c.kpi_bonus_reason || ""}>
         <Num>{tien(thuong)}</Num>
         {phu([Number(c.sale_commission) ? `Sale ${rutGonM(c.sale_commission)}` : "",
@@ -280,7 +293,7 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
       <div key="bh">{am(c.insurance_deduction)}{c.insurance_overridden ? phu("chỉnh tay") : null}</div>,
       <div key="tc">
         <Num>{tien(troCap)}</Num>
-        {phu([Number(c.allowance) ? `Phụ cấp ${rutGonM(c.allowance)}` : "", Number(c.duty_salary) ? `Trực ${rutGonM(c.duty_salary)}` : "",
+        {phu([Number(c.allowance) ? `Phụ cấp ${rutGonM(c.allowance)}` : "",
               Number(c.student_management_pay) ? `QLHS ${rutGonM(c.student_management_pay)}` : ""].filter(Boolean).join(" · "))}
       </div>,
       <div key="tax">{am(c.tax_deduction)}</div>,
@@ -591,11 +604,11 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
                 </div>
                 <Table
                   columns={[
-                    "Nhân sự", "Lương thực nhận", "Lương cơ bản", "Lương dạy", "Thưởng sale",
+                    "Nhân sự", "Lương thực nhận", "Lương cơ bản", "Lương dạy", "Ca trực", "Thưởng sale",
                     "BHXH", "Trợ cấp", "Thuế TNCN", "Khấu trừ", "",
                   ]}
                   rows={dongCua(list)}
-                  align={{ 1: "right", 2: "right", 3: "right", 4: "right", 5: "right", 6: "right", 7: "right", 8: "right" }}
+                  align={{ 1: "right", 2: "right", 3: "right", 4: "right", 5: "right", 6: "right", 7: "right", 8: "right", 9: "right" }}
                 />
               </div>
             ) : null))
@@ -607,8 +620,9 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
             <b>Công đang tính THEO FILE chấm công đã duyệt (máy chấm công tạm tắt). </b>
           ) : null}
           Lương cơ bản = lương × công ÷ 25 (đủ 25 công = trọn lương; quản lý đào tạo tính ít nhất 15 công). Lương dạy
-          = đơn giá lớp × lượt học sinh của ca đã duyệt × % chia. Thưởng thi đua = 10% tổng lương khi phiếu thi đua đã
-          duyệt và đạt ngưỡng điểm.
+          = đơn giá lớp × lượt học sinh của ca đã duyệt × % chia. Ca trực = T2–T6 × 50.000 + cả ngày T7 × 150.000 + cả ngày
+          CN × 200.000 (file chấm công ô “T”, hoặc quản lý nhập ở “Nhập lương tháng”). Thưởng thi đua theo xếp loại phiếu đã
+          duyệt: Xuất sắc 10%, Tốt 7%, Khá 5%. File Excel và phiếu lương gộp ca trực vào cột “Trợ cấp” theo mẫu giấy.
         </details>
       </Card>
 
