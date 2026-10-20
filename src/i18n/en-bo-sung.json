@@ -640,6 +640,8 @@
  "Đủ số liệu": "Complete",
  "Đủ đầu vào": "All inputs ready",
  "Đủ đầu vào thì bấm “Chốt lương từ đầu vào” — số hệ thống tính thành số chính thức, không cần file đối soát đầu ra.": "When inputs are complete, click “Finalize payroll from inputs” — system figures become official, no output reconciliation file needed.",
+ "đã trừ {0}": "deducted {0}",
+ "đã trừ {0} ({1})": "deducted {0} ({1})",
  "đơn": "requests",
  "Ưu tiên": "Priority",
  "Ảnh chân dung rõ mặt, tối đa 5MB.": "Clear face photo, max 5MB.",

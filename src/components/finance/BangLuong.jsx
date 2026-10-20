@@ -275,7 +275,14 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
             ? <div style={{ fontSize: 11.5, color: color.red, marginTop: 2 }}>Không có trong bảng chốt — số tạm tính</div>
             : phu(`${cc.attendance_days || 0} công · ${soCa} ca dạy${Number(cc.pending_file_days) ? ` · ${cc.pending_file_days} ngày chờ duyệt` : ""}`)}
       </div>,
-      <Num key="n" bold>{tien(c.net_salary)}</Num>,
+      <div key="n" title={c.penalty_note || ""}>
+        <Num bold>{tien(c.net_salary)}</Num>
+        {/* Khấu trừ nằm cột cuối, màn hẹp phải cuộn mới thấy -> ghi luôn dưới thực nhận (20/10/2026:
+            "lệch số, có trừ 10% không mà không hiện"). */}
+        {khauTru > 0 ? <div style={{ fontSize: 11.5, color: color.red, marginTop: 2 }}>
+          đã trừ {tien(khauTru)}{c.penalty_note ? ` (${c.penalty_note.replace(/^Khấu trừ\s*/i, "")})` : ""}
+        </div> : null}
+      </div>,
       <div key="cb">
         <Num>{tien(c.prorated_base_salary)}</Num>
         {Number(c.base_salary) > 0 ? phu(`${cc.payable_workdays ?? cc.attendance_days ?? 0}/${cc.base_salary_standard_days || 25} công × ${rutGonM(c.base_salary)}`) : null}
