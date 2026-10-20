@@ -85,7 +85,7 @@ export default function CanhBaoViecGap({ userId }) {
 
   const nutGoc = !mo && !coY && viec.length > 0 ? (
     <button type="button" onClick={() => setMo(true)}
-            style={{ position: "fixed", left: 16, bottom: "calc(16px + env(safe-area-inset-bottom, 0px))", zIndex: 1500,
+            style={{ position: "fixed", right: 16, bottom: "calc(16px + env(safe-area-inset-bottom, 0px))", zIndex: 1500,
                      border: 0, borderRadius: 999, padding: "9px 14px", background: "#C0392B", color: "#fff", fontWeight: 700,
                      fontSize: 13, boxShadow: "0 6px 18px rgba(0,0,0,.18)", cursor: "pointer" }}>
       ⚠ {viec.length} việc cần hoàn thành{tongLoi ? ` · ${tongLoi} lỗi` : ""}

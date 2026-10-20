@@ -33,13 +33,23 @@ export default function BangCaDayLuong({ teacherId, thang, nam, lyDo, phanHoi, o
   const tienCa = (donGia, siSo, tinh, tl) => (!tinh ? 0 : d.nuoc_ngoai ? d.gia_ca : (donGia * siSo * tl) / 100);
   // Ô trống ở học phí / % = quay về mặc định (lớp / nhân sự).
   const giaTri = (s, k, cu, macDinh) => (s[k] === undefined ? cu : s[k] === null || s[k] === "" ? macDinh : Number(s[k]));
+  // GV nước ngoài: hai ca cùng giờ chỉ trả 1 ca — tính y như máy chủ (ca đầu của khung giờ), để tổng
+  // trên màn khớp số sẽ lưu (20/10/2026: màn hiện 14.175.000 nhưng lưu ra 13.650.000).
+  const khungDaTra = new Set();
+  const lopTheoKhung = {};
+  d.ca.forEach((c) => { (lopTheoKhung[`${c.ngay} ${c.gio}`] ||= []).push(c); });
   const dong = d.ca.map((c) => {
     const s = sua[c.session] || {};
     const siSo = s.si_so ?? c.si_so;
     const tinh = s.tinh ?? c.tinh;
     const gia = giaTri(s, "don_gia", c.don_gia, c.don_gia_mac_dinh);
     const tl = giaTri(s, "ty_le", c.ty_le, c.ty_le_mac_dinh);
-    return { ...c, siSo, tinhMoi: tinh, gia, tl, tienMoi: tienCa(gia, Number(siSo) || 0, tinh, tl), doi: Object.keys(s).length > 0 };
+    const khung = `${c.ngay} ${c.gio}`;
+    const trungDaTra = d.nuoc_ngoai && tinh && khungDaTra.has(khung);
+    if (d.nuoc_ngoai && tinh) khungDaTra.add(khung);
+    const trungGio = (lopTheoKhung[khung] || []).filter((x) => x.session !== c.session).map((x) => x.lop);
+    return { ...c, siSo, tinhMoi: tinh, gia, tl, trungDaTra, trungGio,
+             tienMoi: trungDaTra ? 0 : tienCa(gia, Number(siSo) || 0, tinh, tl), doi: Object.keys(s).length > 0 };
   });
   const giaLop = Object.fromEntries(d.ca.map((c) => [c.classroom, c.don_gia_mac_dinh]));
   const tongMoi = dong.reduce((t, c) => t + c.tienMoi, 0)
@@ -120,10 +130,10 @@ export default function BangCaDayLuong({ teacherId, thang, nam, lyDo, phanHoi, o
                 <td style={{ padding: 6 }}>{ngayVN(c.ngay)} {c.gio}</td>
                 <td style={{ padding: 6 }}>
                   {c.lop}{c.bo_sung ? <span style={{ color: color.orange }}> · bổ sung</span> : null}
-                  {c.trung_gio?.length ? (
+                  {c.trungGio.length ? (
                     <div style={{ fontSize: 11.5, color: color.red }}
                          title="Một người không dạy hai lớp cùng lúc — kiểm lại ca nào thật sự dạy.">
-                      ⚠ Trùng giờ với {c.trung_gio.join(", ")}{c.khong_tinh_vi_trung ? " — đã tính 1 ca" : ""}
+                      ⚠ Trùng giờ với {c.trungGio.join(", ")}{c.trungDaTra ? " — đã tính 1 ca ở lớp kia" : ""}
                     </div>
                   ) : null}
                 </td>

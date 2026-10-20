@@ -264,8 +264,13 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
         <div style={{ fontSize: 12, color: color.muted, marginTop: 2 }}>
           {x.position_label || LOAI[x.employment_type] || x.employment_type}
         </div>
+        {/* Chỉ gắn nhãn Sửa tay / Đã chốt — nhật ký sửa (ai, lúc nào, khoản nào) để ở tooltip và trong hộp
+            ✎ Sửa, không in dưới tên cho đỡ rối (chủ TT 20/10/2026). */}
         {x.chot && !x.chot.khong_co_trong_file
-          ? phu(`${x.chot.nhap_tay ? "SỬA TAY" : "ĐÃ CHỐT"} · ${x.chot.so_buoi || 0} buổi${x.chot.ghi_chu ? ` · ${x.chot.ghi_chu.split("\n").pop()}` : ""}`)
+          ? <div style={{ fontSize: 11.5, marginTop: 2, color: color.faint }} title={x.chot.ghi_chu || ""}>
+              <span style={{ fontWeight: 700, color: x.chot.nhap_tay ? "#B7791F" : color.green }}>{x.chot.nhap_tay ? "Sửa tay" : "Đã chốt"}</span>
+              {` · ${x.chot.so_buoi || 0} buổi`}
+            </div>
           : x.chot?.khong_co_trong_file
             ? <div style={{ fontSize: 11.5, color: color.red, marginTop: 2 }}>Không có trong bảng chốt — số tạm tính</div>
             : phu(`${cc.attendance_days || 0} công · ${soCa} ca dạy${Number(cc.pending_file_days) ? ` · ${cc.pending_file_days} ngày chờ duyệt` : ""}`)}
