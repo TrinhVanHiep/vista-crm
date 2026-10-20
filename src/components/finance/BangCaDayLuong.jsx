@@ -63,9 +63,23 @@ export default function BangCaDayLuong({ teacherId, thang, nam, lyDo, phanHoi, o
         })),
         them: them.map((x) => ({ ...x, don_gia: x.don_gia === "" ? null : x.don_gia, ty_le: x.ty_le === "" ? null : x.ty_le })),
       };
-      const { data } = await apiClient.post("/payroll/luong-chot/ca-day/", body);
-      setTaiLai((v) => v + 1);
-      onDaLuu?.(data);
+      // Ca bổ sung trùng ca đang ghi cho người KHÁC (20/10/2026) -> hỏi chuyển ca, không tạo ca trùng.
+      const tenLop = Object.fromEntries(d.lop_chon.map((l) => [l.id, l.name]));
+      for (let lan = 0; lan <= body.them.length; lan += 1) {
+        try {
+          const { data } = await apiClient.post("/payroll/luong-chot/ca-day/", body);
+          setTaiLai((v) => v + 1);
+          onDaLuu?.(data);
+          return;
+        } catch (e) {
+          const cc = e?.response?.status === 409 ? e.response.data?.can_chuyen : null;
+          if (!cc) throw e;
+          const ok = window.confirm(`Lớp ${cc.lop} ngày ${ngayVN(cc.ngay)} ${cc.gio} đang ghi cho ${cc.gv}.\n`
+            + "Chuyển ca này sang người đang sửa? Lương dạy của người kia được tính lại và họ nhận thông báo.");
+          if (!ok) { setLoi(`Chưa lưu: ca ${ngayVN(cc.ngay)} lớp ${cc.lop} đang là của ${cc.gv}.`); return; }
+          body.them = body.them.map((x) => (x.ngay === cc.ngay && tenLop[x.classroom] === cc.lop ? { ...x, chuyen: true } : x));
+        }
+      }
     } catch (e) {
       const x = e?.response?.data || {};
       setLoi(x.ly_do || x.detail || x.them || Object.values(x).flat()[0] || "Không lưu được.");
@@ -104,7 +118,15 @@ export default function BangCaDayLuong({ teacherId, thang, nam, lyDo, phanHoi, o
                          title={c.tinh ? "" : `Chưa tính lương (báo cáo: ${c.bao_cao || "chưa có"})`} />
                 </td>
                 <td style={{ padding: 6 }}>{ngayVN(c.ngay)} {c.gio}</td>
-                <td style={{ padding: 6 }}>{c.lop}{c.bo_sung ? <span style={{ color: color.orange }}> · bổ sung</span> : null}</td>
+                <td style={{ padding: 6 }}>
+                  {c.lop}{c.bo_sung ? <span style={{ color: color.orange }}> · bổ sung</span> : null}
+                  {c.trung_gio?.length ? (
+                    <div style={{ fontSize: 11.5, color: color.red }}
+                         title="Một người không dạy hai lớp cùng lúc — kiểm lại ca nào thật sự dạy.">
+                      ⚠ Trùng giờ với {c.trung_gio.join(", ")}{c.khong_tinh_vi_trung ? " — đã tính 1 ca" : ""}
+                    </div>
+                  ) : null}
+                </td>
                 <td style={{ padding: 6 }}>
                   <input value={c.siSo} style={{ ...o, width: 52, textAlign: "right" }} title={`Nguồn: ${c.nguon_nhan}`}
                          onChange={(e) => datSua(c.session, "si_so", e.target.value.replace(/[^0-9]/g, ""))} />

@@ -729,6 +729,12 @@ export async function baoCaoTienDoLich(id, { tienDo, noiDung }) {
   return data;
 }
 
+// Quản lý miễn lỗi nhiệm vụ của một đầu mục (20/10/2026); việc chưa xong phải kèm hạn mới.
+export async function mienLoiLich(id, { lyDo, hanMoi }) {
+  const { data } = await apiClient.post(`/schedules/schedules/${id}/mien-loi/`, { ly_do: lyDo, han_moi: hanMoi || undefined });
+  return data;
+}
+
 export async function duyetLich(id, { ketQua, lyDo }) {
   const { data } = await apiClient.post(`/schedules/schedules/${id}/duyet/`, { ket_qua: ketQua, ly_do: lyDo });
   return data;

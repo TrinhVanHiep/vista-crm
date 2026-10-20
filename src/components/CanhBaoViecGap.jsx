@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { getViecCanLam, henLaiCa, henLaiLich } from "../services/calendarService";
 import { Button, Modal } from "../ui";
 
@@ -11,10 +11,13 @@ import { Button, Modal } from "../ui";
  * tin nhắc Zalo (teaching/nhac_viec.py), nên hai nơi luôn nói cùng một con số.
  *
  * Hiện MỘT lần mỗi phiên trình duyệt (sessionStorage) — bật lại mỗi lần đổi
- * trang thì người dùng sẽ tắt đi theo phản xạ mà không đọc.
+ * trang thì người dùng sẽ tắt đi theo phản xạ mà không đọc. Đóng rồi thì còn nút nhỏ
+ * góc màn hình "N việc cần hoàn thành" để mở lại danh sách (20/10/2026: làm xong một việc
+ * thì không tìm lại được các việc truyền thông còn tồn); danh sách tự làm mới khi đổi trang.
  */
 export default function CanhBaoViecGap({ userId }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [viec, setViec] = useState([]);
   const [mo, setMo] = useState(false);
   const [hen, setHen] = useState(null);
@@ -25,8 +28,9 @@ export default function CanhBaoViecGap({ userId }) {
 
   useEffect(() => {
     if (!userId) return undefined;
+    let daHien = false;
     try {
-      if (window.sessionStorage.getItem(khoa)) return undefined;
+      daHien = !!window.sessionStorage.getItem(khoa);
     } catch {
       /* trình duyệt chặn storage: vẫn hiện, chỉ là không nhớ đã hiện */
     }
@@ -36,12 +40,13 @@ export default function CanhBaoViecGap({ userId }) {
         if (!con) return;
         const ds = Array.isArray(data?.items) ? data.items : [];
         setViec(ds);
+        if (daHien) return; // đã xem trong phiên: chỉ cập nhật nút góc màn hình
         if (data?.so_tre_khong_hen) setCoY({ so: data.so_tre_khong_hen, quanLy: data.quan_ly || [] });
         setMo(ds.length > 0);
       })
       .catch(() => {});
     return () => { con = false; };
-  }, [userId, khoa]);
+  }, [userId, khoa, location.pathname, location.search]);
 
   const dong = () => {
     setMo(false);
@@ -77,6 +82,15 @@ export default function CanhBaoViecGap({ userId }) {
 
   const daRo = () => setCoY(null);
   const soZalo = (sdt) => String(sdt || "").replace(/[^0-9]/g, "");
+
+  const nutGoc = !mo && !coY && viec.length > 0 ? (
+    <button type="button" onClick={() => setMo(true)}
+            style={{ position: "fixed", left: 16, bottom: "calc(16px + env(safe-area-inset-bottom, 0px))", zIndex: 1500,
+                     border: 0, borderRadius: 999, padding: "9px 14px", background: "#C0392B", color: "#fff", fontWeight: 700,
+                     fontSize: 13, boxShadow: "0 6px 18px rgba(0,0,0,.18)", cursor: "pointer" }}>
+      ⚠ {viec.length} việc cần hoàn thành{tongLoi ? ` · ${tongLoi} lỗi` : ""}
+    </button>
+  ) : null;
 
   if (coY) {
     return (
@@ -115,6 +129,8 @@ export default function CanhBaoViecGap({ userId }) {
       </Modal>
     );
   }
+
+  if (!mo) return nutGoc;
 
   return (
     <Modal

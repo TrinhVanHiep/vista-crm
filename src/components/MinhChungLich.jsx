@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { baoCaoTienDoLich, duyetKeHoach, duyetLich, getSchedule, henLaiLich, taiMinhChungLich, xoaMinhChungLich } from "../services/calendarService";
+import { baoCaoTienDoLich, duyetKeHoach, duyetLich, getSchedule, henLaiLich, mienLoiLich, taiMinhChungLich, xoaMinhChungLich } from "../services/calendarService";
 import { useAuth } from "../auth/AuthProvider";
 import { VAI_QUAN_TRI } from "../auth/permissions";
 
@@ -24,6 +24,7 @@ export default function MinhChungLich({ lich, onDoi }) {
   const [td, setTd] = useState({ pt: lich?.tien_do ?? 0, nd: "" });
   const [lyDoKd, setLyDoKd] = useState("");
   const [lyDoKh, setLyDoKh] = useState("");
+  const [mien, setMien] = useState(null); // { lyDo, han }
   if (!lich?.id) return null;
   const laQuanLy = VAI_QUAN_TRI.includes(role);
   const laPhuTrach = (lich.assigned_to?.id ?? lich.created_by?.id) === user?.id || laQuanLy;
@@ -31,6 +32,8 @@ export default function MinhChungLich({ lich, onDoi }) {
                        khong_dat: ["Không đạt — làm lại", "#C0392B", "#FDECEA"] };
   const mc = lich.minh_chung || [];
   const xong = ["done", "cancel"].includes(lich.status) && mc.length;
+  // Có minh chứng mà chưa báo cáo hoàn thành = vẫn tính lỗi (20/10/2026) -> nút một chạm.
+  const thieuBaoCao = laPhuTrach && mc.length > 0 && !["done", "cancel"].includes(lich.status);
 
   const goi = async (fn) => {
     setDang(true);
@@ -76,6 +79,19 @@ export default function MinhChungLich({ lich, onDoi }) {
           ) : null}
         </div>
       ) : null}
+      {thieuBaoCao ? (
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 12, padding: "10px 12px",
+                      borderRadius: 10, background: "#FFF1E8", border: "1px solid #F5C6A5" }}>
+          <span style={{ flex: 1, minWidth: 200, fontSize: 13 }}>
+            <b>Đã có minh chứng nhưng chưa báo cáo hoàn thành</b> — việc vẫn bị tính lỗi mỗi đêm cho tới khi bấm nút này.
+          </span>
+          <button type="button" className="btn primary sm" disabled={dang}
+                  onClick={() => goi(async () => onDoi(await baoCaoTienDoLich(lich.id, {
+                    tienDo: 100, noiDung: td.nd.trim() || "Hoàn thành — đã nộp minh chứng." })))}>
+            ✓ Báo cáo hoàn thành
+          </button>
+        </div>
+      ) : null}
       {/* Tiến độ có căn cứ + duyệt (14/10/2026) */}
       <div style={{ display: "grid", gap: 8, marginBottom: 12, paddingBottom: 12, borderBottom: "1px dashed #E8A87C" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
@@ -111,7 +127,7 @@ export default function MinhChungLich({ lich, onDoi }) {
             </button>
           </div>
         ) : null}
-        {laQuanLy && lich.duyet === "cho_duyet" ? (
+        {laQuanLy && (lich.duyet === "cho_duyet" || (mc.length > 0 && lich.status !== "done" && lich.status !== "cancel")) ? (
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
             <button type="button" className="btn primary sm" disabled={dang}
                     onClick={() => goi(async () => onDoi(await duyetLich(lich.id, { ketQua: "dat" })))}>✓ Đạt</button>
@@ -131,6 +147,9 @@ export default function MinhChungLich({ lich, onDoi }) {
           {mc.length ? `${mc.length} file` : "Bắt buộc khi chuyển “Hoàn thành”"}
         </span>
         {lich.so_loi ? <span style={{ fontSize: 12.5, color: "#C0392B", fontWeight: 700 }}>{lich.so_loi} lỗi</span> : null}
+        {lich.so_loi && laQuanLy ? (
+          <button type="button" className="btn ghost sm" onClick={() => setMien(mien ? null : { lyDo: "", han: isoCach(1) })}>Miễn lỗi</button>
+        ) : null}
         {lich.han_hen ? <span style={{ fontSize: 12.5, color: "#8a7a66" }}>Đã hẹn tới 24:00 {ngayVN(lich.han_hen)}</span> : null}
         <span style={{ flex: 1 }} />
         <label style={{ cursor: dang ? "wait" : "pointer", fontSize: 13, fontWeight: 700, color: "#F26522" }}>
@@ -157,6 +176,26 @@ export default function MinhChungLich({ lich, onDoi }) {
                                background: "#C0392B", color: "#fff", cursor: "pointer", fontSize: 12, padding: 0 }}>×</button>
             </span>
           ))}
+        </div>
+      ) : null}
+      {mien ? (
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: 10 }}>
+          <input type="text" placeholder="Lý do miễn lỗi (bắt buộc)" value={mien.lyDo} style={{ flex: 1, minWidth: 180 }}
+                 onChange={(e) => setMien((m) => ({ ...m, lyDo: e.target.value }))} />
+          {!xong ? (
+            <label style={{ fontSize: 12.5 }}>Hạn mới{" "}
+              <input type="date" value={mien.han} min={isoCach(0)} onChange={(e) => setMien((m) => ({ ...m, han: e.target.value }))} />
+            </label>
+          ) : null}
+          <button type="button" className="btn primary sm" disabled={dang || !mien.lyDo.trim()}
+                  onClick={() => goi(async () => {
+                    const kq = await mienLoiLich(lich.id, { lyDo: mien.lyDo.trim(), hanMoi: xong ? undefined : mien.han });
+                    onDoi({ ...kq, so_loi: 0 });
+                    setMien(null);
+                  })}>
+            Xoá {lich.so_loi} lỗi
+          </button>
+          <span style={{ fontSize: 12, color: "#8a7a66" }}>Điểm thi đua được tính lại; việc chưa xong phải có hạn mới, không thì đêm nay lại tính lỗi.</span>
         </div>
       ) : null}
       {hen ? (
