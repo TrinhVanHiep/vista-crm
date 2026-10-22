@@ -19,6 +19,7 @@ import {
 } from "../utils/khoangThoiGian";
 import ChiTietBaoCaoNgay from "../components/reports/ChiTietBaoCaoNgay";
 import DiemDanhCa from "../components/reports/DiemDanhCa";
+import XemDuyetTruyenThong from "../components/XemDuyetTruyenThong";
 import "../styles/vista4.css";
 
 
@@ -134,6 +135,7 @@ function DailyReport() {
 
   // Media report state.
   const [mediaReports, setMediaReports] = useState([]);
+  const [xemTT, setXemTT] = useState(null); // nội dung truyền thông đang mở "Xem báo cáo & duyệt"
   const [mediaForm, setMediaForm] = useState(emptyMediaForm);
   const [mediaSaving, setMediaSaving] = useState(false);
   const [mediaError, setMediaError] = useState("");
@@ -530,17 +532,22 @@ function DailyReport() {
                 {mediaReports.length ? (
                   <div className="tbl-wrap">
                     <table className="tbl">
-                      <thead><tr><th>Nội dung</th><th>Kênh</th><th>Loại</th><th>Tiếp cận</th><th>Trạng thái</th></tr></thead>
+                      <thead><tr><th>Nội dung</th><th>Phụ trách</th><th>Kênh</th><th>Loại</th><th>Trạng thái</th><th></th></tr></thead>
                       <tbody>
                         {mediaReports.map((m) => {
                           const meta = reportMeta(m.status);
                           return (
-                            <tr key={m.id}>
+                            <tr key={m.id} style={{ cursor: "pointer" }} onClick={() => setXemTT(m)} title="Xem báo cáo & duyệt">
                               <td className="bold">{m.title}</td>
+                              <td className="muted">{m.assignee_name || m.created_by?.name || "—"}</td>
                               <td>{m.channel_display}</td>
                               <td className="muted">{m.content_type_display}</td>
-                              <td className="muted">{m.reach != null ? Number(m.reach).toLocaleString("vi-VN") : "--"}</td>
                               <td><span className={`badge ${meta.cls}`}>{meta.label}</span></td>
+                              <td>
+                                <button type="button" className="btn ghost sm" onClick={(e) => { e.stopPropagation(); setXemTT(m); }}>
+                                  {m.status === "submitted" ? "Xem & duyệt" : "Xem"}
+                                </button>
+                              </td>
                             </tr>
                           );
                         })}
@@ -771,6 +778,7 @@ function DailyReport() {
         coQuyenDuyet={canReviewReports}
         onDaDuyet={() => setReloadKey((v) => v + 1)}
       />
+    {xemTT ? <XemDuyetTruyenThong noiDung={xemTT} onDong={() => setXemTT(null)} onDoi={() => setReloadKey((k) => k + 1)} /> : null}
     </div>
   );
 }

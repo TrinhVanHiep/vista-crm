@@ -79,6 +79,26 @@ export default function MinhChungLich({ lich, onDoi }) {
           ) : null}
         </div>
       ) : null}
+      {/* Quản lý mở từ cảnh báo "chờ duyệt" (22/10/2026): khối DUYỆT lên đầu, rõ việc cần làm. */}
+      {laQuanLy && (lich.duyet === "cho_duyet" || (mc.length > 0 && lich.status !== "done" && lich.status !== "cancel")) ? (
+        <div style={{ display: "grid", gap: 8, marginBottom: 12, padding: "10px 12px", borderRadius: 10, background: "#F3EFFF", border: "1px solid #D9CCFA" }}>
+          <b style={{ fontSize: 13.5, color: "#6B46C1" }}>
+            {lich.duyet === "cho_duyet" ? "Việc này đang chờ bạn duyệt" : "Đã có minh chứng — duyệt được ngay"}
+            {lich.bao_cao_tien_do ? <span style={{ fontWeight: 400, color: "#4b5466" }}> · Báo cáo: {lich.bao_cao_tien_do}</span> : null}
+          </b>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <button type="button" className="btn primary sm" disabled={dang}
+                    onClick={() => goi(async () => onDoi(await duyetLich(lich.id, { ketQua: "dat" })))}>✓ Duyệt Đạt</button>
+            <input type="text" value={lyDoKd} placeholder="Lý do không đạt…" style={{ flex: 1, minWidth: 180 }}
+                   onChange={(e) => setLyDoKd(e.target.value)} />
+            <button type="button" className="btn ghost sm" disabled={dang || !lyDoKd.trim()}
+                    onClick={() => goi(async () => { onDoi(await duyetLich(lich.id, { ketQua: "khong_dat", lyDo: lyDoKd })); setLyDoKd(""); })}>
+              ✕ Không đạt
+            </button>
+          </div>
+          <span style={{ fontSize: 12, color: "#8a7a66" }}>Xem ảnh / file minh chứng ở cuối khung này.</span>
+        </div>
+      ) : null}
       {thieuBaoCao ? (
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 12, padding: "10px 12px",
                       borderRadius: 10, background: "#FFF1E8", border: "1px solid #F5C6A5" }}>
@@ -127,18 +147,7 @@ export default function MinhChungLich({ lich, onDoi }) {
             </button>
           </div>
         ) : null}
-        {laQuanLy && (lich.duyet === "cho_duyet" || (mc.length > 0 && lich.status !== "done" && lich.status !== "cancel")) ? (
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            <button type="button" className="btn primary sm" disabled={dang}
-                    onClick={() => goi(async () => onDoi(await duyetLich(lich.id, { ketQua: "dat" })))}>✓ Đạt</button>
-            <input type="text" value={lyDoKd} placeholder="Lý do không đạt…" style={{ flex: 1, minWidth: 180 }}
-                   onChange={(e) => setLyDoKd(e.target.value)} />
-            <button type="button" className="btn ghost sm" disabled={dang || !lyDoKd.trim()}
-                    onClick={() => goi(async () => { onDoi(await duyetLich(lich.id, { ketQua: "khong_dat", lyDo: lyDoKd })); setLyDoKd(""); })}>
-              ✕ Không đạt
-            </button>
-          </div>
-        ) : null}
+
       </div>
 
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
