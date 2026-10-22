@@ -656,7 +656,7 @@ function Students() {
           {tab === "ds" ? (
             <DanhSachHocVien
               lops={classes}
-              coQuyenChoNghi={["superadmin", "admin", "center_manager"].includes(role)}
+              coQuyenChoNghi={["superadmin", "admin", "center_manager", "training_manager"].includes(role)}
               onNotice={setNotice}
             />
           ) : (

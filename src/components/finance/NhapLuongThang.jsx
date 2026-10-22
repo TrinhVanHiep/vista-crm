@@ -88,7 +88,7 @@ export default function NhapLuongThang({ thang, nam, onNotice }) {
         {khoa ? <Pill tone="blue">Đã chốt theo file — khoá nhập</Pill>
           : thieuTong ? <Pill tone="amber">{thieuTong} người còn thiếu</Pill> : <Pill tone="green">Đủ dữ liệu</Pill>}
         <span style={{ fontSize: 12.5, color: color.muted }}>
-          QLCS nhập công · trực · sale (hoặc file sale); QLĐT nhập công · trực; ca dạy lấy từ sổ điểm danh chuẩn. Ô trống = lấy từ file chấm công / cấu hình.
+          QLCS và QLĐT nhập công · trực · sale (hoặc file sale); ca dạy lấy từ sổ điểm danh chuẩn. Ô trống = lấy từ file chấm công / cấu hình.
         </span>
         {duoc.has("sale") && !khoa ? (
           <>

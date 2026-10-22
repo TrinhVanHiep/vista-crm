@@ -392,7 +392,9 @@ function MonthlyReports() {
         setLiveReloadKey((prev) => prev + 1);
       }
     };
-    const timer = window.setInterval(refresh, 5000);
+    // 22/10/2026: trước đây 5 giây/lần, mỗi lượt tải ~1,5 MB báo cáo — vài máy mở trang là máy chủ
+    // nghẽn, các máy khác chờ 15 phút không vào được. 60 giây là đủ để thấy báo cáo mới.
+    const timer = window.setInterval(refresh, 60000);
     document.addEventListener("visibilitychange", refresh);
     return () => {
       window.clearInterval(timer);
@@ -442,7 +444,7 @@ function MonthlyReports() {
         date_from: dateFrom,
         date_to: dateTo,
       }),
-      listSessionReports({ page_size: 500 }),
+      listSessionReports({ page_size: 500, date_from: dateFrom, date_to: dateTo }),
     ])
       .then(([sessionData, reportData]) => {
         if (cancelled) return;
@@ -485,7 +487,8 @@ function MonthlyReports() {
     return () => {
       cancelled = true;
     };
-  }, [liveReloadKey, manualForm.month, manualForm.year, manualReloadKey]);
+    // Ô chọn ca để nhập tay: chỉ tải lại khi đổi tháng / sau khi lưu, không chạy theo nhịp tự làm mới.
+  }, [manualForm.month, manualForm.year, manualReloadKey]);
 
   const summary = useMemo(() => {
     const pending = submissions.filter((item) => item.status === "submitted").length;

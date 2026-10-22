@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
+import { useAuth } from "../auth/AuthProvider";
+import { VAI_QUAN_TRI } from "../auth/permissions";
 import {
   getMediaSummary,
   listAllMediaReports,
+  listAssignableUsers,
   listClassroomsAll,
   updateMediaReport,
 } from "../services/calendarService";
@@ -64,6 +67,8 @@ const TABS = [
   ["week", "🗓️ Theo tuần"],
   ["program", "📚 Theo chương trình"],
   ["classroom", "🏫 Theo lớp"],
+  // 22/10/2026: quản lý xem lịch truyền thông của từng người cho đỡ loạn (chỉ hiện với quản lý).
+  ["nguoi", "👤 Theo giáo viên"],
 ];
 
 const WEEKDAYS = ["Chủ nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
@@ -150,7 +155,11 @@ function MediaPlan() {
   const scopeMonth = Number(scope.month) || TODAY.getMonth() + 1;
   const scopeYear = Number(scope.year) || TODAY.getFullYear();
 
+  const { role } = useAuth();
+  const laQuanLy = VAI_QUAN_TRI.includes(role);
   const [tab, setTab] = useState("month");
+  const [nguoi, setNguoi] = useState("");
+  const [dsNguoi, setDsNguoi] = useState([]);
   const [month, setMonth] = useState(scopeMonth);
   const [year, setYear] = useState(scopeYear);
   const [week, setWeek] = useState(1);
@@ -229,8 +238,16 @@ function MediaPlan() {
     if (tab === "week") next.week = week;
     if (tab === "program") next.program = program;
     if (tab === "classroom") next.classroom = classroom;
+    if (tab === "nguoi" && nguoi) next.nguoi = nguoi;
     return next;
-  }, [tab, year, month, week, program, classroom, status, search]);
+  }, [tab, year, month, week, program, classroom, nguoi, status, search]);
+
+  useEffect(() => {
+    if (!laQuanLy) return undefined;
+    let con = true;
+    listAssignableUsers().then((d) => con && setDsNguoi(d?.results || [])).catch(() => {});
+    return () => { con = false; };
+  }, [laQuanLy]);
 
   useEffect(() => { setPage(1); }, [params]);
 
@@ -392,7 +409,9 @@ function MediaPlan() {
             <div className="flex-between" style={{ alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
               <div>
                 <h1>Truyền thông</h1>
-                <p>Theo dõi kế hoạch nội dung, tiến độ triển khai và nghiệm thu truyền thông</p>
+                <p>{laQuanLy
+                  ? "Theo dõi kế hoạch nội dung, tiến độ triển khai và nghiệm thu truyền thông — chọn “Theo giáo viên” để xem lịch từng người"
+                  : "Lịch truyền thông CỦA BẠN: việc bạn tự lên và việc được giao"}</p>
               </div>
               <button type="button" className="btn ghost" onClick={() => setReloadKey((k) => k + 1)}>
                 ↻ Làm mới
@@ -425,7 +444,7 @@ function MediaPlan() {
               </div>
 
               <div className="tabs" role="tablist" style={{ flexWrap: "wrap", marginBottom: 12 }}>
-                {TABS.map(([key, label]) => (
+                {TABS.filter(([key]) => key !== "nguoi" || laQuanLy).map(([key, label]) => (
                   <span
                     key={key}
                     role="tab"
@@ -462,6 +481,13 @@ function MediaPlan() {
                   <select value={program} onChange={(e) => setProgram(e.target.value)} style={{ ...selectStyle, minWidth: 220 }} aria-label="Chương trình">
                     <option value="">Tất cả chương trình</option>
                     {programs.map((p) => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                ) : null}
+
+                {tab === "nguoi" ? (
+                  <select value={nguoi} onChange={(e) => setNguoi(e.target.value)} style={{ ...selectStyle, minWidth: 220 }} aria-label="Giáo viên">
+                    <option value="">Tất cả giáo viên / nhân sự</option>
+                    {dsNguoi.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
                   </select>
                 ) : null}
 
