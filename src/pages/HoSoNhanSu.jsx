@@ -239,6 +239,33 @@ export default function HoSoNhanSu() {
   const mt = d.muc_tieu;
   // Vi phạm bị trừ thi đua (15/10/2026) — nhân sự từ quản lý trở xuống; admin không có khối này.
   const vp = d.vi_pham;
+  // Thi đua QUẢN LÝ tự chấm (22/10/2026) — kpi/thi_dua_quan_ly.py.
+  const tql = d.thi_dua_quan_ly;
+  const khoiThiDuaQL = tql ? (
+    <div style={{ ...card, padding: 18 }}>
+      <CardHead title={`Thi đua quản lý tháng ${thang}/${nam} (tự chấm)`}
+                right={<span style={{ fontSize: 15, fontWeight: 800, color: tql.tong >= 81 ? C.green : tql.tong >= 71 ? C.orange : C.red }}>
+                  {tql.tong} / 100
+                </span>} />
+      <div style={{ fontSize: 12, color: C.muted, marginBottom: 10 }}>{tql.luat}</div>
+      <div style={{ display: "grid", gap: 10 }}>
+        {tql.nhom.map((n) => (
+          <details key={n.ma} style={{ border: `1px solid ${C.line}`, borderRadius: 10, padding: "10px 12px" }}>
+            <summary style={{ cursor: "pointer", display: "flex", gap: 10, alignItems: "center", listStyle: "none" }}>
+              <b style={{ flex: 1, fontSize: 13.5 }}>{n.ten}</b>
+              {n.so_loi ? <span style={{ fontSize: 12, color: C.red, fontWeight: 700 }}>{n.so_loi} lỗi</span> : null}
+              <span style={{ fontWeight: 800, color: n.diem >= n.toi_da ? C.green : C.red }}>{n.diem} / {n.toi_da}</span>
+            </summary>
+            <div style={{ marginTop: 8, display: "grid", gap: 4, fontSize: 12.5, maxHeight: 220, overflowY: "auto" }}>
+              {n.chi_tiet.length ? n.chi_tiet.map((c, i) => <div key={i} style={{ color: n.so_loi ? C.ink : C.muted }}>• {c}</div>)
+                : <div style={{ color: C.muted }}>Không có lỗi.</div>}
+            </div>
+          </details>
+        ))}
+      </div>
+    </div>
+  ) : null;
+
   const khoiViPham = vp ? (
     <div style={{ ...card, padding: 18 }}>
       <CardHead title={`Vi phạm & điểm trừ thi đua tháng ${thang}/${nam}`}
@@ -548,6 +575,7 @@ export default function HoSoNhanSu() {
 
       {q.chi_tiet ? (
         <>
+          {(hien(4)) && khoiThiDuaQL ? khoiThiDuaQL : null}
           {(hien(1) || hien(5)) ? (
             <section style={{ display: "grid", gridTemplateColumns: tab === 0 ? "repeat(auto-fit,minmax(min(100%,460px),1fr))" : "1fr", gap: 16 }}>
               {hien(1) ? khoiNhiemVu : null}

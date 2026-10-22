@@ -3,7 +3,9 @@ import { useOutletContext } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import { VAI_QUAN_TRI } from "../auth/permissions";
 import {
+  duyetLich,
   getMediaSummary,
+  getSchedule,
   listAllMediaReports,
   listAssignableUsers,
   listClassroomsAll,
@@ -69,6 +71,8 @@ const TABS = [
   ["classroom", "🏫 Theo lớp"],
   // 22/10/2026: quản lý xem lịch truyền thông của từng người cho đỡ loạn (chỉ hiện với quản lý).
   ["nguoi", "👤 Theo giáo viên"],
+  // Phòng Marketing: việc của designer + việc loại Thiết kế (quy hoạch cho phòng).
+  ["phong", "🎨 Phòng Marketing"],
 ];
 
 const WEEKDAYS = ["Chủ nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
@@ -183,8 +187,29 @@ function MediaPlan() {
   const [acceptSaving, setAcceptSaving] = useState(false);
   const [acceptError, setAcceptError] = useState("");
 
+  // Xem báo cáo & duyệt (22/10/2026: "chưa rõ xem báo cáo ở đâu, nút duyệt ở đâu"): một hộp cho cả
+  // nội dung báo cáo của người làm (tiến độ, minh chứng) lẫn nút Đạt / Không đạt của quản lý.
+  const [lich, setLich] = useState(null);
+  const [lyDoKd, setLyDoKd] = useState("");
+  const duyet = async (ketQua) => {
+    if (!acceptTarget?.schedule) return;
+    setAcceptSaving(true);
+    setAcceptError("");
+    try {
+      setLich(await duyetLich(acceptTarget.schedule, { ketQua, lyDo: lyDoKd.trim() }));
+      setLyDoKd("");
+      setReloadKey((k) => k + 1);
+    } catch (e) {
+      setAcceptError(e?.response?.data?.detail || "Không duyệt được.");
+    } finally {
+      setAcceptSaving(false);
+    }
+  };
   const openAcceptance = (row) => {
     setAcceptError("");
+    setLich(null);
+    setLyDoKd("");
+    if (row.schedule) getSchedule(row.schedule).then(setLich).catch(() => setLich({ loi: true }));
     setAcceptTarget(row);
     setAcceptForm({
       status: row.status || "draft",
@@ -239,6 +264,7 @@ function MediaPlan() {
     if (tab === "program") next.program = program;
     if (tab === "classroom") next.classroom = classroom;
     if (tab === "nguoi" && nguoi) next.nguoi = nguoi;
+    if (tab === "phong") next.phong = "marketing";
     return next;
   }, [tab, year, month, week, program, classroom, nguoi, status, search]);
 
@@ -444,7 +470,7 @@ function MediaPlan() {
               </div>
 
               <div className="tabs" role="tablist" style={{ flexWrap: "wrap", marginBottom: 12 }}>
-                {TABS.filter(([key]) => key !== "nguoi" || laQuanLy).map(([key, label]) => (
+                {TABS.filter(([key]) => !["nguoi", "phong"].includes(key) || laQuanLy).map(([key, label]) => (
                   <span
                     key={key}
                     role="tab"
@@ -548,7 +574,10 @@ function MediaPlan() {
                             <td className="muted">{row.program_name || "—"}</td>
                             <td className="bold">{row.classroom_name || "—"}</td>
                             <td style={{ whiteSpace: "normal", minWidth: 220, maxWidth: 320 }}>
-                              <div className="bold">
+                              <div className="bold" role="button" tabIndex={0} style={{ cursor: "pointer" }}
+                                   onClick={() => openAcceptance(row)}
+                                   onKeyDown={(e) => { if (e.key === "Enter") openAcceptance(row); }}
+                                   title="Xem báo cáo & duyệt">
                                 {row.title}
                                 {/* Sinh tự động từ việc nhóm Truyền thông trên Lịch làm việc;
                                     tiêu đề / ngày sửa ở Lịch, chỉ số & nghiệm thu sửa ở đây. */}
@@ -581,7 +610,7 @@ function MediaPlan() {
                                 type="button"
                                 className={`badge ${accCls}`}
                                 style={{ border: "none", cursor: "pointer", font: "inherit" }}
-                                title="Bấm để chấm nghiệm thu / cập nhật trạng thái"
+                                title={laQuanLy ? "Xem báo cáo, chấm nghiệm thu và duyệt" : "Xem báo cáo"}
                                 onClick={() => openAcceptance(row)}
                               >
                                 {done}/{ACCEPTANCE_ITEMS.length}
@@ -747,7 +776,9 @@ function MediaPlan() {
                   const st = statusMeta(row);
                   const at = effectiveDate(row);
                   return (
-                    <div className="li" key={`p-${row.id}`}>
+                    <div className="li" key={`p-${row.id}`} role="button" tabIndex={0} style={{ cursor: "pointer" }}
+                         title="Xem báo cáo & duyệt" onClick={() => openAcceptance(row)}
+                         onKeyDown={(e) => { if (e.key === "Enter") openAcceptance(row); }}>
                       <div className="ico-sm" style={{ background: "var(--warn-soft)", color: "var(--warn)" }}>
                         {CHANNEL_ICON[row.channel] || "📣"}
                       </div>
@@ -860,12 +891,56 @@ function MediaPlan() {
             onClick={(e) => e.stopPropagation()}
             style={{ width: "min(560px, 100%)", maxHeight: "90vh", overflow: "auto", padding: 22 }}
           >
-            <h2 style={{ marginTop: 0, fontSize: 17 }}>Nghiệm thu nội dung</h2>
+            <h2 style={{ marginTop: 0, fontSize: 17 }}>{laQuanLy ? "Xem báo cáo & duyệt" : "Báo cáo nội dung"}</h2>
             <div className="small muted" style={{ marginBottom: 14 }}>
               {acceptTarget.title}
               {acceptTarget.classroom_name ? ` · Lớp ${acceptTarget.classroom_name}` : ""}
+              {` · Phụ trách: ${acceptTarget.assignee_name || acceptTarget.created_by?.name || "—"}`}
             </div>
 
+            {/* 1. Báo cáo của người làm — lấy từ việc trên Lịch làm việc */}
+            {acceptTarget.schedule ? (
+              <div style={{ marginBottom: 16, padding: 12, borderRadius: 10, background: "var(--bg-soft, #F7F7F9)", display: "grid", gap: 8 }}>
+                <div className="small bold">Báo cáo của người làm</div>
+                {!lich ? <div className="small muted">Đang tải…</div> : lich.loi ? <div className="small muted">Không tải được báo cáo.</div> : (
+                  <>
+                    <div className="small">
+                      Tiến độ <b>{lich.tien_do || 0}%</b>
+                      {lich.bao_cao_luc ? ` · báo cáo lúc ${new Date(lich.bao_cao_luc).toLocaleString("vi-VN")}` : " · chưa báo cáo"}
+                      {lich.duyet === "cho_duyet" ? <span className="badge orange" style={{ marginLeft: 6 }}>Chờ duyệt</span> : null}
+                      {lich.duyet === "dat" ? <span className="badge green" style={{ marginLeft: 6 }}>Đạt</span> : null}
+                      {lich.duyet === "khong_dat" ? <span className="badge red" style={{ marginLeft: 6 }}>Không đạt</span> : null}
+                    </div>
+                    {lich.bao_cao_tien_do ? <div style={{ fontSize: 13, whiteSpace: "pre-line" }}>{lich.bao_cao_tien_do}</div> : null}
+                    {lich.duyet === "khong_dat" && lich.ly_do_duyet ? <div className="small" style={{ color: "#c0392b" }}>Lý do không đạt: {lich.ly_do_duyet}</div> : null}
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      {(lich.minh_chung || []).length ? lich.minh_chung.map((m) => (
+                        <a key={m.id} href={m.url} target="_blank" rel="noreferrer">
+                          {m.la_anh ? <img src={m.url} alt={m.ten} style={{ width: 96, height: 72, objectFit: "cover", borderRadius: 6, display: "block" }} />
+                            : <span className="small">📎 {m.ten}</span>}
+                        </a>
+                      )) : <span className="small muted">Chưa có minh chứng.</span>}
+                    </div>
+                    <a className="small" href={`/calendar-detail?lich=${acceptTarget.schedule}`}>
+                      {laQuanLy ? "Mở việc trên Lịch làm việc →" : "Báo cáo tiến độ / nộp minh chứng ở Lịch làm việc →"}
+                    </a>
+                    {laQuanLy && lich.duyet !== "dat" ? (
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", borderTop: "1px dashed #ddd", paddingTop: 8 }}>
+                        <button type="button" className="btn primary sm" disabled={acceptSaving || !(lich.minh_chung || []).length}
+                                title={(lich.minh_chung || []).length ? "" : "Chưa có minh chứng — chưa duyệt Đạt được"}
+                                onClick={() => duyet("dat")}>✓ Duyệt Đạt</button>
+                        <input type="text" value={lyDoKd} placeholder="Lý do không đạt…" style={{ flex: 1, minWidth: 160 }}
+                               onChange={(e) => setLyDoKd(e.target.value)} />
+                        <button type="button" className="btn ghost sm" disabled={acceptSaving || !lyDoKd.trim()}
+                                onClick={() => duyet("khong_dat")}>✕ Không đạt</button>
+                      </div>
+                    ) : null}
+                  </>
+                )}
+              </div>
+            ) : null}
+
+            {laQuanLy ? (<>
             <div style={{ marginBottom: 14 }}>
               <div className="small bold" style={{ marginBottom: 6 }}>Tiêu chí nghiệm thu</div>
               {ACCEPTANCE_ITEMS.map(([key, label]) => (
@@ -915,15 +990,19 @@ function MediaPlan() {
               </label>
             </div>
 
+            </>) : null}
+
             {acceptError ? (
               <div style={{ marginTop: 12, color: "#c0392b", fontSize: 13 }}>{acceptError}</div>
             ) : null}
 
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 18 }}>
               <button type="button" className="btn ghost sm" onClick={() => setAcceptTarget(null)}>Đóng</button>
-              <button type="button" className="btn primary" onClick={saveAcceptance} disabled={acceptSaving}>
-                {acceptSaving ? "Đang lưu..." : "Lưu nghiệm thu"}
-              </button>
+              {laQuanLy ? (
+                <button type="button" className="btn primary" onClick={saveAcceptance} disabled={acceptSaving}>
+                  {acceptSaving ? "Đang lưu..." : "Lưu nghiệm thu"}
+                </button>
+              ) : null}
             </div>
           </div>
         </div>
