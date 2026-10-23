@@ -27,6 +27,7 @@ const vaiHienTai = () => {
   }
 };
 import { color } from "./v3/theme";
+import apiClient from "../../services/apiClient";
 
 /**
  * Phân hệ "Bảng lương".
@@ -157,6 +158,30 @@ function NhapChamCong({ thang, nam, onDaGhi }) {
 export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
   const [taiLai, setTaiLai] = useState(0);
   const [ds, setDs] = useState([]);
+  // Thanh toán từng người (23/10/2026): trạng thái xác nhận phiếu + đã thanh toán, theo teacher_id.
+  const [thanhToan, setThanhToan] = useState({});
+  useEffect(() => {
+    let con = true;
+    apiClient.get("/payroll/xac-nhan-luong/", { params: { month: thang, year: nam } })
+      .then(({ data }) => con && setThanhToan(Object.fromEntries((data?.ds || []).map((r) => [r.teacher_id, r]))))
+      .catch(() => con && setThanhToan({}));
+    return () => { con = false; };
+  }, [thang, nam, taiLai]);
+  const danhDauTT = async (r, huy = false) => {
+    if (huy) {
+      if (!window.confirm(`Bỏ đánh dấu đã thanh toán của ${r.ten}?`)) return;
+    } else if (r.trang_thai !== "dong_y") {
+      if (!window.confirm(`${r.ten} chưa xác nhận đúng phiếu lương. Vẫn đánh dấu ĐÃ THANH TOÁN?`)) return;
+    } else if (!window.confirm(`Đánh dấu đã thanh toán lương T${thang}/${nam} cho ${r.ten}?`)) return;
+    try {
+      await apiClient.post("/payroll/xac-nhan-luong/da-chuyen/", {
+        month: thang, year: nam, user_ids: [r.user_id],
+        ...(huy ? { huy: true } : r.trang_thai !== "dong_y" ? { ca_chua_xac_nhan: true } : {}) });
+      setTaiLai((v) => v + 1);
+    } catch (e) {
+      window.alert(e?.response?.data?.detail || "Không đánh dấu được.");
+    }
+  };
   const [coCau, setCoCau] = useState(null);
   const [dangTai, setDangTai] = useState(true);
   const [loi, setLoi] = useState("");
@@ -315,6 +340,37 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
       </div>,
       <div key="tax">{am(c.tax_deduction)}</div>,
       <div key="kt" title={c.penalty_note || ""}>{am(khauTru)}</div>,
+      <div key="tt" style={{ minWidth: 120 }}>
+        {(() => {
+          const r = thanhToan[x.teacher_id];
+          if (!r) return <span style={{ fontSize: 12, color: color.faint }}>—</span>;
+          if (r.da_chuyen_luc) {
+            return (
+              <div style={{ fontSize: 12 }}>
+                <span style={{ color: color.green, fontWeight: 700 }}>✓ Đã thanh toán</span>
+                <div style={{ color: color.faint }}>
+                  {new Date(r.da_chuyen_luc).toLocaleDateString("vi-VN")}
+                  {coTheGhi ? <button type="button" onClick={() => danhDauTT(r, true)}
+                                      style={{ border: 0, background: "none", color: color.muted, cursor: "pointer", fontSize: 11.5, textDecoration: "underline" }}>bỏ</button> : null}
+                </div>
+              </div>
+            );
+          }
+          const nhan = { dong_y: "Đã xác nhận", khieu_nai: "Báo sai", cho_xac_nhan_lai: "Chờ xác nhận lại", chua: "Chưa xác nhận" }[r.trang_thai];
+          return (
+            <div style={{ display: "grid", gap: 3, fontSize: 12 }}>
+              <span style={{ color: r.trang_thai === "dong_y" ? color.green : r.trang_thai === "khieu_nai" ? color.red : "#B7791F" }}>{nhan}</span>
+              {coTheGhi ? (
+                <button type="button" onClick={() => danhDauTT(r)}
+                        style={{ border: "1px solid " + color.green, borderRadius: 8, padding: "3px 8px", background: "#fff", color: color.green,
+                                 cursor: "pointer", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}>
+                  ✓ Đã thanh toán
+                </button>
+              ) : null}
+            </div>
+          );
+        })()}
+      </div>,
       <div key="c" style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
         {coTheGhi && (x.teacher_id || x.chot?.id) ? (
           <Button variant="ghost" title="Sửa tay số lương người này"
@@ -443,7 +499,7 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       <NhapLuongThang thang={thang} nam={nam} onNotice={lamMoi} />
-      <XacNhanLuongTongHop thang={thang} nam={nam} coTheGhi={coTheGhi} />
+      <XacNhanLuongTongHop key={taiLai} thang={thang} nam={nam} coTheGhi={coTheGhi} onDoi={() => setTaiLai((v) => v + 1)} />
       <DoiChieuChot thang={thang} nam={nam} coTheGhi={coTheGhi} onNotice={onNotice} />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
         {oKhoi("Tổng lương thực nhận", tong, ds.length, `Chi phí lương công ty ${rutGonM(tongChiPhi)} (gồm BHXH công ty đóng)`)}
@@ -622,7 +678,7 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
                 <Table
                   columns={[
                     "Nhân sự", "Lương thực nhận", "Lương cơ bản", "Lương dạy", "Ca trực", "Thưởng sale",
-                    "BHXH", "Trợ cấp", "Thuế TNCN", "Khấu trừ", "",
+                    "BHXH", "Trợ cấp", "Thuế TNCN", "Khấu trừ", "Thanh toán", "",
                   ]}
                   rows={dongCua(list)}
                   align={{ 1: "right", 2: "right", 3: "right", 4: "right", 5: "right", 6: "right", 7: "right", 8: "right", 9: "right" }}

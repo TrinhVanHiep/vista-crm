@@ -12,18 +12,26 @@ const ngayGio = (s) => (s ? new Date(s).toLocaleString("vi-VN", { hour: "2-digit
 const NHAN = { dong_y: ["Đã xác nhận đúng", "green"], khieu_nai: ["Báo sai sót", "red"], chua: ["Chưa trả lời", "amber"],
                cho_xac_nhan_lai: ["Đã sửa — chờ xác nhận lại", "blue"] };
 
-export default function XacNhanLuongTongHop({ thang, nam, coTheGhi = false }) {
+export default function XacNhanLuongTongHop({ thang, nam, coTheGhi = false, onDoi }) {
   const [bc, setBc] = useState(null);
   const [mo, setMo] = useState(false);
   const [taiLai, setTaiLai] = useState(0);
   const [sua, setSua] = useState(null);
   const [tb, setTb] = useState("");
 
-  const daChuyen = async (ids) => {
+  // Đánh dấu ĐÃ THANH TOÁN (23/10/2026): cả người chưa xác nhận (hỏi lại cho chắc), có bỏ đánh dấu.
+  const daChuyen = async (ids, them = {}) => {
     try {
-      await apiClient.post("/payroll/xac-nhan-luong/da-chuyen/", { month: thang, year: nam, user_ids: ids });
+      await apiClient.post("/payroll/xac-nhan-luong/da-chuyen/", { month: thang, year: nam, user_ids: ids, ...them });
       setTaiLai((v) => v + 1);
-    } catch { /* giữ nguyên */ }
+      onDoi?.(); // cột Thanh toán trên bảng lương cập nhật theo
+    } catch (e) {
+      window.alert(e?.response?.data?.detail || "Không đánh dấu được.");
+    }
+  };
+  const thanhToan = (r) => {
+    if (r.trang_thai !== "dong_y" && !window.confirm(`${r.ten} chưa xác nhận đúng phiếu lương (${NHAN[r.trang_thai][0]}). Vẫn đánh dấu đã thanh toán?`)) return;
+    daChuyen([r.user_id], r.trang_thai === "dong_y" ? {} : { ca_chua_xac_nhan: true });
   };
 
   useEffect(() => {
@@ -46,9 +54,9 @@ export default function XacNhanLuongTongHop({ thang, nam, coTheGhi = false }) {
         <Pill tone="amber">{dem.chua} chưa trả lời</Pill>
         {choChuyen.length ? <Pill tone="blue">{choChuyen.length} chờ chuyển khoản</Pill> : null}
         {coTheGhi && choChuyen.length ? (
-          <button type="button" onClick={() => window.confirm(`Đánh dấu đã chuyển lương cho ${choChuyen.length} người đã xác nhận đúng?`) && daChuyen([])}
+          <button type="button" onClick={() => window.confirm(`Đánh dấu ĐÃ THANH TOÁN lương cho ${choChuyen.length} người đã xác nhận đúng?`) && daChuyen([])}
                   style={{ border: 0, borderRadius: 999, padding: "5px 12px", background: color.green, color: "#fff", fontWeight: 700, cursor: "pointer" }}>
-            ✓ Đã chuyển tất cả ({choChuyen.length})
+            ✓ Đã thanh toán tất cả ({choChuyen.length})
           </button>
         ) : null}
         <span style={{ fontSize: 12.5, color: color.muted }}>Hỏi tự động ngày 10–15; chỉ chuyển lương khi đã xác nhận đúng.</span>
@@ -64,13 +72,23 @@ export default function XacNhanLuongTongHop({ thang, nam, coTheGhi = false }) {
                                           borderTop: "1px dashed " + color.border, paddingTop: 6 }}>
               <span style={{ minWidth: 180, fontWeight: 600 }}>{r.ten}</span>
               <Pill tone={NHAN[r.trang_thai][1]}>{NHAN[r.trang_thai][0]}</Pill>
-              {r.da_chuyen_luc ? <Pill tone="blue">Đã chuyển lương {ngayGio(r.da_chuyen_luc)}</Pill>
-                : coTheGhi && r.trang_thai === "dong_y" ? (
-                  <button type="button" onClick={() => daChuyen([r.user_id])}
-                          style={{ border: "1px solid " + color.border, borderRadius: 8, padding: "3px 10px", background: "#fff", cursor: "pointer", fontSize: 12.5 }}>
-                    Đã chuyển
-                  </button>
-                ) : null}
+              {r.da_chuyen_luc ? (
+                <>
+                  <Pill tone="blue">Đã thanh toán {ngayGio(r.da_chuyen_luc)}</Pill>
+                  {coTheGhi ? (
+                    <button type="button" onClick={() => window.confirm(`Bỏ đánh dấu đã thanh toán của ${r.ten}?`) && daChuyen([r.user_id], { huy: true })}
+                            style={{ border: 0, background: "none", color: color.muted, cursor: "pointer", fontSize: 12, textDecoration: "underline" }}>
+                      Bỏ
+                    </button>
+                  ) : null}
+                </>
+              ) : coTheGhi ? (
+                <button type="button" onClick={() => thanhToan(r)}
+                        style={{ border: "1px solid " + color.green, borderRadius: 8, padding: "3px 10px", background: "#fff", color: color.green,
+                                 cursor: "pointer", fontSize: 12.5, fontWeight: 700 }}>
+                  ✓ Đã thanh toán
+                </button>
+              ) : null}
               <span style={{ flex: 1, display: "grid", gap: 2 }}>
                 {r.ghi_chu ? <span style={{ color: color.red }}>{r.ghi_chu}</span> : null}
                 {r.phan_hoi ? <span style={{ color: color.blue, whiteSpace: "pre-line" }}>↳ Kế toán: {r.phan_hoi}</span> : null}
