@@ -160,13 +160,14 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
   const [ds, setDs] = useState([]);
   // Thanh toán từng người (23/10/2026): trạng thái xác nhận phiếu + đã thanh toán, theo teacher_id.
   const [thanhToan, setThanhToan] = useState({});
+  const [ttKey, setTtKey] = useState(0); // chỉ tải lại phần thanh toán, không tải lại cả bảng lương
   useEffect(() => {
     let con = true;
     apiClient.get("/payroll/xac-nhan-luong/", { params: { month: thang, year: nam } })
       .then(({ data }) => con && setThanhToan(Object.fromEntries((data?.ds || []).map((r) => [r.teacher_id, r]))))
       .catch(() => con && setThanhToan({}));
     return () => { con = false; };
-  }, [thang, nam, taiLai]);
+  }, [thang, nam, taiLai, ttKey]);
   const danhDauTT = async (r, huy = false) => {
     if (huy) {
       if (!window.confirm(`Bỏ đánh dấu đã thanh toán của ${r.ten}?`)) return;
@@ -177,7 +178,7 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
       await apiClient.post("/payroll/xac-nhan-luong/da-chuyen/", {
         month: thang, year: nam, user_ids: [r.user_id],
         ...(huy ? { huy: true } : r.trang_thai !== "dong_y" ? { ca_chua_xac_nhan: true } : {}) });
-      setTaiLai((v) => v + 1);
+      setTtKey((v) => v + 1);
     } catch (e) {
       window.alert(e?.response?.data?.detail || "Không đánh dấu được.");
     }
@@ -499,7 +500,7 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       <NhapLuongThang thang={thang} nam={nam} onNotice={lamMoi} />
-      <XacNhanLuongTongHop key={taiLai} thang={thang} nam={nam} coTheGhi={coTheGhi} onDoi={() => setTaiLai((v) => v + 1)} />
+      <XacNhanLuongTongHop lamMoi={ttKey} thang={thang} nam={nam} coTheGhi={coTheGhi} onDoi={() => setTtKey((v) => v + 1)} />
       <DoiChieuChot thang={thang} nam={nam} coTheGhi={coTheGhi} onNotice={onNotice} />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
         {oKhoi("Tổng lương thực nhận", tong, ds.length, `Chi phí lương công ty ${rutGonM(tongChiPhi)} (gồm BHXH công ty đóng)`)}

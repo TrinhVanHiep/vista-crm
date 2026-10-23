@@ -12,7 +12,7 @@ const ngayGio = (s) => (s ? new Date(s).toLocaleString("vi-VN", { hour: "2-digit
 const NHAN = { dong_y: ["Đã xác nhận đúng", "green"], khieu_nai: ["Báo sai sót", "red"], chua: ["Chưa trả lời", "amber"],
                cho_xac_nhan_lai: ["Đã sửa — chờ xác nhận lại", "blue"] };
 
-export default function XacNhanLuongTongHop({ thang, nam, coTheGhi = false, onDoi }) {
+export default function XacNhanLuongTongHop({ thang, nam, coTheGhi = false, onDoi, lamMoi = 0 }) {
   const [bc, setBc] = useState(null);
   const [mo, setMo] = useState(false);
   const [taiLai, setTaiLai] = useState(0);
@@ -23,8 +23,8 @@ export default function XacNhanLuongTongHop({ thang, nam, coTheGhi = false, onDo
   const daChuyen = async (ids, them = {}) => {
     try {
       await apiClient.post("/payroll/xac-nhan-luong/da-chuyen/", { month: thang, year: nam, user_ids: ids, ...them });
-      setTaiLai((v) => v + 1);
-      onDoi?.(); // cột Thanh toán trên bảng lương cập nhật theo
+      if (onDoi) onDoi(); // cột Thanh toán trên bảng lương + khung này cùng tải lại (lamMoi)
+      else setTaiLai((v) => v + 1);
     } catch (e) {
       window.alert(e?.response?.data?.detail || "Không đánh dấu được.");
     }
@@ -39,7 +39,7 @@ export default function XacNhanLuongTongHop({ thang, nam, coTheGhi = false, onDo
     apiClient.get("/payroll/xac-nhan-luong/", { params: { month: thang, year: nam } })
       .then(({ data }) => con && setBc(data)).catch(() => con && setBc(null));
     return () => { con = false; };
-  }, [thang, nam, taiLai]);
+  }, [thang, nam, taiLai, lamMoi]);
 
   if (!bc || !bc.ds.length) return null;
   const { dem } = bc;

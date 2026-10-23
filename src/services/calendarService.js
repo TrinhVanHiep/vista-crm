@@ -70,6 +70,7 @@ export async function reviewStaffRequest(requestId, payload) {
 // Các tham số lọc backend hỗ trợ cho /media-reports/ và /media-reports/summary/.
 const MEDIA_REPORT_PARAM_KEYS = [
   "nguoi", // user id — quản lý xem lịch truyền thông của từng người (22/10/2026)
+  "phong", // "marketing" — tab Phòng Marketing
   "year",
   "month",
   "week", // 1-5, tuần trong tháng
