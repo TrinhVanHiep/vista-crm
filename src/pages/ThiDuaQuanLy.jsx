@@ -21,6 +21,10 @@ const TT = {
   can_bo_sung: ["Cần bổ sung", C.red, C.redSoft], da_nghiem_thu: ["Đã nghiệm thu", C.green, C.greenSoft],
   da_khoa: ["Đã khoá điểm", C.purple, C.purpleSoft],
 };
+// Nguồn đo tự động từ CRM (26/10/2026) — máy chủ: thidua_ql/do_luong.py.
+const NGUON = [["", "Nhập tay (quản lý báo cáo)"], ["lop_du_buoi", "Điểm danh: số lớp đủ buổi học thật"],
+  ["ket_qua_hoc_tap", "Kết quả học tập đã duyệt trên CRM"], ["truyen_thong", "Truyền thông của giáo viên đã duyệt"],
+  ["hs_moi", "Học sinh tạo mới trong tháng"], ["thuc_thu", "Tiền thực thu trên hệ thống"], ["lich_hcns", "Lịch Hành chính – Nhân sự đã hoàn thành"]];
 const so = (v, p = 1) => Number(v || 0).toLocaleString("vi-VN", { maximumFractionDigits: p });
 const ngayVN = (iso) => (iso ? String(iso).slice(0, 10).split("-").reverse().join("/") : "—");
 const card = { background: "#fff", border: `1px solid ${C.line}`, borderRadius: 14, padding: 16 };
@@ -261,7 +265,7 @@ export default function ThiDuaQuanLy() {
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 720 }}>
           <thead><tr style={{ background: C.bg, color: C.muted, fontSize: 12, textAlign: "left" }}>
-            {["Mã", "Tiêu chí", "Nhóm", "Chỉ tiêu", "Báo cáo", "Nghiệm thu", "Trọng số", "Điểm", "Trạng thái"].map((h) => <th key={h} style={{ padding: "8px 6px" }}>{h}</th>)}
+            {["Mã", "Tiêu chí", "Nhóm", "Chỉ tiêu", "Đo từ CRM", "Báo cáo", "Nghiệm thu", "Trọng số", "Điểm", "Trạng thái"].map((h) => <th key={h} style={{ padding: "8px 6px" }}>{h}</th>)}
           </tr></thead>
           <tbody>
             {k.tieu_chi.map((x) => (
@@ -270,6 +274,7 @@ export default function ThiDuaQuanLy() {
                 <td style={{ padding: "8px 6px" }}>{x.ten}</td>
                 <td style={{ padding: "8px 6px", color: C.muted }}>{x.nhom_nhan}</td>
                 <td style={{ padding: "8px 6px" }}>{so(x.chi_tieu)} {x.don_vi}</td>
+                <td style={{ padding: "8px 6px", color: C.blue }} title={x.do_tu_dong?.mo_ta || ""}>{x.do_tu_dong ? so(x.do_tu_dong.gia_tri) : "—"}</td>
                 <td style={{ padding: "8px 6px" }}>{x.ket_qua_bao_cao != null ? so(x.ket_qua_bao_cao) : "—"}</td>
                 <td style={{ padding: "8px 6px" }}>{x.ket_qua_nghiem_thu != null ? so(x.ket_qua_nghiem_thu) : "—"}</td>
                 <td style={{ padding: "8px 6px" }}>{so(x.trong_so)}</td>
@@ -397,7 +402,7 @@ const Khoi = ({ tieuDe, children, phai }) => (
 function ChiTiet({ tc, k, gd, laChu, suaDuoc, dang, goi, tab, setTab }) {
   const [f, setF] = useState(() => ({ ...tc }));
   const [bc, setBc] = useState({ so_dat: tc.ket_qua_bao_cao ?? "", noi_dung: tc.bao_cao || "" });
-  const [nt, setNt] = useState({ so_dat: tc.ket_qua_bao_cao ?? "", diem: "", nhan_xet: "" });
+  const [nt, setNt] = useState({ so_dat: tc.do_tu_dong ? tc.do_tu_dong.gia_tri : tc.ket_qua_bao_cao ?? "", diem: "", nhan_xet: "" });
   const [gh, setGh] = useState({ han_moi: "", ly_do: "" });
   const [sua, setSua] = useState(false);
   const oFile = useRef(null);
@@ -407,6 +412,7 @@ function ChiTiet({ tc, k, gd, laChu, suaDuoc, dang, goi, tab, setTab }) {
   const luu = () => goi(() => apiClient.patch(`/thi-dua-ql/tieu-chi/${tc.id}/`, {
     ten: f.ten, muc_tieu: f.muc_tieu, don_vi: f.don_vi, chi_tieu: f.chi_tieu, trong_so: f.trong_so, han: f.han,
     phu_trach: f.phu_trach, minh_chung_yc: f.minh_chung_yc, dieu_kien: f.dieu_kien, ghi_chu: f.ghi_chu,
+    nguon_do: f.nguon_do || "", tham_so: f.tham_so ?? "",
   })).then(() => setSua(false));
   const TABS = [["tong_quan", "Tổng quan"], ["tien_do", "Tiến độ"], ["noi_dung", "Nội dung & mốc"], ["minh_chung", `Minh chứng (${tc.minh_chung.length})`],
     ["duyet", "Nhận xét & duyệt"], ["lich_su", "Lịch sử"]];
@@ -418,10 +424,16 @@ function ChiTiet({ tc, k, gd, laChu, suaDuoc, dang, goi, tab, setTab }) {
     [`21/${thangS}`, "Báo cáo lần 3", soLanBC >= 3], [ngayVN(tc.han).slice(0, 5), "Hoàn thành", tc.trang_thai === "da_nghiem_thu"]];
   const ptNt = tc.trang_thai === "da_nghiem_thu" && tc.chi_tieu ? (tc.ket_qua_nghiem_thu * 100) / tc.chi_tieu : 0;
 
+  const doTD = tc.do_tu_dong;
   const khoiTienDo = (
-    <Khoi tieuDe="Tiến độ thực hiện">
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}><span>Đã báo cáo</span>
-        <b>{tc.tien_do_bao_cao}% · {so(tc.ket_qua_bao_cao ?? 0)}/{so(tc.chi_tieu)} {tc.don_vi}</b></div>
+    <Khoi tieuDe="Tiến độ thực hiện" phai={doTD ? <span style={{ fontSize: 11.5, fontWeight: 700, color: C.blue, background: C.blueSoft, borderRadius: 999, padding: "2px 8px" }}>Đo tự động</span> : null}>
+      {doTD ? (
+        <div style={{ fontSize: 12.5, background: C.blueSoft, borderRadius: 8, padding: "6px 9px" }}>
+          <b>{tc.nguon_do_nhan}:</b> {doTD.mo_ta}
+        </div>
+      ) : null}
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}><span>{doTD ? "Số đạt (CRM)" : "Đã báo cáo"}</span>
+        <b>{tc.tien_do_bao_cao}% · {so(doTD ? doTD.gia_tri : tc.ket_qua_bao_cao ?? 0)}/{so(tc.chi_tieu)} {tc.don_vi}</b></div>
       <Bar v={tc.tien_do_bao_cao} />
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}><span>Đã nghiệm thu</span>
         <b style={{ color: C.green }}>{Math.round(ptNt)}% · {tc.ket_qua_nghiem_thu != null ? so(tc.ket_qua_nghiem_thu) : 0}/{so(tc.chi_tieu)}</b></div>
@@ -525,6 +537,18 @@ function ChiTiet({ tc, k, gd, laChu, suaDuoc, dang, goi, tab, setTab }) {
             <label style={{ display: "grid", gap: 4, fontSize: 12.5 }}>Trọng số (điểm)<input style={o} value={f.trong_so} onChange={(e) => setF({ ...f, trong_so: e.target.value })} /></label>
             <label style={{ display: "grid", gap: 4, fontSize: 12.5 }}>Hạn<input type="date" style={o} value={f.han || ""} onChange={(e) => setF({ ...f, han: e.target.value })} /></label>
           </div>
+          <div style={{ display: "grid", gridTemplateColumns: "minmax(0,2fr) minmax(0,1fr)", gap: 10 }}>
+            <label style={{ display: "grid", gap: 4, fontSize: 12.5 }}>Đo số đạt bằng
+              <select style={o} value={f.nguon_do || ""} onChange={(e) => setF({ ...f, nguon_do: e.target.value })}>
+                {NGUON.map(([v, n]) => <option key={v} value={v}>{n}</option>)}
+              </select>
+            </label>
+            <label style={{ display: "grid", gap: 4, fontSize: 12.5 }}>
+              {f.nguon_do === "lop_du_buoi" ? "Số buổi tối thiểu / lớp" : f.nguon_do === "ket_qua_hoc_tap" ? "Ngưỡng điểm TB % (trống = mọi lớp có kết quả)" : "Tham số"}
+              <input style={o} value={f.tham_so ?? ""} disabled={!["lop_du_buoi", "ket_qua_hoc_tap"].includes(f.nguon_do)}
+                     onChange={(e) => setF({ ...f, tham_so: e.target.value })} />
+            </label>
+          </div>
           <label style={{ display: "grid", gap: 4, fontSize: 12.5 }}>Người chịu trách nhiệm<input style={o} value={f.phu_trach} onChange={(e) => setF({ ...f, phu_trach: e.target.value })} /></label>
           <label style={{ display: "grid", gap: 4, fontSize: 12.5 }}>Minh chứng bắt buộc<input style={o} value={f.minh_chung_yc} onChange={(e) => setF({ ...f, minh_chung_yc: e.target.value })} /></label>
           <label style={{ display: "grid", gap: 4, fontSize: 12.5 }}>Điều kiện nghiệm thu / cách tính<textarea rows={2} style={o} value={f.dieu_kien} onChange={(e) => setF({ ...f, dieu_kien: e.target.value })} /></label>
@@ -544,6 +568,7 @@ function ChiTiet({ tc, k, gd, laChu, suaDuoc, dang, goi, tab, setTab }) {
             {hang("Nhóm tiêu chí", tc.nhom_nhan)}
             {hang("Tiêu chí", tc.ten)}
             {hang("Cách tính", tc.dieu_kien)}
+            {hang("Đo số đạt", tc.nguon_do ? `${tc.nguon_do_nhan}${tc.tham_so ? ` (tham số ${so(tc.tham_so)})` : ""}` : "Quản lý báo cáo tay")}
           </Khoi>
           <Khoi tieuDe={`Mục tiêu đăng ký tháng ${k.thang}/${k.nam}`}>
             {mucTieu.length ? <ul style={{ margin: 0, paddingLeft: 18, display: "grid", gap: 3, fontSize: 13 }}>{mucTieu.map((m, i) => <li key={i}>{m}</li>)}</ul>
@@ -567,6 +592,7 @@ function ChiTiet({ tc, k, gd, laChu, suaDuoc, dang, goi, tab, setTab }) {
           {khoiTienDo}
           {tc.bao_cao ? <div style={{ fontSize: 13, background: C.bg, borderRadius: 9, padding: 10, whiteSpace: "pre-line" }}>
             <b>Báo cáo gần nhất</b> ({tc.bao_cao_luc ? new Date(tc.bao_cao_luc).toLocaleString("vi-VN") : ""}): {tc.bao_cao}</div> : null}
+          {doTD && baoCaoDuoc ? <div style={{ fontSize: 12.5, color: C.muted }}>Số đạt của tiêu chí này hệ thống tự đo từ CRM (chốt hết ngày cuối tháng) — bạn chỉ cần ghi giải trình, nộp minh chứng rồi bấm “Nộp nghiệm thu”. Ô số đạt để trống cũng được.</div> : null}
           {baoCaoDuoc ? (
             <>
               <div style={{ display: "grid", gridTemplateColumns: "160px 1fr", gap: 10 }}>
