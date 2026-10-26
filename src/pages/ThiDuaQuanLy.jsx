@@ -66,6 +66,7 @@ export default function ThiDuaQuanLy() {
   const [dang, setDang] = useState(false);
   const [chon, setChon] = useState(null);
   const [tab, setTab] = useState("tong_quan");
+  const [vung, setVung] = useState("dang_ky"); // dang_ky | theo_doi | ket_qua — 3 tab lớn theo mẫu
   const [taiLai, setTaiLai] = useState(0);
 
   useEffect(() => {
@@ -196,13 +197,93 @@ export default function ThiDuaQuanLy() {
   const suaDuoc = (laChu || gd) && ["nhap", "tra_ve"].includes(tc?.trang_thai) && k.trang_thai !== "da_khoa";
   const dem = k.dem || {};
   const tongTc = k.tieu_chi.length || 1;
-  const daBaoCao = k.tieu_chi.filter((x) => x.ket_qua_bao_cao != null).length;
   const daNt = dem.da_nghiem_thu || 0;
-  const bc = Math.round((daBaoCao * 100) / tongTc);
   const coTheGui = laChu && ["nhap", "tra_ve"].includes(k.trang_thai);
   const choDuyet = k.tieu_chi.filter((x) => x.trang_thai === "cho_duyet").length;
   const mocs = moc(k.thang, k.nam);
   const buocHien = k.trang_thai === "da_khoa" ? 4 : daNt ? 3 : ["da_duyet"].includes(k.trang_thai) ? 2 : k.trang_thai === "cho_duyet" ? 1 : 0;
+
+
+  const nhomCua = (ma) => NHOM.find((n) => n[0] === ma) || NHOM[0];
+  // Đếm theo chú thích của mẫu: đang thực hiện / chờ duyệt / cần bổ sung / chưa bắt đầu (+ đã nghiệm thu).
+  const nhomTT = { dang: 0, cho: 0, bo_sung: 0, chua: 0, xong: 0 };
+  k.tieu_chi.forEach((x) => {
+    if (x.trang_thai === "da_nghiem_thu") nhomTT.xong += 1;
+    else if (["cho_duyet", "cho_nghiem_thu"].includes(x.trang_thai)) nhomTT.cho += 1;
+    else if (["can_bo_sung", "tra_ve"].includes(x.trang_thai)) nhomTT.bo_sung += 1;
+    else if (x.trang_thai === "da_duyet" && x.ket_qua_bao_cao != null) nhomTT.dang += 1;
+    else nhomTT.chua += 1;
+  });
+  const tienDoTB = Math.round(k.tieu_chi.reduce((t, x) => t + (x.trang_thai === "da_nghiem_thu" ? 100 : x.tien_do_bao_cao || 0), 0) / tongTc);
+  const r = 34;
+  const chuVi = 2 * Math.PI * r;
+  const soTheoDoi = k.tieu_chi.filter((x) => !["nhap", "cho_duyet", "tra_ve"].includes(x.trang_thai)).length;
+
+  const danhSach = (
+    <div style={{ ...card, padding: 10, display: "grid", gap: 10 }}>
+      {NHOM.map(([ma, ten, mau, nen], i) => {
+        const ds = k.tieu_chi.filter((x) => x.nhom === ma);
+        return (
+          <div key={ma} style={{ border: `1px solid ${C.line}`, borderRadius: 12, overflow: "hidden" }}>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "8px 10px", background: nen }}>
+              <span style={{ width: 22, height: 22, borderRadius: 6, background: mau, color: "#fff", display: "grid", placeItems: "center", fontSize: 12, fontWeight: 800 }}>{i + 1}</span>
+              <b style={{ fontSize: 13.5, flex: 1 }}>{ten}</b>
+              <span style={{ fontSize: 11.5, color: C.muted }}>{ds.length} tiêu chí</span>
+            </div>
+            {ds.map((x) => (
+              <button key={x.id} type="button" onClick={() => setChon(x.id)}
+                      style={{ all: "unset", cursor: "pointer", display: "grid", gridTemplateColumns: "30px 1fr auto 34px", gap: 6, alignItems: "center", width: "100%",
+                               boxSizing: "border-box", padding: "8px 10px", fontSize: 13, borderTop: `1px solid ${C.line}`,
+                               background: tc?.id === x.id ? C.orangeSoft : "#fff", boxShadow: tc?.id === x.id ? `inset 3px 0 0 ${C.orange}` : "none" }}>
+                <b style={{ color: C.muted, fontSize: 12 }}>{x.ma}</b>
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={x.ten}>{x.ten}</span>
+                <Chip tt={x.trang_thai} />
+                <span style={{ fontSize: 12, color: C.muted, textAlign: "right" }}>{so(x.trong_so)}đ</span>
+              </button>
+            ))}
+            {(laChu || gd) && ["nhap", "tra_ve"].includes(k.trang_thai) ? (
+              <button type="button" onClick={() => goi(() => apiClient.post("/thi-dua-ql/tieu-chi/", { khung: k.id, nhom: ma }))}
+                      style={{ border: 0, background: "none", color: C.orange, cursor: "pointer", fontSize: 12.5, padding: "6px 10px" }}>+ Thêm tiêu chí đề xuất</button>
+            ) : null}
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  const ketQua = (
+    <div style={{ ...card, display: "grid", gap: 12 }}>
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <b style={{ fontSize: 15, flex: 1 }}>Kết quả & chấm điểm tháng {k.thang}/{k.nam}</b>
+        <span style={{ fontSize: 13 }}>Đã nghiệm thu: <b>{so(k.diem_tam_tinh, 2)}</b>/100 · Dự kiến: {so(k.diem_du_kien, 2)}</span>
+        {k.trang_thai === "da_khoa" ? <Chip tt="da_khoa" /> : null}
+      </div>
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 720 }}>
+          <thead><tr style={{ background: C.bg, color: C.muted, fontSize: 12, textAlign: "left" }}>
+            {["Mã", "Tiêu chí", "Nhóm", "Chỉ tiêu", "Báo cáo", "Nghiệm thu", "Trọng số", "Điểm", "Trạng thái"].map((h) => <th key={h} style={{ padding: "8px 6px" }}>{h}</th>)}
+          </tr></thead>
+          <tbody>
+            {k.tieu_chi.map((x) => (
+              <tr key={x.id} style={{ borderTop: `1px solid ${C.line}`, cursor: "pointer" }} onClick={() => { setChon(x.id); setVung("theo_doi"); setTab("duyet"); }}>
+                <td style={{ padding: "8px 6px", fontWeight: 800, color: nhomCua(x.nhom)[2] }}>{x.ma}</td>
+                <td style={{ padding: "8px 6px" }}>{x.ten}</td>
+                <td style={{ padding: "8px 6px", color: C.muted }}>{x.nhom_nhan}</td>
+                <td style={{ padding: "8px 6px" }}>{so(x.chi_tieu)} {x.don_vi}</td>
+                <td style={{ padding: "8px 6px" }}>{x.ket_qua_bao_cao != null ? so(x.ket_qua_bao_cao) : "—"}</td>
+                <td style={{ padding: "8px 6px" }}>{x.ket_qua_nghiem_thu != null ? so(x.ket_qua_nghiem_thu) : "—"}</td>
+                <td style={{ padding: "8px 6px" }}>{so(x.trong_so)}</td>
+                <td style={{ padding: "8px 6px", fontWeight: 800 }}>{x.trang_thai === "da_nghiem_thu" ? so(x.diem, 2) : <span style={{ color: C.faint }}>{so(x.diem_goi_y, 2)}*</span>}</td>
+                <td style={{ padding: "8px 6px" }}><Chip tt={x.trang_thai} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ fontSize: 12, color: C.muted }}>* điểm dự kiến theo số quản lý báo cáo, chưa nghiệm thu. Bấm một dòng để mở phần nghiệm thu.</div>
+      {k.nhan_xet ? <div style={{ fontSize: 13 }}><b>Nhận xét tổng kết:</b> {k.nhan_xet}</div> : null}
+    </div>
+  );
 
   return (
     <div style={{ padding: 20, display: "grid", gap: 16 }}>
@@ -212,6 +293,7 @@ export default function ThiDuaQuanLy() {
         <span style={{ color: C.muted, fontSize: 13 }}>{k.vai === "center_manager" ? "Quản lý cơ sở" : "Quản lý đào tạo"}</span>
         <Chip tt={k.trang_thai} />
         <span style={{ fontSize: 12.5, color: k.tong_trong_so === 100 ? C.green : C.red }}>Tổng trọng số {so(k.tong_trong_so)}/100</span>
+        <span style={{ fontSize: 12.5, color: C.muted }}>{k.trang_thai === "da_khoa" ? "Điểm đã khoá" : "Điểm tạm tính"}: <b style={{ color: C.ink }}>{so(k.diem_khoa ?? k.diem_tam_tinh, 2)}/100</b></span>
         <span style={{ flex: 1 }} />
         {coTheGui ? <Nut mau="cam" disabled={dang} onClick={() => goi(() => apiClient.post(`/thi-dua-ql/khung/${k.id}/gui/`), "Đã gửi Giám đốc duyệt.")}>Gửi Giám đốc duyệt</Nut> : null}
         {gd && choDuyet ? <Nut mau="xanh" disabled={dang} onClick={() => goi(() => apiClient.post(`/thi-dua-ql/khung/${k.id}/duyet/`, {}))}>✓ Duyệt tất cả ({choDuyet})</Nut> : null}
@@ -225,97 +307,97 @@ export default function ThiDuaQuanLy() {
       </div>
       {loi ? <div style={{ color: C.red, fontSize: 13, background: C.redSoft, borderRadius: 10, padding: "8px 12px" }}>{loi}</div> : null}
 
-      {/* Tổng quan: tiến độ + 4 nhóm */}
+      {/* Tiến độ tổng thể + 4 khung cố định */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 12 }}>
-        <div style={card}>
-          <div style={{ fontSize: 12.5, color: C.muted }}>Tiến độ tổng thể tháng {k.thang}/{k.nam}</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: C.orange }}>{bc}%</div>
-          <div style={{ fontSize: 12, color: C.muted }}>{daBaoCao}/{k.tieu_chi.length} đã báo cáo · {daNt} đã nghiệm thu</div>
-          <div style={{ display: "grid", gap: 2, marginTop: 6, fontSize: 12 }}>
-            {Object.entries(dem).map(([t, n]) => <div key={t} style={{ display: "flex", justifyContent: "space-between" }}><Chip tt={t} /><b>{n}</b></div>)}
+        <div style={{ ...card, display: "flex", gap: 12, alignItems: "center" }}>
+          <svg width="84" height="84" viewBox="0 0 84 84" aria-hidden="true">
+            <circle cx="42" cy="42" r={r} fill="none" stroke="#EEF0F3" strokeWidth="9" />
+            <circle cx="42" cy="42" r={r} fill="none" stroke={C.green} strokeWidth="9" strokeLinecap="round"
+                    strokeDasharray={`${(chuVi * tienDoTB) / 100} ${chuVi}`} transform="rotate(-90 42 42)" />
+            <text x="42" y="46" textAnchor="middle" fontSize="17" fontWeight="800" fill={C.ink}>{tienDoTB}%</text>
+          </svg>
+          <div style={{ display: "grid", gap: 3, fontSize: 12 }}>
+            <b style={{ fontSize: 12.5 }}>Tiến độ tổng thể tháng {k.thang}/{k.nam}</b>
+            {[["Đang thực hiện", nhomTT.dang, C.blue], ["Chờ duyệt", nhomTT.cho, C.amber], ["Cần bổ sung", nhomTT.bo_sung, C.red],
+              ["Chưa bắt đầu", nhomTT.chua, C.faint], ["Đã nghiệm thu", nhomTT.xong, C.green]].map(([n, v, m]) => (
+              <span key={n}><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 4, background: m, marginRight: 6 }} />{n} ({v})</span>
+            ))}
           </div>
         </div>
         {NHOM.map(([ma, ten, mau, nen], i) => {
           const ds = k.tieu_chi.filter((x) => x.nhom === ma);
           const ts = ds.reduce((t, x) => t + x.trong_so, 0);
-          const diem = ds.reduce((t, x) => t + (x.trang_thai === "da_nghiem_thu" ? x.diem || 0 : 0), 0);
+          const dk = ds.reduce((t, x) => t + (x.trang_thai === "da_nghiem_thu" ? x.diem || 0 : x.diem_goi_y || 0), 0);
+          const nt = ds.reduce((t, x) => t + (x.trang_thai === "da_nghiem_thu" ? x.diem || 0 : 0), 0);
+          const pt = ts ? Math.round((dk * 100) / ts) : 0;
           return (
-            <div key={ma} style={{ ...card, background: nen, borderColor: nen }}>
+            <div key={ma} style={{ ...card }}>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <span style={{ width: 24, height: 24, borderRadius: 7, background: mau, color: "#fff", display: "grid", placeItems: "center", fontWeight: 800 }}>{i + 1}</span>
+                <span style={{ width: 26, height: 26, borderRadius: 8, background: mau, color: "#fff", display: "grid", placeItems: "center", fontWeight: 800 }}>{i + 1}</span>
                 <b style={{ fontSize: 13.5 }}>{ten}</b>
               </div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: mau, marginTop: 8 }}>{so(diem)} <span style={{ fontSize: 13, color: C.muted }}>/ {so(ts)} điểm</span></div>
-              <Bar v={ts ? (diem * 100) / ts : 0} color={mau} />
-              <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4 }}>{ds.length} tiêu chí</div>
+              <div style={{ fontSize: 26, fontWeight: 800, color: mau, marginTop: 8 }}>{pt} <span style={{ fontSize: 13, color: C.muted }}>/ 100 điểm</span></div>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}><div style={{ flex: 1 }}><Bar v={pt} color={mau} /></div><span style={{ fontSize: 12, color: C.muted }}>{pt}%</span></div>
+              <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4, background: nen, borderRadius: 6, padding: "2px 6px", display: "inline-block" }}>
+                {ds.length} tiêu chí · đã nghiệm thu {so(nt)}/{so(ts)}đ
+              </div>
             </div>
           );
         })}
-        <div style={card}>
-          <div style={{ fontSize: 12.5, color: C.muted }}>{k.trang_thai === "da_khoa" ? "Điểm đã khoá" : "Điểm tạm tính (đã nghiệm thu)"}</div>
-          <div style={{ fontSize: 28, fontWeight: 800 }}>{so(k.diem_khoa ?? k.diem_tam_tinh)}<span style={{ fontSize: 14, color: C.muted }}> /100</span></div>
-          <div style={{ fontSize: 12, color: C.muted }}>Dự kiến theo báo cáo: {so(k.diem_du_kien)}</div>
-        </div>
       </div>
 
       {/* Quy trình */}
-      <div style={{ ...card, display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 6, overflowX: "auto" }}>
-        {mocs.map(([ngay, viec], i) => (
-          <div key={viec} style={{ textAlign: "center", minWidth: 120 }}>
-            <div style={{ width: 28, height: 28, borderRadius: 14, margin: "0 auto 4px", display: "grid", placeItems: "center", fontWeight: 800,
-                          background: i < buocHien ? C.green : i === buocHien ? C.orange : C.bg, color: i <= buocHien ? "#fff" : C.muted }}>
-              {i < buocHien ? "✓" : i + 1}
+      <div style={card}>
+        <b style={{ fontSize: 13.5 }}>Quy trình thực hiện trong tháng {k.thang}/{k.nam}</b>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5,minmax(110px,1fr))", gap: 6, overflowX: "auto", marginTop: 10 }}>
+          {mocs.map(([ngay, viec], i) => (
+            <div key={viec} style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: i <= buocHien ? C.ink : C.muted }}>{ngay}</div>
+              <div style={{ width: 28, height: 28, borderRadius: 14, margin: "4px auto", display: "grid", placeItems: "center", fontWeight: 800,
+                            background: i < buocHien ? C.green : i === buocHien ? C.orange : C.bg, color: i <= buocHien ? "#fff" : C.muted }}>
+                {i < buocHien ? "✓" : i + 1}
+              </div>
+              <div style={{ fontSize: 11.5, color: C.muted }}>{viec}</div>
             </div>
-            <div style={{ fontSize: 12, fontWeight: 700 }}>{ngay}</div>
-            <div style={{ fontSize: 11.5, color: C.muted }}>{viec}</div>
-          </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 3 tab lớn theo mẫu */}
+      <div style={{ display: "flex", gap: 4, borderBottom: `1px solid ${C.line}`, overflowX: "auto" }}>
+        {[["dang_ky", `Đăng ký & trình duyệt (${k.tieu_chi.length})`], ["theo_doi", `Theo dõi & nghiệm thu (${soTheoDoi})`], ["ket_qua", "Kết quả & chấm điểm"]].map(([ma, ten]) => (
+          <button key={ma} type="button" onClick={() => { setVung(ma); setTab(ma === "theo_doi" ? "tien_do" : "tong_quan"); }}
+                  style={{ border: 0, background: vung === ma ? C.orangeSoft : "none", padding: "10px 16px", cursor: "pointer", whiteSpace: "nowrap", borderRadius: "10px 10px 0 0",
+                           fontWeight: vung === ma ? 800 : 600, color: vung === ma ? C.orange : C.muted, borderBottom: vung === ma ? `2px solid ${C.orange}` : "2px solid transparent" }}>{ten}</button>
         ))}
       </div>
 
-      {/* Danh sách + chi tiết */}
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(260px,340px) minmax(0,1fr)", gap: 16, alignItems: "start" }} className="tdql-luoi">
-        <div style={{ ...card, padding: 10, display: "grid", gap: 10 }}>
-          {NHOM.map(([ma, ten, mau], i) => {
-            const ds = k.tieu_chi.filter((x) => x.nhom === ma);
-            return (
-              <div key={ma}>
-                <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "4px 6px" }}>
-                  <span style={{ width: 20, height: 20, borderRadius: 6, background: mau, color: "#fff", display: "grid", placeItems: "center", fontSize: 12, fontWeight: 800 }}>{i + 1}</span>
-                  <b style={{ fontSize: 13, flex: 1 }}>{ten}</b>
-                  <span style={{ fontSize: 11.5, color: C.muted }}>{ds.length} tiêu chí · {so(ds.reduce((t, x) => t + x.trong_so, 0))}đ</span>
-                </div>
-                {ds.map((x) => (
-                  <button key={x.id} type="button" onClick={() => { setChon(x.id); }}
-                          style={{ all: "unset", cursor: "pointer", display: "grid", gridTemplateColumns: "34px 1fr auto", gap: 6, alignItems: "center", width: "100%",
-                                   boxSizing: "border-box", padding: "7px 8px", borderRadius: 9, background: tc?.id === x.id ? C.orangeSoft : "transparent", fontSize: 13 }}>
-                    <b style={{ color: mau }}>{x.ma}</b>
-                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={x.ten}>{x.ten}</span>
-                    <Chip tt={x.trang_thai} />
-                  </button>
-                ))}
-                {(laChu || gd) && ["nhap", "tra_ve"].includes(k.trang_thai) ? (
-                  <button type="button" onClick={() => goi(() => apiClient.post("/thi-dua-ql/tieu-chi/", { khung: k.id, nhom: ma }))}
-                          style={{ border: 0, background: "none", color: C.orange, cursor: "pointer", fontSize: 12.5, padding: "2px 8px" }}>+ Thêm tiêu chí</button>
-                ) : null}
-              </div>
-            );
-          })}
+      {vung === "ket_qua" ? ketQua : (
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(280px,380px) minmax(0,1fr)", gap: 16, alignItems: "start" }} className="tdql-luoi">
+          {danhSach}
+          {tc ? (
+            <ChiTiet key={tc.id} tc={tc} k={k} gd={gd} laChu={laChu} suaDuoc={suaDuoc} dang={dang} goi={goi} tab={tab} setTab={setTab} />
+          ) : <div style={card}>Chưa có tiêu chí.</div>}
         </div>
-
-        {tc ? (
-          <ChiTiet key={tc.id} tc={tc} k={k} gd={gd} laChu={laChu} suaDuoc={suaDuoc} dang={dang} goi={goi} tab={tab} setTab={setTab} />
-        ) : <div style={card}>Chưa có tiêu chí.</div>}
-      </div>
+      )}
       <style>{"@media (max-width: 900px){.tdql-luoi{grid-template-columns:1fr !important}}"}</style>
     </div>
   );
 }
+
+const Khoi = ({ tieuDe, children, phai }) => (
+  <div style={{ border: `1px solid ${C.line}`, borderRadius: 12, padding: 12, display: "grid", gap: 8, alignContent: "start" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}><b style={{ fontSize: 13.5, flex: 1 }}>{tieuDe}</b>{phai}</div>
+    {children}
+  </div>
+);
 
 function ChiTiet({ tc, k, gd, laChu, suaDuoc, dang, goi, tab, setTab }) {
   const [f, setF] = useState(() => ({ ...tc }));
   const [bc, setBc] = useState({ so_dat: tc.ket_qua_bao_cao ?? "", noi_dung: tc.bao_cao || "" });
   const [nt, setNt] = useState({ so_dat: tc.ket_qua_bao_cao ?? "", diem: "", nhan_xet: "" });
   const [gh, setGh] = useState({ han_moi: "", ly_do: "" });
+  const [sua, setSua] = useState(false);
   const oFile = useRef(null);
   const [mau] = (NHOM.find((n) => n[0] === tc.nhom) || NHOM[0]).slice(2);
   const baoCaoDuoc = laChu && ["da_duyet", "can_bo_sung", "cho_nghiem_thu"].includes(tc.trang_thai) && k.trang_thai !== "da_khoa";
@@ -323,20 +405,103 @@ function ChiTiet({ tc, k, gd, laChu, suaDuoc, dang, goi, tab, setTab }) {
   const luu = () => goi(() => apiClient.patch(`/thi-dua-ql/tieu-chi/${tc.id}/`, {
     ten: f.ten, muc_tieu: f.muc_tieu, don_vi: f.don_vi, chi_tieu: f.chi_tieu, trong_so: f.trong_so, han: f.han,
     phu_trach: f.phu_trach, minh_chung_yc: f.minh_chung_yc, dieu_kien: f.dieu_kien, ghi_chu: f.ghi_chu,
-  }));
-  const TABS = [["tong_quan", "Tổng quan"], ["tien_do", "Tiến độ & báo cáo"], ["minh_chung", `Minh chứng (${tc.minh_chung.length})`],
+  })).then(() => setSua(false));
+  const TABS = [["tong_quan", "Tổng quan"], ["tien_do", "Tiến độ"], ["noi_dung", "Nội dung & mốc"], ["minh_chung", `Minh chứng (${tc.minh_chung.length})`],
     ["duyet", "Nhận xét & duyệt"], ["lich_su", "Lịch sử"]];
-  const hang = (nhan, v) => <div style={{ display: "grid", gridTemplateColumns: "140px 1fr", gap: 8, fontSize: 13, padding: "4px 0" }}><span style={{ color: C.muted }}>{nhan}</span><span>{v || "—"}</span></div>;
+  const hang = (nhan, v) => <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 8, fontSize: 13, padding: "3px 0" }}><span style={{ color: C.muted }}>{nhan}</span><span>{v || "—"}</span></div>;
+  const mucTieu = String(tc.muc_tieu || "").split(/[;\n]+/).map((x) => x.trim()).filter(Boolean);
+  const soLanBC = tc.lich_su.filter((h) => /Cập nhật tiến độ|Nộp nghiệm thu/.test(h.noi_dung)).length;
+  const thangS = String(k.thang).padStart(2, "0");
+  const mocTc = [[`07/${thangS}`, "Báo cáo lần 1", soLanBC >= 1], [`14/${thangS}`, "Báo cáo lần 2", soLanBC >= 2],
+    [`21/${thangS}`, "Báo cáo lần 3", soLanBC >= 3], [ngayVN(tc.han).slice(0, 5), "Hoàn thành", tc.trang_thai === "da_nghiem_thu"]];
+  const ptNt = tc.trang_thai === "da_nghiem_thu" && tc.chi_tieu ? (tc.ket_qua_nghiem_thu * 100) / tc.chi_tieu : 0;
+
+  const khoiTienDo = (
+    <Khoi tieuDe="Tiến độ thực hiện">
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}><span>Đã báo cáo</span>
+        <b>{tc.tien_do_bao_cao}% · {so(tc.ket_qua_bao_cao ?? 0)}/{so(tc.chi_tieu)} {tc.don_vi}</b></div>
+      <Bar v={tc.tien_do_bao_cao} />
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}><span>Đã nghiệm thu</span>
+        <b style={{ color: C.green }}>{Math.round(ptNt)}% · {tc.ket_qua_nghiem_thu != null ? so(tc.ket_qua_nghiem_thu) : 0}/{so(tc.chi_tieu)}</b></div>
+      <Bar v={ptNt} color={C.green} />
+    </Khoi>
+  );
+  const khoiMoc = (
+    <Khoi tieuDe="Các mốc thời gian quan trọng">
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 4, textAlign: "center" }}>
+        {mocTc.map(([ngay, viec, xong], i) => (
+          <div key={viec}>
+            <div style={{ width: 24, height: 24, borderRadius: 12, margin: "0 auto 3px", display: "grid", placeItems: "center", fontSize: 12, fontWeight: 800,
+                          background: xong ? C.green : i === mocTc.length - 1 ? C.redSoft : C.bg, color: xong ? "#fff" : i === mocTc.length - 1 ? C.red : C.muted }}>{xong ? "✓" : i + 1}</div>
+            <div style={{ fontSize: 12, fontWeight: 700 }}>{ngay}</div>
+            <div style={{ fontSize: 11, color: C.muted }}>{viec}</div>
+          </div>
+        ))}
+      </div>
+    </Khoi>
+  );
+  const anh = (m, w = 96, h = 72) => (
+    <a key={m.id} href={m.url} target="_blank" rel="noreferrer">
+      {m.la_anh ? <img src={m.url} alt={m.ten} style={{ width: w, height: h, objectFit: "cover", borderRadius: 8, display: "block" }} />
+        : <span style={{ display: "grid", placeItems: "center", width: w, height: h, border: `1px solid ${C.line}`, borderRadius: 8, fontSize: 11.5, padding: 4, boxSizing: "border-box", overflow: "hidden" }}>📎 {m.ten}</span>}
+    </a>
+  );
+  const khoiDiem = (
+    <Khoi tieuDe={`Chấm điểm (thang ${so(tc.trong_so)})`}>
+      <div style={{ fontSize: 26, fontWeight: 800 }}>{so(tc.trang_thai === "da_nghiem_thu" ? tc.diem : tc.diem_goi_y, 2)} <span style={{ fontSize: 13, color: C.muted }}>/ {so(tc.trong_so)}</span></div>
+      <div style={{ fontSize: 12, color: C.muted }}>{tc.trang_thai === "da_nghiem_thu" ? "Giám đốc đã nghiệm thu" : "Dự kiến = trọng số × số đạt ÷ chỉ tiêu (Giám đốc chỉnh khi nghiệm thu)"}</div>
+    </Khoi>
+  );
+  const nutDuyet = gd ? (
+    <div style={{ display: "grid", gap: 8 }}>
+      {tc.trang_thai === "cho_duyet" ? (
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <Nut mau="xanh" disabled={dang} onClick={() => goi(() => apiClient.post(`/thi-dua-ql/khung/${k.id}/duyet/`, { tieu_chi_ids: [tc.id] }))}>✓ Duyệt đề xuất</Nut>
+          <Nut mau="do" disabled={dang} onClick={() => { const ly = window.prompt("Lý do trả về để quản lý chỉnh sửa:"); if (ly) goi(() => apiClient.post(`/thi-dua-ql/khung/${k.id}/tra_ve/`, { tieu_chi_ids: [tc.id], ly_do: ly })); }}>Trả về chỉnh sửa</Nut>
+        </div>
+      ) : null}
+      {tc.gia_han === "cho" ? (
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", background: C.amberSoft, borderRadius: 9, padding: 8 }}>
+          <span style={{ flex: 1, fontSize: 13 }}>Xin gia hạn tới <b>{ngayVN(tc.han_de_xuat)}</b>: {tc.ly_do_gia_han}</span>
+          <Nut mau="xanh" disabled={dang} onClick={() => goi(() => apiClient.post(`/thi-dua-ql/tieu-chi/${tc.id}/duyet_gia_han/`, { dong_y: true }))}>Duyệt</Nut>
+          <Nut mau="do" disabled={dang} onClick={() => goi(() => apiClient.post(`/thi-dua-ql/tieu-chi/${tc.id}/duyet_gia_han/`, { dong_y: false }))}>Không</Nut>
+        </div>
+      ) : null}
+      {["cho_nghiem_thu", "da_duyet", "can_bo_sung", "da_nghiem_thu"].includes(tc.trang_thai) && k.trang_thai !== "da_khoa" ? (
+        <div style={{ display: "grid", gap: 8 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(120px,1fr))", gap: 8 }}>
+            <label style={{ display: "grid", gap: 4, fontSize: 12 }}>Số đạt xác nhận<input style={o} value={nt.so_dat} onChange={(e) => setNt({ ...nt, so_dat: e.target.value })} /></label>
+            <label style={{ display: "grid", gap: 4, fontSize: 12 }}>Điểm (trống = {so(goiY, 2)})<input style={o} value={nt.diem} onChange={(e) => setNt({ ...nt, diem: e.target.value })} /></label>
+          </div>
+          <textarea rows={2} style={o} placeholder="Nhận xét của Giám đốc…" value={nt.nhan_xet} onChange={(e) => setNt({ ...nt, nhan_xet: e.target.value })} />
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <Nut mau="xanh" disabled={dang} onClick={() => goi(() => apiClient.post(`/thi-dua-ql/tieu-chi/${tc.id}/nghiem_thu/`, { ket_qua: "dat", ...nt }))}>✓ Duyệt nghiệm thu</Nut>
+            <Nut mau="do" disabled={dang || !nt.nhan_xet.trim()} onClick={() => goi(() => apiClient.post(`/thi-dua-ql/tieu-chi/${tc.id}/nghiem_thu/`, { ket_qua: "bo_sung", nhan_xet: nt.nhan_xet }))}>Yêu cầu bổ sung</Nut>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  ) : null;
+  const khoiDuyet = (
+    <Khoi tieuDe="Nhận xét & duyệt của Giám đốc">
+      {tc.nhan_xet ? <div style={{ fontSize: 13, background: C.bg, borderRadius: 8, padding: 8 }}>{tc.nhan_xet}</div> : null}
+      {nutDuyet || <div style={{ fontSize: 12.5, color: C.muted }}>Giám đốc duyệt đề xuất và nghiệm thu. Bạn nộp báo cáo + minh chứng ở tab “Tiến độ”.</div>}
+    </Khoi>
+  );
 
   return (
     <div style={{ ...card, display: "grid", gap: 14 }}>
       <div style={{ display: "flex", gap: 10, alignItems: "flex-start", flexWrap: "wrap" }}>
-        <span style={{ background: mau, color: "#fff", fontWeight: 800, borderRadius: 10, padding: "8px 10px" }}>{tc.ma}</span>
+        <span style={{ background: mau, color: "#fff", fontWeight: 800, borderRadius: 10, padding: "10px 12px" }}>{tc.ma}</span>
         <div style={{ flex: 1, minWidth: 200 }}>
-          <div style={{ fontSize: 17, fontWeight: 800 }}>{tc.ten}</div>
-          <div style={{ fontSize: 12.5, color: C.muted }}>{tc.nhom_nhan} · {so(tc.trong_so)} điểm tối đa · Hạn {ngayVN(tc.han)} · {tc.phu_trach}</div>
+          <div style={{ fontSize: 18, fontWeight: 800 }}>{tc.ten}</div>
+          <div style={{ fontSize: 12.5, color: C.muted }}>{tc.nhom_nhan} · {so(tc.trong_so)} điểm tối đa · {tc.phu_trach || "—"}</div>
         </div>
         <Chip tt={tc.trang_thai} />
+        <span style={{ fontSize: 12, border: `1px solid ${C.line}`, borderRadius: 9, padding: "4px 9px", color: C.red, whiteSpace: "nowrap" }}>
+          Hạn hoàn thành<br /><b>{ngayVN(tc.han)} 23:59</b>
+        </span>
+        {suaDuoc ? <Nut onClick={() => { setTab("tong_quan"); setSua(true); }}>✎ Chỉnh sửa</Nut> : null}
       </div>
       {tc.ly_do_tra_ve && tc.trang_thai === "tra_ve" ? <div style={{ background: C.redSoft, color: C.red, borderRadius: 9, padding: "8px 12px", fontSize: 13 }}>Giám đốc trả về: {tc.ly_do_tra_ve}</div> : null}
       {tc.trang_thai === "can_bo_sung" && tc.nhan_xet ? <div style={{ background: C.redSoft, color: C.red, borderRadius: 9, padding: "8px 12px", fontSize: 13 }}>Cần bổ sung: {tc.nhan_xet}</div> : null}
@@ -347,11 +512,11 @@ function ChiTiet({ tc, k, gd, laChu, suaDuoc, dang, goi, tab, setTab }) {
         ))}
       </div>
 
-      {tab === "tong_quan" ? (suaDuoc ? (
+      {tab === "tong_quan" && suaDuoc && sua ? (
         <div style={{ display: "grid", gap: 10 }}>
-          <div style={{ fontSize: 12.5, color: C.muted }}>Sửa nội dung đăng ký rồi bấm Lưu; xong hết bấm “Gửi Giám đốc duyệt” ở trên.</div>
+          <div style={{ fontSize: 12.5, color: C.muted }}>Nhóm cố định; nội dung tiêu chí do quản lý đề xuất hằng tháng. Sửa rồi bấm Lưu; xong hết bấm “Gửi Giám đốc duyệt”.</div>
           <label style={{ display: "grid", gap: 4, fontSize: 12.5 }}>Tên tiêu chí<input style={o} value={f.ten} onChange={(e) => setF({ ...f, ten: e.target.value })} /></label>
-          <label style={{ display: "grid", gap: 4, fontSize: 12.5 }}>Mục tiêu / chất lượng / số lượng cam kết<textarea rows={3} style={o} value={f.muc_tieu} onChange={(e) => setF({ ...f, muc_tieu: e.target.value })} /></label>
+          <label style={{ display: "grid", gap: 4, fontSize: 12.5 }}>Mục tiêu đăng ký (mỗi ý một dòng)<textarea rows={4} style={o} value={f.muc_tieu} onChange={(e) => setF({ ...f, muc_tieu: e.target.value })} /></label>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: 10 }}>
             <label style={{ display: "grid", gap: 4, fontSize: 12.5 }}>Chỉ tiêu (số)<input style={o} value={f.chi_tieu} onChange={(e) => setF({ ...f, chi_tieu: e.target.value })} /></label>
             <label style={{ display: "grid", gap: 4, fontSize: 12.5 }}>Đơn vị<input style={o} value={f.don_vi} onChange={(e) => setF({ ...f, don_vi: e.target.value })} /></label>
@@ -364,41 +529,40 @@ function ChiTiet({ tc, k, gd, laChu, suaDuoc, dang, goi, tab, setTab }) {
           <label style={{ display: "grid", gap: 4, fontSize: 12.5 }}>Ghi chú / giải trình<textarea rows={2} style={o} value={f.ghi_chu} onChange={(e) => setF({ ...f, ghi_chu: e.target.value })} /></label>
           <div style={{ display: "flex", gap: 8 }}>
             <Nut mau="cam" disabled={dang} onClick={luu}>Lưu</Nut>
-            <Nut disabled={dang} onClick={() => window.confirm(`Xoá tiêu chí ${tc.ma}?`) && goi(() => apiClient.delete(`/thi-dua-ql/tieu-chi/${tc.id}/`))}>Xoá tiêu chí</Nut>
+            <Nut onClick={() => { setF({ ...tc }); setSua(false); }}>Huỷ</Nut>
+            <Nut disabled={dang} style={{ marginLeft: "auto" }} onClick={() => window.confirm(`Xoá tiêu chí ${tc.ma}?`) && goi(() => apiClient.delete(`/thi-dua-ql/tieu-chi/${tc.id}/`))}>Xoá tiêu chí</Nut>
           </div>
         </div>
-      ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,320px),1fr))", gap: 16 }}>
-          <div>
-            <b style={{ fontSize: 13.5 }}>Căn cứ & mục tiêu đăng ký</b>
-            {hang("Mục tiêu tháng", tc.muc_tieu)}
-            {hang("Chỉ tiêu", `${so(tc.chi_tieu)} ${tc.don_vi}`)}
-            {hang("Người phụ trách", tc.phu_trach)}
-            {hang("Hạn", ngayVN(tc.han))}
-            {hang("Minh chứng bắt buộc", tc.minh_chung_yc)}
-            {hang("Điều kiện nghiệm thu", tc.dieu_kien)}
-            {tc.ghi_chu ? hang("Ghi chú", tc.ghi_chu) : null}
-          </div>
-          <div style={{ display: "grid", gap: 8, alignContent: "start" }}>
-            <b style={{ fontSize: 13.5 }}>Tiến độ thực hiện</b>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}><span>Đã báo cáo</span><b>{so(tc.ket_qua_bao_cao ?? 0)}/{so(tc.chi_tieu)} {tc.don_vi} · {tc.tien_do_bao_cao}%</b></div>
-            <Bar v={tc.tien_do_bao_cao} />
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}><span>Đã nghiệm thu</span>
-              <b style={{ color: C.green }}>{tc.trang_thai === "da_nghiem_thu" ? `${so(tc.ket_qua_nghiem_thu)}/${so(tc.chi_tieu)} ${tc.don_vi}` : "—"}</b></div>
-            <Bar v={tc.trang_thai === "da_nghiem_thu" && tc.chi_tieu ? (tc.ket_qua_nghiem_thu * 100) / tc.chi_tieu : 0} color={C.green} />
-            <div style={{ ...card, background: C.bg, border: 0, padding: 12 }}>
-              <div style={{ fontSize: 12.5, color: C.muted }}>{tc.trang_thai === "da_nghiem_thu" ? "Điểm nghiệm thu" : "Điểm dự kiến theo báo cáo"}</div>
-              <div style={{ fontSize: 24, fontWeight: 800 }}>{so(tc.trang_thai === "da_nghiem_thu" ? tc.diem : tc.diem_goi_y, 2)} <span style={{ fontSize: 13, color: C.muted }}>/ {so(tc.trong_so)}</span></div>
-              <div style={{ fontSize: 11.5, color: C.muted }}>Cách tính gợi ý: trọng số × số đạt ÷ chỉ tiêu (tối đa trọng số). Giám đốc chỉnh khi nghiệm thu.</div>
+      ) : null}
+
+      {tab === "tong_quan" && !(suaDuoc && sua) ? (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,300px),1fr))", gap: 12 }}>
+          <Khoi tieuDe="Căn cứ từ khung thi đua">
+            {hang("Kỳ áp dụng", `Tháng ${k.thang}/${k.nam}`)}
+            {hang("Nhóm tiêu chí", tc.nhom_nhan)}
+            {hang("Tiêu chí", tc.ten)}
+            {hang("Cách tính", tc.dieu_kien)}
+          </Khoi>
+          <Khoi tieuDe={`Mục tiêu đăng ký tháng ${k.thang}/${k.nam}`}>
+            {mucTieu.length ? <ul style={{ margin: 0, paddingLeft: 18, display: "grid", gap: 3, fontSize: 13 }}>{mucTieu.map((m, i) => <li key={i}>{m}</li>)}</ul>
+              : <span style={{ fontSize: 13, color: C.muted }}>—</span>}
+            <div style={{ fontSize: 12.5, color: C.muted }}>Chỉ tiêu: <b style={{ color: C.ink }}>{so(tc.chi_tieu)} {tc.don_vi}</b></div>
+          </Khoi>
+          {khoiTienDo}
+          {khoiMoc}
+          <Khoi tieuDe={`Minh chứng đã nộp (${tc.minh_chung.length})`} phai={baoCaoDuoc ? <button type="button" onClick={() => setTab("minh_chung")} style={{ border: 0, background: "none", color: C.orange, cursor: "pointer", fontSize: 12.5 }}>+ Thêm minh chứng</button> : null}>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {tc.minh_chung.length ? tc.minh_chung.slice(0, 6).map((m) => anh(m)) : <span style={{ fontSize: 13, color: C.muted }}>Chưa có minh chứng.</span>}
             </div>
-            {tc.gia_han ? <div style={{ fontSize: 12.5, color: tc.gia_han === "cho" ? C.amber : tc.gia_han === "duyet" ? C.green : C.red }}>
-              Gia hạn: {tc.gia_han === "cho" ? "chờ duyệt" : tc.gia_han === "duyet" ? "đã duyệt" : "từ chối"} → {ngayVN(tc.han_de_xuat)} ({tc.ly_do_gia_han})</div> : null}
-          </div>
+          </Khoi>
+          {khoiDiem}
+          <div style={{ gridColumn: "1 / -1" }}>{khoiDuyet}</div>
         </div>
-      )) : null}
+      ) : null}
 
       {tab === "tien_do" ? (
-        <div style={{ display: "grid", gap: 10 }}>
+        <div style={{ display: "grid", gap: 12 }}>
+          {khoiTienDo}
           {tc.bao_cao ? <div style={{ fontSize: 13, background: C.bg, borderRadius: 9, padding: 10, whiteSpace: "pre-line" }}>
             <b>Báo cáo gần nhất</b> ({tc.bao_cao_luc ? new Date(tc.bao_cao_luc).toLocaleString("vi-VN") : ""}): {tc.bao_cao}</div> : null}
           {baoCaoDuoc ? (
@@ -409,9 +573,7 @@ function ChiTiet({ tc, k, gd, laChu, suaDuoc, dang, goi, tab, setTab }) {
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <Nut disabled={dang} onClick={() => goi(() => apiClient.post(`/thi-dua-ql/tieu-chi/${tc.id}/bao_cao/`, { ...bc }))}>Lưu tiến độ</Nut>
-                <Nut mau="cam" disabled={dang} onClick={() => goi(() => apiClient.post(`/thi-dua-ql/tieu-chi/${tc.id}/bao_cao/`, { ...bc, nop: true }), "Đã nộp Giám đốc nghiệm thu.")}>
-                  Nộp nghiệm thu
-                </Nut>
+                <Nut mau="cam" disabled={dang} onClick={() => goi(() => apiClient.post(`/thi-dua-ql/tieu-chi/${tc.id}/bao_cao/`, { ...bc, nop: true }), "Đã nộp Giám đốc nghiệm thu.")}>Nộp nghiệm thu</Nut>
               </div>
               <div style={{ borderTop: `1px dashed ${C.line}`, paddingTop: 10, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-end" }}>
                 <label style={{ display: "grid", gap: 4, fontSize: 12.5 }}>Đề nghị gia hạn tới<input type="date" style={{ ...o, width: 170 }} value={gh.han_moi} onChange={(e) => setGh({ ...gh, han_moi: e.target.value })} /></label>
@@ -419,7 +581,23 @@ function ChiTiet({ tc, k, gd, laChu, suaDuoc, dang, goi, tab, setTab }) {
                 <Nut disabled={dang || !gh.han_moi || !gh.ly_do.trim()} onClick={() => goi(() => apiClient.post(`/thi-dua-ql/tieu-chi/${tc.id}/gia_han/`, gh))}>Gửi đề nghị</Nut>
               </div>
             </>
-          ) : <div style={{ fontSize: 13, color: C.muted }}>{laChu ? "Tiêu chí cần được Giám đốc duyệt trước khi báo cáo tiến độ." : "Quản lý chưa báo cáo thêm."}</div>}
+          ) : <div style={{ fontSize: 13, color: C.muted }}>{laChu ? "Tiêu chí cần được Giám đốc duyệt trước khi báo cáo tiến độ." : "Quản lý báo cáo tiến độ ở đây."}</div>}
+        </div>
+      ) : null}
+
+      {tab === "noi_dung" ? (
+        <div style={{ display: "grid", gap: 12 }}>
+          <Khoi tieuDe="Nội dung đăng ký">
+            {hang("Mục tiêu", tc.muc_tieu)}
+            {hang("Chỉ tiêu", `${so(tc.chi_tieu)} ${tc.don_vi}`)}
+            {hang("Người phụ trách", tc.phu_trach)}
+            {hang("Hạn", ngayVN(tc.han))}
+            {hang("Minh chứng bắt buộc", tc.minh_chung_yc)}
+            {hang("Cách tính / nghiệm thu", tc.dieu_kien)}
+            {tc.ghi_chu ? hang("Ghi chú", tc.ghi_chu) : null}
+            {tc.gia_han ? hang("Gia hạn", `${tc.gia_han === "cho" ? "chờ duyệt" : tc.gia_han === "duyet" ? "đã duyệt" : "từ chối"} → ${ngayVN(tc.han_de_xuat)} (${tc.ly_do_gia_han})`) : null}
+          </Khoi>
+          {khoiMoc}
         </div>
       ) : null}
 
@@ -429,10 +607,7 @@ function ChiTiet({ tc, k, gd, laChu, suaDuoc, dang, goi, tab, setTab }) {
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             {tc.minh_chung.length ? tc.minh_chung.map((m) => (
               <div key={m.id} style={{ position: "relative" }}>
-                <a href={m.url} target="_blank" rel="noreferrer">
-                  {m.la_anh ? <img src={m.url} alt={m.ten} style={{ width: 120, height: 90, objectFit: "cover", borderRadius: 8, display: "block" }} />
-                    : <span style={{ display: "inline-block", padding: "30px 10px", border: `1px solid ${C.line}`, borderRadius: 8, fontSize: 12.5, width: 120 }}>📎 {m.ten}</span>}
-                </a>
+                {anh(m, 130, 98)}
                 {baoCaoDuoc ? <button type="button" title="Xoá" onClick={() => goi(() => apiClient.post(`/thi-dua-ql/tieu-chi/${tc.id}/xoa_minh_chung/`, { mc: m.id }))}
                                      style={{ position: "absolute", top: -6, right: -6, width: 20, height: 20, borderRadius: 10, border: 0, background: C.red, color: "#fff", cursor: "pointer" }}>×</button> : null}
               </div>
@@ -453,39 +628,7 @@ function ChiTiet({ tc, k, gd, laChu, suaDuoc, dang, goi, tab, setTab }) {
         </div>
       ) : null}
 
-      {tab === "duyet" ? (
-        <div style={{ display: "grid", gap: 12 }}>
-          {tc.nhan_xet ? <div style={{ fontSize: 13 }}><b>Nhận xét Giám đốc:</b> {tc.nhan_xet}</div> : null}
-          {gd && tc.trang_thai === "cho_duyet" ? (
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <Nut mau="xanh" disabled={dang} onClick={() => goi(() => apiClient.post(`/thi-dua-ql/khung/${k.id}/duyet/`, { tieu_chi_ids: [tc.id] }))}>✓ Duyệt tiêu chí</Nut>
-              <Nut mau="do" disabled={dang} onClick={() => { const ly = window.prompt("Lý do trả về để quản lý chỉnh sửa:"); if (ly) goi(() => apiClient.post(`/thi-dua-ql/khung/${k.id}/tra_ve/`, { tieu_chi_ids: [tc.id], ly_do: ly })); }}>Trả về chỉnh sửa</Nut>
-            </div>
-          ) : null}
-          {gd && tc.gia_han === "cho" ? (
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", background: C.amberSoft, borderRadius: 9, padding: 10 }}>
-              <span style={{ flex: 1, fontSize: 13 }}>Đề nghị gia hạn tới <b>{ngayVN(tc.han_de_xuat)}</b>: {tc.ly_do_gia_han}</span>
-              <Nut mau="xanh" disabled={dang} onClick={() => goi(() => apiClient.post(`/thi-dua-ql/tieu-chi/${tc.id}/duyet_gia_han/`, { dong_y: true }))}>Duyệt gia hạn</Nut>
-              <Nut mau="do" disabled={dang} onClick={() => goi(() => apiClient.post(`/thi-dua-ql/tieu-chi/${tc.id}/duyet_gia_han/`, { dong_y: false }))}>Không duyệt</Nut>
-            </div>
-          ) : null}
-          {gd && ["cho_nghiem_thu", "da_duyet", "can_bo_sung", "da_nghiem_thu"].includes(tc.trang_thai) && k.trang_thai !== "da_khoa" ? (
-            <div style={{ display: "grid", gap: 10, background: C.bg, borderRadius: 10, padding: 12 }}>
-              <b style={{ fontSize: 13.5 }}>Nghiệm thu & chấm điểm (thang {so(tc.trong_so)})</b>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 10 }}>
-                <label style={{ display: "grid", gap: 4, fontSize: 12.5 }}>Số đạt xác nhận ({tc.don_vi})<input style={o} value={nt.so_dat} onChange={(e) => setNt({ ...nt, so_dat: e.target.value })} /></label>
-                <label style={{ display: "grid", gap: 4, fontSize: 12.5 }}>Điểm (trống = {so(goiY, 2)})<input style={o} value={nt.diem} onChange={(e) => setNt({ ...nt, diem: e.target.value })} /></label>
-              </div>
-              <label style={{ display: "grid", gap: 4, fontSize: 12.5 }}>Nhận xét<textarea rows={2} style={o} value={nt.nhan_xet} onChange={(e) => setNt({ ...nt, nhan_xet: e.target.value })} /></label>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <Nut mau="xanh" disabled={dang} onClick={() => goi(() => apiClient.post(`/thi-dua-ql/tieu-chi/${tc.id}/nghiem_thu/`, { ket_qua: "dat", ...nt }))}>✓ Nghiệm thu & chấm điểm</Nut>
-                <Nut mau="do" disabled={dang || !nt.nhan_xet.trim()} onClick={() => goi(() => apiClient.post(`/thi-dua-ql/tieu-chi/${tc.id}/nghiem_thu/`, { ket_qua: "bo_sung", nhan_xet: nt.nhan_xet }))}>Yêu cầu bổ sung</Nut>
-              </div>
-            </div>
-          ) : null}
-          {!gd ? <div style={{ fontSize: 13, color: C.muted }}>Quyền duyệt và nghiệm thu thuộc Giám đốc. Bạn nộp báo cáo + minh chứng ở tab “Tiến độ & báo cáo”.</div> : null}
-        </div>
-      ) : null}
+      {tab === "duyet" ? <div style={{ display: "grid", gap: 12 }}>{khoiDiem}{khoiDuyet}</div> : null}
 
       {tab === "lich_su" ? (
         <div style={{ display: "grid", gap: 6 }}>
