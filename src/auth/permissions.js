@@ -27,6 +27,8 @@ export const ROUTE_PERMISSIONS = {
   // Danh sách này phải khớp VAI_CHAM bên kpi/views.py, lệch là menu hiện ra
   // nhưng bấm vào lại 403.
   kpiAdmin: ['superadmin', 'admin', 'center_manager', 'training_manager'],
+  // Thi đua QUẢN LÝ theo tháng (26/10/2026): quản lý đăng ký / báo cáo, Giám đốc (admin) duyệt / nghiệm thu.
+  thiDuaQuanLy: ['superadmin', 'admin', 'center_manager', 'training_manager'],
   // Phiếu báo cáo tháng gửi phụ huynh — do giáo viên/quản lý lập.
   // Quản lý cơ sở/đào tạo DUYỆT bảng điểm nên phải mở được phiếu của từng em
   // để xem trước khi bấm duyệt. Quyền GHI vẫn do backend chặn (_assert_can_write).

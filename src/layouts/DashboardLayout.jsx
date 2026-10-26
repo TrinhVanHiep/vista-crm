@@ -143,6 +143,17 @@ const navItems = [
     ),
   },
   {
+    label: "Thi đua quản lý",
+    to: "/thi-dua-quan-ly",
+    allowedRoles: ROUTE_PERMISSIONS.thiDuaQuanLy,
+    icon: navIcon(
+      <>
+        <path d="M7 4h10v5a5 5 0 0 1-10 0V4z" />
+        <path d="M12 14v4m-4 3h8M4 21v-2a4 4 0 0 1 4-4" />
+      </>,
+    ),
+  },
+  {
     // Mục này trước đây trỏ vào /monthly-scorecards — vốn là màn NHẬP BẢNG ĐIỂM
     // HỌC VIÊN, không phải thi đua. Trả lại đúng đích, và tách màn kia thành mục
     // riêng ngay dưới với tên đúng việc nó làm.

@@ -16,6 +16,7 @@ import ComingSoon from './pages/ComingSoon.jsx';
 import MediaPlan from './pages/MediaPlan.jsx';
 import Finance from './pages/Finance.jsx';
 import TaiChinh from './pages/TaiChinh.jsx';
+import ThiDuaQuanLy from './pages/ThiDuaQuanLy.jsx';
 import CreateAccount from './pages/CreateAccount.jsx';
 import Students from './pages/Students.jsx';
 import ProgramDetail from './pages/ProgramDetail.jsx';
@@ -189,6 +190,14 @@ function App() {
               nội dung đổi theo vai. Giữ đường dẫn cũ để link/bookmark đã gửi đi
               không chết, chỉ dẫn về đúng chỗ mới. */}
           <Route path="cham-thi-dua" element={<Navigate to="/thi-dua-thang" replace />} />
+          <Route
+            path="thi-dua-quan-ly"
+            element={
+              <RoleGuard allowedRoles={ROUTE_PERMISSIONS.thiDuaQuanLy}>
+                <ThiDuaQuanLy />
+              </RoleGuard>
+            }
+          />
           {/* Đường cũ: URL ghi "report-card" (phiếu gửi phụ huynh) nhưng lại mở
               màn Báo cáo ngày — hai thứ khác hẳn nhau. Đổi sang /bao-cao-ngay và
               giữ lối cũ chuyển hướng, để link đã gửi cho ai rồi không gãy. */}
