@@ -307,8 +307,8 @@ export default function ThiDuaQuanLy() {
       </div>
       {loi ? <div style={{ color: C.red, fontSize: 13, background: C.redSoft, borderRadius: 10, padding: "8px 12px" }}>{loi}</div> : null}
 
-      {/* Tiến độ tổng thể + 4 khung cố định */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 12 }}>
+      {/* Tiến độ tổng thể + 4 khung cố định — luôn 1 hàng trên màn rộng (26/10/2026) */}
+      <div className="tdql-tong" style={{ display: "grid", gridTemplateColumns: "minmax(230px,1.25fr) repeat(4,minmax(0,1fr))", gap: 12 }}>
         <div style={{ ...card, display: "flex", gap: 12, alignItems: "center" }}>
           <svg width="84" height="84" viewBox="0 0 84 84" aria-hidden="true">
             <circle cx="42" cy="42" r={r} fill="none" stroke="#EEF0F3" strokeWidth="9" />
@@ -336,7 +336,7 @@ export default function ThiDuaQuanLy() {
                 <span style={{ width: 26, height: 26, borderRadius: 8, background: mau, color: "#fff", display: "grid", placeItems: "center", fontWeight: 800 }}>{i + 1}</span>
                 <b style={{ fontSize: 13.5 }}>{ten}</b>
               </div>
-              <div style={{ fontSize: 26, fontWeight: 800, color: mau, marginTop: 8 }}>{pt} <span style={{ fontSize: 13, color: C.muted }}>/ 100 điểm</span></div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: mau, marginTop: 8, whiteSpace: "nowrap" }}>{pt} <span style={{ fontSize: 12.5, color: C.muted }}>/ 100 điểm</span></div>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}><div style={{ flex: 1 }}><Bar v={pt} color={mau} /></div><span style={{ fontSize: 12, color: C.muted }}>{pt}%</span></div>
               <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4, background: nen, borderRadius: 6, padding: "2px 6px", display: "inline-block" }}>
                 {ds.length} tiêu chí · đã nghiệm thu {so(nt)}/{so(ts)}đ
@@ -380,7 +380,9 @@ export default function ThiDuaQuanLy() {
           ) : <div style={card}>Chưa có tiêu chí.</div>}
         </div>
       )}
-      <style>{"@media (max-width: 900px){.tdql-luoi{grid-template-columns:1fr !important}}"}</style>
+      <style>{"@media (max-width: 900px){.tdql-luoi{grid-template-columns:1fr !important}}"
+        + "@media (max-width: 1100px){.tdql-tong{grid-template-columns:repeat(3,minmax(0,1fr)) !important}}"
+        + "@media (max-width: 640px){.tdql-tong{grid-template-columns:repeat(2,minmax(0,1fr)) !important}}"}</style>
     </div>
   );
 }
