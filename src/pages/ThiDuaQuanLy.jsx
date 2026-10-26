@@ -138,11 +138,24 @@ export default function ThiDuaQuanLy() {
                   <td style={{ padding: 8, color: x.cho_duyet ? C.amber : C.faint, fontWeight: 700 }}>{x.cho_duyet || "—"}</td>
                   <td style={{ padding: 8, fontWeight: 800 }}>{so(x.diem_tam_tinh)}</td>
                   <td style={{ padding: 8, color: C.muted }}>{so(x.diem_du_kien)}</td>
-                  <td style={{ padding: 8 }}>{x.khung_id ? <Nut onClick={() => moNguoi(x.nguoi.id)}>Mở →</Nut> : null}</td>
+                  <td style={{ padding: 8 }}><Nut mau={x.khung_id ? "ghost" : "cam"} onClick={() => moNguoi(x.nguoi.id)}>{x.khung_id ? "Mở →" : "Lập khung →"}</Nut></td>
                 </tr>
               ))}
             </tbody>
           </table>
+          <div style={{ marginTop: 12, fontSize: 12.5, color: C.muted, lineHeight: 1.7 }}>
+            Quy trình tháng: quản lý lập khung (hoặc Giám đốc bấm “Lập khung →” để lập sẵn từ mẫu 14 tiêu chí) → quản lý sửa chỉ tiêu,
+            trọng số đủ 100 rồi gửi duyệt → Giám đốc duyệt → quản lý báo cáo + nộp minh chứng → Giám đốc nghiệm thu, chấm điểm → khoá điểm tháng.
+          </div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 10 }}>
+          {moc(thang, nam).map(([ngay, viec], i) => (
+            <div key={viec} style={{ ...card, textAlign: "center", padding: 12 }}>
+              <div style={{ width: 26, height: 26, borderRadius: 13, margin: "0 auto 4px", display: "grid", placeItems: "center", fontWeight: 800, background: C.orangeSoft, color: C.orange }}>{i + 1}</div>
+              <div style={{ fontSize: 12.5, fontWeight: 700 }}>{ngay}</div>
+              <div style={{ fontSize: 12, color: C.muted }}>{viec}</div>
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -154,7 +167,7 @@ export default function ThiDuaQuanLy() {
       <div style={{ padding: 20, display: "grid", gap: 16 }}>
         {dauTrang}
         <div style={{ ...card, display: "grid", gap: 12, maxWidth: 720 }}>
-          <b style={{ fontSize: 16 }}>Chưa có khung thi đua tháng {thang}/{nam}</b>
+          <b style={{ fontSize: 16 }}>Chưa có khung thi đua tháng {thang}/{nam}{gd && d.nguoi?.ten ? ` — ${d.nguoi.ten}` : ""}</b>
           {d.co_the_tao ? (
             <>
               <div style={{ color: C.muted, fontSize: 13.5 }}>
@@ -162,13 +175,13 @@ export default function ThiDuaQuanLy() {
                 Mẫu tháng 11 có sẵn 14 tiêu chí trong 4 nhóm, trọng số theo vai của bạn (tổng 100 điểm) — sửa lại cho khớp thực tế rồi gửi.
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <Nut mau="cam" disabled={dang} onClick={() => goi(() => apiClient.post("/thi-dua-ql/khung/", { month: thang, year: nam, tu_mau: true }))}>
+                <Nut mau="cam" disabled={dang} onClick={() => goi(() => apiClient.post("/thi-dua-ql/khung/", { month: thang, year: nam, tu_mau: true, ...(gd ? { nguoi } : {}) }))}>
                   Tạo từ mẫu (14 tiêu chí)
                 </Nut>
-                <Nut disabled={dang} onClick={() => goi(() => apiClient.post("/thi-dua-ql/khung/", { month: thang, year: nam, sao_thang_truoc: true }))}>
+                <Nut disabled={dang} onClick={() => goi(() => apiClient.post("/thi-dua-ql/khung/", { month: thang, year: nam, sao_thang_truoc: true, ...(gd ? { nguoi } : {}) }))}>
                   Sao chép tháng trước
                 </Nut>
-                <Nut disabled={dang} onClick={() => goi(() => apiClient.post("/thi-dua-ql/khung/", { month: thang, year: nam, tu_mau: false }))}>
+                <Nut disabled={dang} onClick={() => goi(() => apiClient.post("/thi-dua-ql/khung/", { month: thang, year: nam, tu_mau: false, ...(gd ? { nguoi } : {}) }))}>
                   Khung trống
                 </Nut>
               </div>
@@ -180,7 +193,7 @@ export default function ThiDuaQuanLy() {
     );
   }
 
-  const suaDuoc = laChu && ["nhap", "tra_ve"].includes(tc?.trang_thai) && k.trang_thai !== "da_khoa";
+  const suaDuoc = (laChu || gd) && ["nhap", "tra_ve"].includes(tc?.trang_thai) && k.trang_thai !== "da_khoa";
   const dem = k.dem || {};
   const tongTc = k.tieu_chi.length || 1;
   const daBaoCao = k.tieu_chi.filter((x) => x.ket_qua_bao_cao != null).length;
@@ -280,7 +293,7 @@ export default function ThiDuaQuanLy() {
                     <Chip tt={x.trang_thai} />
                   </button>
                 ))}
-                {laChu && ["nhap", "tra_ve"].includes(k.trang_thai) ? (
+                {(laChu || gd) && ["nhap", "tra_ve"].includes(k.trang_thai) ? (
                   <button type="button" onClick={() => goi(() => apiClient.post("/thi-dua-ql/tieu-chi/", { khung: k.id, nhom: ma }))}
                           style={{ border: 0, background: "none", color: C.orange, cursor: "pointer", fontSize: 12.5, padding: "2px 8px" }}>+ Thêm tiêu chí</button>
                 ) : null}
