@@ -204,6 +204,8 @@ export default function ThiDuaQuanLy() {
   const daNt = dem.da_nghiem_thu || 0;
   const coTheGui = laChu && ["nhap", "tra_ve"].includes(k.trang_thai);
   const choDuyet = k.tieu_chi.filter((x) => x.trang_thai === "cho_duyet").length;
+  // Giám đốc duyệt thẳng được cả tiêu chí quản lý chưa gửi (nháp / cần sửa).
+  const chuaDuyet = k.tieu_chi.filter((x) => ["cho_duyet", "nhap", "tra_ve"].includes(x.trang_thai)).length;
   const mocs = moc(k.thang, k.nam);
   const buocHien = k.trang_thai === "da_khoa" ? 4 : daNt ? 3 : ["da_duyet"].includes(k.trang_thai) ? 2 : k.trang_thai === "cho_duyet" ? 1 : 0;
 
@@ -301,7 +303,12 @@ export default function ThiDuaQuanLy() {
         <span style={{ fontSize: 12.5, color: C.muted }}>{k.trang_thai === "da_khoa" ? "Điểm đã khoá" : "Điểm tạm tính"}: <b style={{ color: C.ink }}>{so(k.diem_khoa ?? k.diem_tam_tinh, 2)}/100</b></span>
         <span style={{ flex: 1 }} />
         {coTheGui ? <Nut mau="cam" disabled={dang} onClick={() => goi(() => apiClient.post(`/thi-dua-ql/khung/${k.id}/gui/`), "Đã gửi Giám đốc duyệt.")}>Gửi Giám đốc duyệt</Nut> : null}
-        {gd && choDuyet ? <Nut mau="xanh" disabled={dang} onClick={() => goi(() => apiClient.post(`/thi-dua-ql/khung/${k.id}/duyet/`, {}))}>✓ Duyệt tất cả ({choDuyet})</Nut> : null}
+        {gd && chuaDuyet && k.trang_thai !== "da_khoa" ? (
+          <Nut mau="xanh" disabled={dang} onClick={() => {
+            if (!choDuyet && !window.confirm(`${k.nguoi.ten} chưa gửi khung. Duyệt luôn ${chuaDuyet} tiêu chí đang có?`)) return;
+            goi(() => apiClient.post(`/thi-dua-ql/khung/${k.id}/duyet/`, {}), "Đã duyệt khung.");
+          }}>✓ Duyệt khung ({chuaDuyet})</Nut>
+        ) : null}
         {gd && k.trang_thai === "da_duyet" ? (
           <Nut disabled={dang} onClick={() => {
             const ly = window.prompt(`Khoá điểm tháng ${k.thang}/${k.nam} của ${k.nguoi.ten}: ${so(k.diem_tam_tinh)}/100 (tiêu chí chưa nghiệm thu tính 0). Nhận xét tổng kết:`, "");
@@ -468,10 +475,10 @@ function ChiTiet({ tc, k, gd, laChu, suaDuoc, dang, goi, tab, setTab }) {
   );
   const nutDuyet = gd ? (
     <div style={{ display: "grid", gap: 8 }}>
-      {tc.trang_thai === "cho_duyet" ? (
+      {["cho_duyet", "nhap", "tra_ve"].includes(tc.trang_thai) && k.trang_thai !== "da_khoa" ? (
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <Nut mau="xanh" disabled={dang} onClick={() => goi(() => apiClient.post(`/thi-dua-ql/khung/${k.id}/duyet/`, { tieu_chi_ids: [tc.id] }))}>✓ Duyệt đề xuất</Nut>
-          <Nut mau="do" disabled={dang} onClick={() => { const ly = window.prompt("Lý do trả về để quản lý chỉnh sửa:"); if (ly) goi(() => apiClient.post(`/thi-dua-ql/khung/${k.id}/tra_ve/`, { tieu_chi_ids: [tc.id], ly_do: ly })); }}>Trả về chỉnh sửa</Nut>
+          <Nut mau="xanh" disabled={dang} onClick={() => goi(() => apiClient.post(`/thi-dua-ql/khung/${k.id}/duyet/`, { tieu_chi_ids: [tc.id] }))}>✓ Duyệt tiêu chí</Nut>
+          {tc.trang_thai === "cho_duyet" ? <Nut mau="do" disabled={dang} onClick={() => { const ly = window.prompt("Lý do trả về để quản lý chỉnh sửa:"); if (ly) goi(() => apiClient.post(`/thi-dua-ql/khung/${k.id}/tra_ve/`, { tieu_chi_ids: [tc.id], ly_do: ly })); }}>Trả về chỉnh sửa</Nut> : null}
         </div>
       ) : null}
       {tc.gia_han === "cho" ? (

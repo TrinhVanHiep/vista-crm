@@ -811,7 +811,8 @@ export default function StudentLearningReport() {
     setLoiNhap("");
     try {
       // Truyền lớp đang lọc để file mẫu điền sẵn họ tên học viên của lớp đó.
-      const blob = await reportCardTemplate(lopId ? { classroom: lopId } : {});
+      // Kèm tháng để file điền sẵn chuyên cần từ điểm danh.
+      const blob = await reportCardTemplate({ ...(lopId ? { classroom: lopId } : {}), month: thang, year: nam });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;

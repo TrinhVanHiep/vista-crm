@@ -1943,6 +1943,7 @@ function MonthlyScorecards() {
               <section className={styles.formSection}>
                 <div className={styles.sectionHeader}>
                   <h3>Chuyên cần</h3>
+                  <small>Để trống thì khi lưu hệ thống tự lấy từ điểm danh các ca trong tháng.</small>
                 </div>
                 <div className={styles.formGrid}>
                   <label className={styles.field}>
