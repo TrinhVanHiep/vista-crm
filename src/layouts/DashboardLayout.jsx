@@ -25,6 +25,7 @@ import {
   loadWebPushState,
 } from "../services/webPushService";
 import styles from "../styles/dashboard.module.css";
+import { mayLechMuiGio } from "../utils/gioVN";
 import CanhBaoViecGap from "../components/CanhBaoViecGap";
 import HoanThienHoSo from "../components/HoanThienHoSo";
 import XacNhanLuong from "../components/XacNhanLuong";
@@ -1003,6 +1004,11 @@ function DashboardLayout() {
           </div>
         </header>
         <main className={styles["dashboard__content"]} aria-live="polite">
+          {mayLechMuiGio() ? (
+            <div role="alert" style={{ background: "#fdecea", color: "#b42318", border: "1px solid #f5c2bd", borderRadius: 10, padding: "10px 14px", margin: "0 0 12px", fontSize: 13.5 }}>
+              <b>Máy tính đang đặt múi giờ khác Việt Nam.</b> Giờ ca dạy hiển thị trên máy này có thể lệch. Vào Cài đặt hệ thống → Ngày &amp; giờ → chọn múi giờ <b>Hà Nội / TP. Hồ Chí Minh (GMT+7)</b>, rồi tải lại trang.
+            </div>
+          ) : null}
           <CanhBaoViecGap userId={user?.id} />
           <HoanThienHoSo userId={user?.id} onDangXuat={handleLogout} />
           <XacNhanLuong userId={user?.id} />

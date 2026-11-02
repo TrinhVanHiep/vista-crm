@@ -81,22 +81,14 @@ const getErrorMessage = (error, fallback) =>
   error?.response?.data?.message ||
   fallback;
 
+// Mốc lọc theo giờ Việt Nam cố định (+07:00), không theo múi giờ máy (02/11/2026).
 const toFilterDateTime = (year, month, endOfMonth = false) => {
-  const date = endOfMonth
-    ? new Date(year, month, 0, 23, 59, 59, 999)
-    : new Date(year, month - 1, 1, 0, 0, 0, 0);
-  const timezoneOffset = -date.getTimezoneOffset();
-  const sign = timezoneOffset >= 0 ? "+" : "-";
-  const absOffset = Math.abs(timezoneOffset);
-  const hours = String(Math.floor(absOffset / 60)).padStart(2, "0");
-  const minutes = String(absOffset % 60).padStart(2, "0");
-  const yearPart = date.getFullYear();
-  const monthPart = String(date.getMonth() + 1).padStart(2, "0");
-  const dayPart = String(date.getDate()).padStart(2, "0");
-  const hourPart = String(date.getHours()).padStart(2, "0");
-  const minutePart = String(date.getMinutes()).padStart(2, "0");
-  const secondPart = String(date.getSeconds()).padStart(2, "0");
-  return `${yearPart}-${monthPart}-${dayPart}T${hourPart}:${minutePart}:${secondPart}${sign}${hours}:${minutes}`;
+  const pad = (n) => String(n).padStart(2, "0");
+  if (endOfMonth) {
+    const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    return `${year}-${pad(month)}-${pad(lastDay)}T23:59:59+07:00`;
+  }
+  return `${year}-${pad(month)}-01T00:00:00+07:00`;
 };
 
 /** Tiêu đề thẻ: dòng tên + dòng mô tả ngắn, dùng chung cho mọi Card của màn này. */

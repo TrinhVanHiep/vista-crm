@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { gioVNSangIso, isoSangGioVN } from "../utils/gioVN";
 import AnhMinhChung from "../components/AnhMinhChung";
 import MinhChungLich from "../components/MinhChungLich";
 import { VAI_QUAN_TRI } from "../auth/permissions";
@@ -510,27 +511,8 @@ const isPastDateTime = (value) => {
   return parsed.getTime() < Date.now();
 };
 
-const toIsoWithLocalOffset = (value) => {
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return value;
-  const timezoneOffset = -parsed.getTimezoneOffset();
-  const sign = timezoneOffset >= 0 ? "+" : "-";
-  const absOffset = Math.abs(timezoneOffset);
-  const hours = pad2(Math.floor(absOffset / 60));
-  const minutes = pad2(absOffset % 60);
-  return `${parsed.getFullYear()}-${pad2(parsed.getMonth() + 1)}-${pad2(
-    parsed.getDate(),
-  )}T${pad2(parsed.getHours())}:${pad2(parsed.getMinutes())}:00${sign}${hours}:${minutes}`;
-};
 
 // ISO -> giá trị input datetime-local ("YYYY-MM-DDTHH:MM") theo giờ local.
-const toDateTimeLocalValue = (value) => {
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return "";
-  return `${parsed.getFullYear()}-${pad2(parsed.getMonth() + 1)}-${pad2(
-    parsed.getDate(),
-  )}T${pad2(parsed.getHours())}:${pad2(parsed.getMinutes())}`;
-};
 
 // Cộng thêm phút vào giá trị input datetime-local ("YYYY-MM-DDTHH:MM").
 const addMinutesToLocalInput = (value, minutes) => {
@@ -2443,8 +2425,8 @@ function CalendarDetail() {
         center: Number(resolvedCenterId),
         classroom: Number(createForm.classroom),
         session_date: sessionDate,
-        start_at: toIsoWithLocalOffset(createForm.start_at),
-        end_at: toIsoWithLocalOffset(createForm.end_at),
+        start_at: gioVNSangIso(createForm.start_at),
+        end_at: gioVNSangIso(createForm.end_at),
         delivery_mode: createForm.delivery_mode,
         meeting_link: createForm.meeting_link.trim(),
         recording_link: "",
@@ -2508,8 +2490,8 @@ function CalendarDetail() {
     if (!raw) return;
     setDetailSession(null);
     setCreateError("");
-    const startLocal = raw.start_at ? toDateTimeLocalValue(raw.start_at) : "";
-    const endLocal = raw.end_at ? toDateTimeLocalValue(raw.end_at) : "";
+    const startLocal = raw.start_at ? isoSangGioVN(raw.start_at) : "";
+    const endLocal = raw.end_at ? isoSangGioVN(raw.end_at) : "";
     setEditingSessionId(raw.id);
     setEditingScheduleId(null); setEditingScheduleRaw(null);
     setCreateForm((prev) => ({
