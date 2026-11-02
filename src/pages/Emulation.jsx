@@ -22,9 +22,9 @@ const THANG = Array.from({ length: 12 }, (_, i) => i + 1);
 const NAM = [2025, 2026, 2027];
 
 const VAI_QUAN_LY = new Set(["admin", "superadmin", "center_manager", "training_manager"]);
-// Tạo khung mặc định chỉ dành cho admin/super admin — khớp đúng luật backend,
-// nếu rộng hơn thì quản lý cơ sở sẽ thấy nút rồi bấm vào nhận 403.
-const VAI_TAO_KHUNG = new Set(["admin", "superadmin"]);
+// Tạo / sửa khung thi đua: cả tầng quản trị (gồm QLCS, QLĐT) — khớp backend
+// is_admin_or_superadmin_user (ADMIN_ROLE_NAMES). 02/11/2026: QLĐT báo chưa có quyền.
+const VAI_TAO_KHUNG = new Set(["admin", "superadmin", "center_manager", "training_manager"]);
 // Ai CÓ phiếu thi đua của chính mình. Chủ dự án chốt (27/08/2026): chỉ giáo viên
 // (và nhân viên) lập phiếu; quản lý / admin / super admin chỉ chấm lại và duyệt,
 // không có phiếu riêng. Vì vậy các vai đó không thấy tab "Phiếu của tôi" nữa.

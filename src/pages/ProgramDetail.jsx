@@ -156,7 +156,8 @@ export default function ProgramDetail() {
   })();
   // Backend ClassTaskViewSet.create dùng IsTeacherOrAdmin -> is_teaching_planner_user,
   // TEACHING_PLANNER_ROLE_NAMES có "teacher" => giáo viên được tạo nhiệm vụ lớp.
-  const canManage = ["superadmin", "admin", "teacher"].includes(role);
+  // Quản lý (QLCS, QLĐT) cũng lập lịch được từ 28/10/2026 (is_teaching_planner_user).
+  const canManage = ["superadmin", "admin", "teacher", "center_manager", "training_manager"].includes(role);
   // Học phí: backend CanManageTuition chỉ cho {superadmin, admin, staff, center_manager,
   // training_manager} — role teacher bị 403, nên ẩn hẳn mọi khối học phí cho teacher.
   const isTeacher = role === "teacher";
