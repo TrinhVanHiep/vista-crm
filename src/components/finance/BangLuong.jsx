@@ -4,6 +4,7 @@ import SuaLuongChot from "./SuaLuongChot";
 import NhapLuongThang from "./NhapLuongThang";
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useAuth } from "../../auth/AuthProvider";
 import { dinhDangTien, loiApi, rutGonM } from "../../services/financeService";
 import {
   layBangLuong, layCoCauLuong, layCongChoDuyet, layDonGiaLop, layNhanSuChuaCoLuong, layPhieuLuong,
@@ -155,11 +156,17 @@ function NhapChamCong({ thang, nam, onDaGhi }) {
   );
 }
 
-export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
+export default function BangLuong({ thang, nam, coTheGhi = false, coSuaLuong = false, onNotice }) {
+  // coTheGhi: kế toán / admin (cả cấu hình lương). coSuaLuong: thêm quản lý cơ sở (03/11/2026) —
+  // sửa số liệu lương, chốt, thanh toán; trừ dòng của chính mình và cấu hình lương.
+  const { user } = useAuth();
+  const suaLuong = coTheGhi || coSuaLuong;
   const [taiLai, setTaiLai] = useState(0);
   const [ds, setDs] = useState([]);
   // Thanh toán từng người (23/10/2026): trạng thái xác nhận phiếu + đã thanh toán, theo teacher_id.
   const [thanhToan, setThanhToan] = useState({});
+  // Dòng lương của chính người đang xem — quản lý cơ sở không tự sửa (backend cũng chặn).
+  const cuaMinh = (teacherId) => !coTheGhi && user?.id != null && thanhToan[teacherId]?.user_id === user.id;
   const [ttKey, setTtKey] = useState(0); // chỉ tải lại phần thanh toán, không tải lại cả bảng lương
   useEffect(() => {
     let con = true;
@@ -351,7 +358,7 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
                 <span style={{ color: color.green, fontWeight: 700 }}>✓ Đã thanh toán</span>
                 <div style={{ color: color.faint }}>
                   {new Date(r.da_chuyen_luc).toLocaleDateString("vi-VN")}
-                  {coTheGhi ? <button type="button" onClick={() => danhDauTT(r, true)}
+                  {suaLuong && !cuaMinh(x.teacher_id) ? <button type="button" onClick={() => danhDauTT(r, true)}
                                       style={{ border: 0, background: "none", color: color.muted, cursor: "pointer", fontSize: 11.5, textDecoration: "underline" }}>bỏ</button> : null}
                 </div>
               </div>
@@ -361,7 +368,7 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
           return (
             <div style={{ display: "grid", gap: 3, fontSize: 12 }}>
               <span style={{ color: r.trang_thai === "dong_y" ? color.green : r.trang_thai === "khieu_nai" ? color.red : "#B7791F" }}>{nhan}</span>
-              {coTheGhi ? (
+              {suaLuong && !cuaMinh(x.teacher_id) ? (
                 <button type="button" onClick={() => danhDauTT(r)}
                         style={{ border: "1px solid " + color.green, borderRadius: 8, padding: "3px 8px", background: "#fff", color: color.green,
                                  cursor: "pointer", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}>
@@ -373,7 +380,7 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
         })()}
       </div>,
       <div key="c" style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-        {coTheGhi && (x.teacher_id || x.chot?.id) ? (
+        {suaLuong && !cuaMinh(x.teacher_id) && (x.teacher_id || x.chot?.id) ? (
           <Button variant="ghost" title="Sửa tay số lương người này"
                   onClick={() => setSuaTay({ teacher_id: x.teacher_id, id: x.chot?.id, ten: x.teacher_name, ghi_chu: "" })}>✎ Sửa</Button>
         ) : null}
@@ -469,7 +476,7 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           <Button variant="ghost" onClick={() => moNguoi(null)}>← Bảng lương tháng {thang}/{nam}</Button>
           <span style={{ flex: 1 }} />
-          {coTheGhi && nguoi ? <Button variant="ghost" onClick={() => setDangChinh(nguoi)}>Chỉnh thưởng / thuế / phạt tháng này</Button> : null}
+          {suaLuong && nguoi && !cuaMinh(nguoi.teacher_id) ? <Button variant="ghost" onClick={() => setDangChinh(nguoi)}>Chỉnh thưởng / thuế / phạt tháng này</Button> : null}
           {coTheGhi && nguoi ? <Button variant="ghost" onClick={() => setCauHinh(nguoi.teacher_id)}>⚙ Cấu hình lương</Button> : null}
         </div>
         <Card>
@@ -500,8 +507,8 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       <NhapLuongThang thang={thang} nam={nam} onNotice={lamMoi} />
-      <XacNhanLuongTongHop lamMoi={ttKey} thang={thang} nam={nam} coTheGhi={coTheGhi} onDoi={() => setTtKey((v) => v + 1)} />
-      <DoiChieuChot thang={thang} nam={nam} coTheGhi={coTheGhi} onNotice={onNotice} />
+      <XacNhanLuongTongHop lamMoi={ttKey} thang={thang} nam={nam} coTheGhi={suaLuong} onDoi={() => setTtKey((v) => v + 1)} />
+      <DoiChieuChot thang={thang} nam={nam} coTheGhi={suaLuong} onNotice={onNotice} />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
         {oKhoi("Tổng lương thực nhận", tong, ds.length, `Chi phí lương công ty ${rutGonM(tongChiPhi)} (gồm BHXH công ty đóng)`)}
         {oKhoi("Khối giáo viên", tongGv, khoiGv.length, `Lương dạy ${rutGonM(tongGv.day || 0)} · cơ bản ${rutGonM(tongGv.coBan || 0)}`)}
@@ -605,7 +612,7 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
 
       {moBuoc === "chamcong" ? (
         <>
-          {coTheGhi ? <NhapChamCong thang={thang} nam={nam} onDaGhi={lamMoi} /> : null}
+          {suaLuong ? <NhapChamCong thang={thang} nam={nam} onDaGhi={lamMoi} /> : null}
           <DuyetCongBoSung thang={thang} nam={nam} duocDuyet={laQuanTri} taiLai={taiLai} onDaDuyet={lamMoi} />
           {!congChoDuyet ? <NoteStrip>Không có ngày công nào đang chờ duyệt.</NoteStrip> : null}
         </>
@@ -632,7 +639,7 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
         </NoteStrip>
       ) : null}
 
-      {moBuoc === "xuat" && coTheGhi && !daChot ? <ChotDauVao thang={thang} nam={nam} onXong={lamMoi} /> : null}
+      {moBuoc === "xuat" && suaLuong && !daChot ? <ChotDauVao thang={thang} nam={nam} onXong={lamMoi} /> : null}
       {moBuoc === "xuat" && !daChot && !fileDoiSoat ? (
         <button type="button" onClick={() => setFileDoiSoat(true)}
                 style={{ justifySelf: "start", border: 0, background: "none", color: color.muted, fontSize: 12.5, cursor: "pointer", textDecoration: "underline" }}>
@@ -640,7 +647,7 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
         </button>
       ) : null}
       {moBuoc === "xuat" && (daChot || fileDoiSoat) ? (
-        <ChotLuong thang={thang} nam={nam} ds={ds} coTheGhi={coTheGhi} onXong={lamMoi} />
+        <ChotLuong thang={thang} nam={nam} ds={ds} coTheGhi={suaLuong} onXong={lamMoi} />
       ) : null}
       {moBuoc === "xuat" ? (
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
@@ -672,7 +679,7 @@ export default function BangLuong({ thang, nam, coTheGhi = false, onNotice }) {
               <div key={ten} style={{ marginTop: 10 }}>
                 <div style={{ padding: "6px 22px", fontWeight: 800, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
                   {ten} <span style={{ fontWeight: 500, color: color.muted }}>{list.length} người · thực nhận {tien(t.thucNhan)}</span>
-                  {coTheGhi && ten === "Khối quản lý & văn phòng" ? (
+                  {suaLuong && ten === "Khối quản lý & văn phòng" ? (
                     <Button variant="ghost" style={{ marginLeft: "auto" }} onClick={() => setSuaTay({ ten: "" })}>+ Thêm dòng lương</Button>
                   ) : null}
                 </div>

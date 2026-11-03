@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { getViecCanLam, henLaiCa, henLaiLich } from "../services/calendarService";
 import { Button, Modal } from "../ui";
+import { SU_KIEN_VIEC_DOI } from "../utils/viecDoi";
 
 /**
  * Cảnh báo "Nhiệm vụ cần hoàn thành ngay" khi vào site.
@@ -25,6 +26,14 @@ export default function CanhBaoViecGap({ userId }) {
   const [coY, setCoY] = useState(null); // { so, quanLy: [{ten, vai, sdt}] } // { khoa, session_id | lich_id, ngay, lyDo, loi }
   const khoaViec = (v) => (v.lich_id ? `lich-${v.lich_id}` : `ca-${v.session_id}`);
   const khoa = `vista-crm.canh-bao-viec.${userId}`;
+  // Làm xong một việc ngay trên trang (báo cáo, nộp minh chứng) thì URL không đổi -> danh sách
+  // không tự tải lại, chip "N việc" còn nguyên (03/11/2026). Các ô báo cáo phát sự kiện này.
+  const [doi, setDoi] = useState(0);
+  useEffect(() => {
+    const nghe = () => setDoi((v) => v + 1);
+    window.addEventListener(SU_KIEN_VIEC_DOI, nghe);
+    return () => window.removeEventListener(SU_KIEN_VIEC_DOI, nghe);
+  }, []);
 
   useEffect(() => {
     if (!userId) return undefined;
@@ -46,7 +55,7 @@ export default function CanhBaoViecGap({ userId }) {
       })
       .catch(() => {});
     return () => { con = false; };
-  }, [userId, khoa, location.pathname, location.search]);
+  }, [userId, khoa, location.pathname, location.search, doi]);
 
   const dong = () => {
     setMo(false);

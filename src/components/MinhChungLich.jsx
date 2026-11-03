@@ -2,6 +2,8 @@ import { useRef, useState } from "react";
 import { baoCaoTienDoLich, duyetKeHoach, duyetLich, getSchedule, henLaiLich, mienLoiLich, taiMinhChungLich, xoaMinhChungLich } from "../services/calendarService";
 import { useAuth } from "../auth/AuthProvider";
 import { VAI_QUAN_TRI } from "../auth/permissions";
+import { useDanAnh } from "../utils/danAnh";
+import { baoViecDoi } from "../utils/viecDoi";
 
 /**
  * Minh chứng + hẹn lại cho một đầu mục lịch công tác (12/10/2026). Chuyển “Hoàn thành”
@@ -25,6 +27,10 @@ export default function MinhChungLich({ lich, onDoi }) {
   const [lyDoKd, setLyDoKd] = useState("");
   const [lyDoKh, setLyDoKh] = useState("");
   const [mien, setMien] = useState(null); // { lyDo, han }
+  // Dán ảnh (Ctrl/⌘ + V) thẳng vào minh chứng — 03/11/2026. Hook phải đứng trước return sớm.
+  useDanAnh((files) => {
+    if (!dang) goi(async () => onDoi({ ...lich, minh_chung: await taiMinhChungLich(lich.id, files) }));
+  }, Boolean(lich?.id) && lich?.status !== "cancel");
   if (!lich?.id) return null;
   const laQuanLy = VAI_QUAN_TRI.includes(role);
   const laPhuTrach = (lich.assigned_to?.id ?? lich.created_by?.id) === user?.id || laQuanLy;
@@ -40,6 +46,7 @@ export default function MinhChungLich({ lich, onDoi }) {
     setLoi("");
     try {
       await fn();
+      baoViecDoi();
     } catch (e) {
       setLoi(e?.response?.data?.detail || "Không thực hiện được.");
     } finally {
@@ -49,7 +56,7 @@ export default function MinhChungLich({ lich, onDoi }) {
   };
 
   return (
-    <div style={{ gridColumn: "1 / -1", padding: 12, borderRadius: 10,
+    <div id="minh-chung-lich" style={{ gridColumn: "1 / -1", padding: 12, borderRadius: 10,
                   border: `1px dashed ${mc.length ? "#9AD3AE" : "#E8A87C"}`, background: mc.length ? "#F3FBF6" : "#FFF8F3" }}>
       {/* Kế hoạch: nhân sự tự đăng việc -> quản lý duyệt nhận việc (15/10/2026) */}
       {lich.ke_hoach && lich.ke_hoach !== "da_duyet" ? (
@@ -162,7 +169,7 @@ export default function MinhChungLich({ lich, onDoi }) {
         {lich.han_hen ? <span style={{ fontSize: 12.5, color: "#8a7a66" }}>Đã hẹn tới 24:00 {ngayVN(lich.han_hen)}</span> : null}
         <span style={{ flex: 1 }} />
         <label style={{ cursor: dang ? "wait" : "pointer", fontSize: 13, fontWeight: 700, color: "#F26522" }}>
-          {dang ? "Đang tải…" : "+ Thêm ảnh / file"}
+          {dang ? "Đang tải…" : "+ Thêm ảnh / file (hoặc Ctrl/⌘ + V để dán)"}
           <input ref={oFile} type="file" multiple hidden disabled={dang} accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
                  onChange={(e) => e.target.files?.length && goi(async () => onDoi({ ...lich, minh_chung: await taiMinhChungLich(lich.id, e.target.files) }))} />
         </label>

@@ -800,6 +800,8 @@
  "✓ Duyệt kế hoạch": "✓ Approve plan",
  "✓ Duyệt nghiệm thu": "✓ Approve acceptance",
  "✓ Duyệt tiêu chí": "✓ Approve criterion",
+ "+ Thêm ảnh (hoặc Ctrl/⌘ + V để dán)": "+ Add photo (or paste with Ctrl/⌘ + V)",
+ "+ Thêm ảnh / file (hoặc Ctrl/⌘ + V để dán)": "+ Add photo / file (or paste with Ctrl/⌘ + V)",
  "Máy tính đang đặt múi giờ khác Việt Nam.": "This computer is set to a time zone other than Vietnam.",
  "Để trống thì khi lưu hệ thống tự lấy từ điểm danh các ca trong tháng.": "Leave blank and the system fills it from this month's session attendance on save.",
  "✓ Duyệt tất cả ({0})": "✓ Approve all ({0})",

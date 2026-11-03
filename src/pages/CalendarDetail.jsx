@@ -1,5 +1,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { gioVNSangIso, isoSangGioVN } from "../utils/gioVN";
+import { baoViecDoi } from "../utils/viecDoi";
 import AnhMinhChung from "../components/AnhMinhChung";
 import MinhChungLich from "../components/MinhChungLich";
 import { VAI_QUAN_TRI } from "../auth/permissions";
@@ -2561,7 +2562,21 @@ function CalendarDetail() {
   const viTri = useLocation();
   useEffect(() => {
     if (!lichTrenLink) return;
-    getSchedule(lichTrenLink).then(openEditSchedule).catch(() => setScheduleError("Không mở được đầu mục lịch công tác."));
+    getSchedule(lichTrenLink)
+      .then((lich) => {
+        openEditSchedule(lich);
+        // Mở từ cảnh báo việc cần làm -> cuộn thẳng tới khối báo cáo / minh chứng (03/11/2026:
+        // trước chỉ mở form sửa, người dùng phải tự kéo xuống tìm chỗ báo cáo).
+        window.setTimeout(() => {
+          const o = document.getElementById("minh-chung-lich");
+          if (o) {
+            o.scrollIntoView({ behavior: "smooth", block: "center" });
+            o.animate?.([{ boxShadow: "0 0 0 4px rgba(242,101,34,.45)" }, { boxShadow: "0 0 0 0 rgba(242,101,34,0)" }],
+                        { duration: 1600 });
+          }
+        }, 350);
+      })
+      .catch(() => setScheduleError("Không mở được đầu mục lịch công tác."));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lichTrenLink, viTri.key]);
 
@@ -3266,6 +3281,7 @@ function CalendarDetail() {
       setNotice(
         thenSubmit ? "Đã gửi báo cáo buổi học cho quản lý duyệt." : "Đã lưu báo cáo buổi học.",
       );
+      baoViecDoi();
       setReloadKey((prev) => prev + 1);
       closeReportModal();
       return saved;

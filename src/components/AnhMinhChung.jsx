@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { useDanAnh } from "../utils/danAnh";
+import { baoViecDoi } from "../utils/viecDoi";
 import { listAnhMinhChung, taiAnhMinhChung, xoaAnhMinhChung } from "../services/calendarService";
 
 /**
@@ -26,6 +28,7 @@ export default function AnhMinhChung({ sessionId, khoa = false }) {
     try {
       const kq = await taiAnhMinhChung(sessionId, files);
       setAnh(kq.anh || []);
+      baoViecDoi();
       if (kq.bo_qua?.length) setLoi(`Bỏ qua file không phải ảnh: ${kq.bo_qua.join(", ")}`);
     } catch (e) {
       setLoi(e?.response?.data?.detail || "Không tải được ảnh.");
@@ -34,6 +37,8 @@ export default function AnhMinhChung({ sessionId, khoa = false }) {
       if (oFile.current) oFile.current.value = "";
     }
   };
+
+  useDanAnh((files) => !dang && tai(files), Boolean(sessionId) && !khoa);
 
   const xoa = async (id) => {
     setLoi("");
@@ -56,7 +61,7 @@ export default function AnhMinhChung({ sessionId, khoa = false }) {
         {!khoa ? (
           <label style={{ marginLeft: "auto", cursor: dang ? "wait" : "pointer", fontSize: 13, fontWeight: 700,
                           color: "#F26522" }}>
-            {dang ? "Đang tải…" : "+ Thêm ảnh"}
+            {dang ? "Đang tải…" : "+ Thêm ảnh (hoặc Ctrl/⌘ + V để dán)"}
             <input ref={oFile} type="file" accept="image/*" multiple hidden disabled={dang}
                    onChange={(e) => tai(e.target.files)} />
           </label>

@@ -202,7 +202,8 @@ export default function TaiChinh() {
       ) : null}
 
       {tab === "payroll" ? (
-        <BangLuong thang={thang} nam={nam} coTheGhi={coTheGhi} onNotice={setThongBao} />
+        <BangLuong thang={thang} nam={nam} coTheGhi={coTheGhi} onNotice={setThongBao}
+                   coSuaLuong={!!user && (user.is_superuser || hasRole(ROUTE_PERMISSIONS.payrollEdit))} />
       ) : null}
       </div>
     </Page>

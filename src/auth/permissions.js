@@ -63,6 +63,8 @@ export const ROUTE_PERMISSIONS = {
   // quan tài chính (dòng tiền, hiệu suất kinh doanh). Soi gương với
   // FINANCE_WRITE_ROLE_NAMES / FINANCE_APPROVER_ROLE_NAMES bên backend.
   financeWrite: ['superadmin', 'admin', 'accountant'],
+  // Sửa bảng lương (03/11/2026): thêm quản lý cơ sở — khớp PAYROLL_EDITOR_ROLE_NAMES backend.
+  payrollEdit: ['superadmin', 'admin', 'accountant', 'center_manager'],
   financeApprove: ['superadmin', 'admin'],
   financeOverview: ['superadmin', 'admin', 'accountant'],
   documents: ['superadmin', 'admin', 'teacher', 'staff', 'center_manager', 'training_manager', 'designer', 'accountant'],
