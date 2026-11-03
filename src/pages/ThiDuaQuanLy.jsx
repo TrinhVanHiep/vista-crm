@@ -45,17 +45,62 @@ const Nut = ({ children, mau = "ghost", ...p }) => (
 );
 const o = { width: "100%", padding: "8px 10px", border: `1px solid ${C.line}`, borderRadius: 9, fontSize: 13.5, fontFamily: "inherit", boxSizing: "border-box" };
 
-function moc(thang, nam) {
-  const t = thang === 1 ? 12 : thang - 1;
+// 5 bước mặc định của khung tháng (Giám đốc đổi được từ 03/11/2026 — k.moc_khung).
+function mocKhungMacDinh(thang, nam) {
+  const iso = (y, m, d) => `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  const [tT, nT] = thang === 1 ? [12, nam - 1] : [thang - 1, nam];
+  const [tS, nS] = thang === 12 ? [1, nam + 1] : [thang + 1, nam];
   const cuoi = new Date(nam, thang, 0).getDate();
-  const s = (d, m) => `${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}`;
   return [
-    [`${s(28, t)} – ${s(new Date(thang === 1 ? nam - 1 : nam, t, 0).getDate(), t)}`, "Đăng ký & gửi duyệt"],
-    [`${s(1, thang)} – ${s(5, thang)}`, "Giám đốc duyệt"],
-    [`${s(6, thang)} – ${s(cuoi - 4, thang)}`, "Thực hiện & cập nhật minh chứng"],
-    [`${s(cuoi - 4, thang)} – ${s(cuoi, thang)}`, "Nghiệm thu & chấm điểm"],
-    [`${s(1, thang % 12 + 1)} – ${s(5, thang % 12 + 1)}`, "Tổng kết tháng"],
+    { tu: iso(nT, tT, 28), den: iso(nT, tT, new Date(nT, tT, 0).getDate()), nhan: "Đăng ký & gửi duyệt" },
+    { tu: iso(nam, thang, 1), den: iso(nam, thang, 5), nhan: "Giám đốc duyệt" },
+    { tu: iso(nam, thang, 6), den: iso(nam, thang, cuoi - 4), nhan: "Thực hiện & cập nhật minh chứng" },
+    { tu: iso(nam, thang, cuoi - 4), den: iso(nam, thang, cuoi), nhan: "Nghiệm thu & chấm điểm" },
+    { tu: iso(nS, tS, 1), den: iso(nS, tS, 5), nhan: "Tổng kết tháng" },
   ];
+}
+const ddmm = (iso) => ngayVN(iso).slice(0, 5);
+function moc(k) {
+  const ds = k.moc_khung?.length ? k.moc_khung : mocKhungMacDinh(k.thang, k.nam);
+  return ds.map((m) => [`${ddmm(m.tu)} – ${ddmm(m.den)}`, m.nhan]);
+}
+// Mốc báo cáo trung gian mặc định của tiêu chí: 07 / 14 / 21 trong tháng.
+const mocTieuChiMacDinh = (thang, nam) => [7, 14, 21].map((d, i) => ({
+  ngay: `${nam}-${String(thang).padStart(2, "0")}-${String(d).padStart(2, "0")}`, nhan: `Báo cáo lần ${i + 1}`,
+}));
+
+// Bảng sửa mốc dùng chung: kieu "ngay" (mốc tiêu chí) | "khoang" (bước của khung).
+function SuaMoc({ dau, kieu, dang, onLuu, onHuy }) {
+  const [ds, setDs] = useState(() => dau.map((m) => ({ ...m })));
+  const doi = (i, f, v) => setDs((x) => x.map((m, j) => (j === i ? { ...m, [f]: v } : m)));
+  const them = () => setDs((x) => [...x, kieu === "ngay" ? { ngay: x.at(-1)?.ngay || "", nhan: "" } : { tu: "", den: "", nhan: "" }]);
+  return (
+    <div style={{ display: "grid", gap: 6 }}>
+      {ds.map((m, i) => (
+        <div key={i} style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+          {kieu === "ngay" ? (
+            <input type="date" value={m.ngay} style={{ ...o, width: 150 }} onChange={(e) => doi(i, "ngay", e.target.value)} />
+          ) : (
+            <>
+              <input type="date" value={m.tu} style={{ ...o, width: 150 }} onChange={(e) => doi(i, "tu", e.target.value)} />
+              <span>–</span>
+              <input type="date" value={m.den} style={{ ...o, width: 150 }} onChange={(e) => doi(i, "den", e.target.value)} />
+            </>
+          )}
+          <input value={m.nhan} placeholder="Tên mốc (vd. Báo cáo lần 1)" maxLength={60} style={{ ...o, flex: 1, minWidth: 160 }}
+                 onChange={(e) => doi(i, "nhan", e.target.value)} />
+          <button type="button" title="Xoá mốc" onClick={() => setDs((x) => x.filter((_, j) => j !== i))}
+                  style={{ border: 0, background: "none", color: C.red, cursor: "pointer", fontSize: 16 }}>×</button>
+        </div>
+      ))}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        {ds.length < 8 ? <Nut onClick={them}>+ Thêm mốc</Nut> : null}
+        <span style={{ flex: 1 }} />
+        <Nut onClick={onHuy}>Huỷ</Nut>
+        <Nut mau="cam" disabled={dang} onClick={() => onLuu(ds)}>Lưu mốc</Nut>
+      </div>
+    </div>
+  );
 }
 
 export default function ThiDuaQuanLy() {
@@ -72,6 +117,7 @@ export default function ThiDuaQuanLy() {
   const [tab, setTab] = useState("tong_quan");
   const [vung, setVung] = useState("dang_ky"); // dang_ky | theo_doi | ket_qua — 3 tab lớn theo mẫu
   const [taiLai, setTaiLai] = useState(0);
+  const [suaMocKhung, setSuaMocKhung] = useState(false);
 
   useEffect(() => {
     let con = true;
@@ -95,9 +141,11 @@ export default function ThiDuaQuanLy() {
       if (data?.tieu_chi) setD((x) => ({ ...x, khung: data }));
       else setTaiLai((v) => v + 1);
       if (thongBao) window.alert(thongBao);
+      return true;
     } catch (e) {
       const x = e?.response?.data || {};
       setLoi(x.detail || Object.values(x).flat()[0] || "Không thực hiện được.");
+      return false;
     } finally {
       setDang(false);
     }
@@ -206,7 +254,7 @@ export default function ThiDuaQuanLy() {
   const choDuyet = k.tieu_chi.filter((x) => x.trang_thai === "cho_duyet").length;
   // Giám đốc duyệt thẳng được cả tiêu chí quản lý chưa gửi (nháp / cần sửa).
   const chuaDuyet = k.tieu_chi.filter((x) => ["cho_duyet", "nhap", "tra_ve"].includes(x.trang_thai)).length;
-  const mocs = moc(k.thang, k.nam);
+  const mocs = moc(k);
   const buocHien = k.trang_thai === "da_khoa" ? 4 : daNt ? 3 : ["da_duyet"].includes(k.trang_thai) ? 2 : k.trang_thai === "cho_duyet" ? 1 : 0;
 
 
@@ -360,7 +408,18 @@ export default function ThiDuaQuanLy() {
 
       {/* Quy trình */}
       <div style={card}>
-        <b style={{ fontSize: 13.5 }}>Quy trình thực hiện trong tháng {k.thang}/{k.nam}</b>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <b style={{ fontSize: 13.5, flex: 1 }}>Quy trình thực hiện trong tháng {k.thang}/{k.nam}</b>
+          {gd && k.trang_thai !== "da_khoa" && !suaMocKhung ? <Nut onClick={() => setSuaMocKhung(true)}>✎ Sửa mốc</Nut> : null}
+        </div>
+        {suaMocKhung ? (
+          <div style={{ marginTop: 10 }}>
+            <SuaMoc kieu="khoang" dang={dang} dau={k.moc_khung?.length ? k.moc_khung : mocKhungMacDinh(k.thang, k.nam)}
+                    onHuy={() => setSuaMocKhung(false)}
+                    onLuu={(ds) => goi(() => apiClient.post(`/thi-dua-ql/khung/${k.id}/sua_moc/`, { moc_khung: ds }), "Đã lưu mốc khung.")
+                      .then((ok) => ok && setSuaMocKhung(false))} />
+          </div>
+        ) : null}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(5,minmax(110px,1fr))", gap: 6, overflowX: "auto", marginTop: 10 }}>
           {mocs.map(([ngay, viec], i) => (
             <div key={viec} style={{ textAlign: "center" }}>
@@ -412,6 +471,7 @@ function ChiTiet({ tc, k, gd, laChu, suaDuoc, dang, goi, tab, setTab }) {
   const [nt, setNt] = useState({ so_dat: tc.do_tu_dong ? tc.do_tu_dong.gia_tri : tc.ket_qua_bao_cao ?? "", diem: "", nhan_xet: "" });
   const [gh, setGh] = useState({ han_moi: "", ly_do: "" });
   const [sua, setSua] = useState(false);
+  const [suaMoc, setSuaMoc] = useState(false);
   const oFile = useRef(null);
   const [mau] = (NHOM.find((n) => n[0] === tc.nhom) || NHOM[0]).slice(2);
   const baoCaoDuoc = laChu && ["da_duyet", "can_bo_sung", "cho_nghiem_thu"].includes(tc.trang_thai) && k.trang_thai !== "da_khoa";
@@ -426,9 +486,11 @@ function ChiTiet({ tc, k, gd, laChu, suaDuoc, dang, goi, tab, setTab }) {
   const hang = (nhan, v) => <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 8, fontSize: 13, padding: "3px 0" }}><span style={{ color: C.muted }}>{nhan}</span><span>{v || "—"}</span></div>;
   const mucTieu = String(tc.muc_tieu || "").split(/[;\n]+/).map((x) => x.trim()).filter(Boolean);
   const soLanBC = tc.lich_su.filter((h) => /Cập nhật tiến độ|Nộp nghiệm thu/.test(h.noi_dung)).length;
-  const thangS = String(k.thang).padStart(2, "0");
-  const mocTc = [[`07/${thangS}`, "Báo cáo lần 1", soLanBC >= 1], [`14/${thangS}`, "Báo cáo lần 2", soLanBC >= 2],
-    [`21/${thangS}`, "Báo cáo lần 3", soLanBC >= 3], [ngayVN(tc.han).slice(0, 5), "Hoàn thành", tc.trang_thai === "da_nghiem_thu"]];
+  // Mốc trung gian quản lý tự đặt (03/11/2026), chưa đặt thì 07 / 14 / 21; mốc cuối luôn là hạn.
+  const mocDat = tc.moc?.length ? tc.moc : mocTieuChiMacDinh(k.thang, k.nam);
+  const mocTc = [...mocDat.map((m, i) => [ddmm(m.ngay), m.nhan, soLanBC >= i + 1]),
+    [ngayVN(tc.han).slice(0, 5), "Hoàn thành", tc.trang_thai === "da_nghiem_thu"]];
+  const suaMocDuoc = (laChu || gd) && k.trang_thai !== "da_khoa";
   const ptNt = tc.trang_thai === "da_nghiem_thu" && tc.chi_tieu ? (tc.ket_qua_nghiem_thu * 100) / tc.chi_tieu : 0;
 
   const doTD = tc.do_tu_dong;
@@ -448,8 +510,15 @@ function ChiTiet({ tc, k, gd, laChu, suaDuoc, dang, goi, tab, setTab }) {
     </Khoi>
   );
   const khoiMoc = (
-    <Khoi tieuDe="Các mốc thời gian quan trọng">
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 4, textAlign: "center" }}>
+    <Khoi tieuDe="Các mốc thời gian quan trọng"
+          phai={suaMocDuoc && !suaMoc ? <Nut onClick={() => setSuaMoc(true)}>✎ Sửa mốc</Nut> : null}>
+      {suaMoc ? (
+        <SuaMoc kieu="ngay" dang={dang} dau={mocDat} onHuy={() => setSuaMoc(false)}
+                onLuu={(ds) => goi(() => apiClient.post(`/thi-dua-ql/tieu-chi/${tc.id}/sua_moc/`, { moc: ds }), "Đã lưu mốc.")
+                  .then((ok) => ok && setSuaMoc(false))} />
+      ) : null}
+      {suaMoc ? <div style={{ fontSize: 11.5, color: C.muted }}>Mốc “Hoàn thành” là hạn của tiêu chí — muốn lùi hạn dùng “Xin gia hạn”.</div> : null}
+      <div style={{ display: "grid", gridTemplateColumns: `repeat(${mocTc.length},1fr)`, gap: 4, textAlign: "center" }}>
         {mocTc.map(([ngay, viec, xong], i) => (
           <div key={viec}>
             <div style={{ width: 24, height: 24, borderRadius: 12, margin: "0 auto 3px", display: "grid", placeItems: "center", fontSize: 12, fontWeight: 800,
