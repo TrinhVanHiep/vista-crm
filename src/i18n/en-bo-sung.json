@@ -814,7 +814,6 @@
  "✓ Duyệt Đạt": "✓ Approve",
  "✓ Duyệt đề xuất": "✓ Approve proposal",
  "✓ Duyệt khung ({0})": "✓ Approve frame ({0})",
- "✓ Duyệt tiêu chí": "✓ Approve criterion",
  "Đã duyệt khung.": "Frame approved.",
  "✓ Khớp hoàn toàn": "✓ Fully matched",
  "✓ Nghiệm thu & chấm điểm": "✓ Accept & score",
@@ -834,5 +833,7 @@
  "💰 Kế toán đã sửa lương tháng {0} — xác nhận lại": "💰 Accounting updated your {0} salary — please re-confirm",
  "💰 Xác nhận phiếu lương tháng {0}": "💰 Confirm your payslip for {0}",
  "📞 Gọi": "📞 Call",
- "🔒 Khoá điểm tháng": "🔒 Lock month score"
+ "🔒 Khoá điểm tháng": "🔒 Lock month score",
+ "Số liệu các lớp bạn phụ trách": "Figures for the classes you teach",
+ "/ {0} lớp bạn phụ trách": "/ {0} of your classes"
 }

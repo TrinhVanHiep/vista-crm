@@ -359,7 +359,8 @@ function Students() {
       try {
         const [all, classAll, ctrs, cards, rawScores, tongQuan, viec] = await Promise.all([
           listStudents({ dang_hoc: true, page_size: 1 }),
-          listClassroomsAll().catch(() => []),
+          // Giáo viên: chỉ lớp mình phụ trách (05/11/2026).
+          listClassroomsAll(role === "teacher" ? { mine: 1 } : {}).catch(() => []),
           listCentersAll().catch(() => []),
           // 1000 chứ không phải 100: một tháng có cỡ 20 em x 23 lớp phiếu.
           listMonthlyScorecards({ month: thang, year: nam, page_size: 1000 }).catch(() => ({ results: [] })),
@@ -405,7 +406,10 @@ function Students() {
   }, [createCenter]);
 
   // Derived aggregates
-  const activeClasses = useMemo(() => classes.filter((c) => c.status === "active").length, [classes]);
+  // Đếm theo tong-quan khi có: API đã lọc lớp phụ trách cho giáo viên, cùng luật với các ô khác.
+  const dsLop = tq?.lop || classes;
+  const activeClasses = dsLop.filter((c) => c.status === "active").length;
+  const laPhamViGv = tq?.pham_vi === "lop_phu_trach";
   const lopDong = useMemo(() => tq?.lop || [], [tq]);
 
   // Phân bố xếp loại Giỏi/Khá/TB theo lớp — ưu tiên bảng điểm tháng, fallback điểm thô.
@@ -626,7 +630,7 @@ function Students() {
             <div className="flex-between" style={{ alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
               <div>
                 <h1>Học sinh - Lớp học</h1>
-                <p>Quản trị đào tạo • Student &amp; Class Management</p>
+                <p>{laPhamViGv ? "Số liệu các lớp bạn phụ trách" : <>Quản trị đào tạo • Student &amp; Class Management</>}</p>
                 <div className="flex" style={{ gap: 8, marginTop: 12 }}>
                   <button type="button" className={`btn ${tab === "tq" ? "primary" : "ghost"}`} onClick={() => setTab("tq")}>Tổng quan phân tích</button>
                   <button type="button" className={`btn ${tab === "ds" ? "primary" : "ghost"}`} onClick={() => setTab("ds")}>Danh sách &amp; Quản lý</button>
@@ -666,7 +670,7 @@ function Students() {
             <Kpi ico="👥" icoClass="orange" label="Tổng số HS" value={fmt(tq?.tong_si_so ?? totalStudents)}
               trend={tq ? soSanh(tq.tong_si_so - tq.tong_si_so_truoc, `so với T${thangTruoc}`) : null} />
             <Kpi ico="🏫" icoClass="orange" label="Lớp đang hoạt động" value={fmt(activeClasses)}
-              trend={`/ ${fmt(classes.length)} lớp trên hệ thống`} />
+              trend={`/ ${fmt(dsLop.length)} ${laPhamViGv ? "lớp bạn phụ trách" : "lớp trên hệ thống"}`} />
             <Kpi ico="✅" icoClass="green" label={`Chuyên cần T${thang}`} value={tq?.chuyen_can != null ? `${vnPct(tq.chuyen_can)}%` : "—"}
               trend={tq?.chuyen_can != null && tq?.chuyen_can_truoc != null
                 ? soSanh(Math.round((tq.chuyen_can - tq.chuyen_can_truoc) * 10) / 10, `so với T${thangTruoc}`, "%") : null} />
