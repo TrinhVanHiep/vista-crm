@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import apiClient from "../../services/apiClient";
 import { Button, Field, Input, Modal } from "./v3/ui";
 import { color } from "./v3/theme";
@@ -28,6 +28,7 @@ export default function SuaLuongChot({ nguoi, thang, nam, onDong, onXong }) {
   const [dang, setDang] = useState(false);
   const [baoCa, setBaoCa] = useState("");
   const [taiLai, setTaiLai] = useState(0);
+  const caRef = useRef(null);
 
   useEffect(() => {
     const params = { month: thang, year: nam };
@@ -53,6 +54,14 @@ export default function SuaLuongChot({ nguoi, thang, nam, onDong, onXong }) {
       else if (nguoi.teacher_id) body.teacher = nguoi.teacher_id;
       else body.ho_ten = ten.trim();
       KHOAN.forEach(([k]) => { body[k] = so(f[k]); });
+      // Bảng ca còn sửa chưa lưu -> lưu ca trước, rồi dùng lương dạy / số ca VỪA TÍNH LẠI (không gửi số cũ
+      // trên form, kẻo đè mất kết quả tính lại). Lưu ca lỗi thì dừng, lỗi hiện ngay dưới bảng ca.
+      if (caRef.current?.coDoi()) {
+        const r = await caRef.current.luu();
+        if (!r) { setLoi("Chưa lưu được phần sửa ca dạy — xem lỗi ở bảng ca phía trên."); return; }
+        body.luong_day = Math.round(r.luong_day);
+        body.so_buoi = r.so_buoi;
+      }
       const { data } = await apiClient.post("/payroll/luong-chot/sua/", body);
       onXong?.(`Đã lưu lương T${thang}/${nam} của ${them ? ten : nguoi.ten}: thực nhận ${tien(data.thuc_nhan)} đ.`);
     } catch (e) {
@@ -95,7 +104,7 @@ export default function SuaLuongChot({ nguoi, thang, nam, onDong, onXong }) {
             </Field>
           ) : null}
           {gvId ? (
-            <BangCaDayLuong teacherId={gvId} thang={thang} nam={nam} lyDo={lyDo} phanHoi={phanHoi}
+            <BangCaDayLuong ref={caRef} teacherId={gvId} thang={thang} nam={nam} lyDo={lyDo} phanHoi={phanHoi}
                             onDaLuu={(r) => {
                               setBaoCa(`Đã tính lại lương dạy: ${tien(r.luong_day)} đ (${r.so_buoi} ca)`
                                 + (r.da_ghi_chot ? ` — đã ghi vào bảng chốt, thực nhận ${tien(r.thuc_nhan)} đ.` : " — số tạm tính đã cập nhật."));

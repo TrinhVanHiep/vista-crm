@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import apiClient from "../../services/apiClient";
 import { Button } from "./v3/ui";
 import { color } from "./v3/theme";
@@ -12,13 +12,17 @@ const tien = (v) => Math.round(Number(v || 0)).toLocaleString("vi-VN");
 const ngayVN = (iso) => (iso ? iso.split("-").reverse().slice(0, 2).join("/") : "");
 const o = { padding: "5px 6px", borderRadius: 6, border: "1px solid " + color.borderStrong, fontSize: 13 };
 
-export default function BangCaDayLuong({ teacherId, thang, nam, lyDo, phanHoi, onDaLuu }) {
+// ref: { coDoi(), luu() } — khung "Sửa lương" (SuaLuongChot) gọi khi bấm nút Lưu ở chân khung, để sửa ca
+// không bị bỏ qua (06/11/2026: QLCS sửa ca rồi bấm "Lưu" chân khung -> phần ca mất, không báo gì).
+const BangCaDayLuong = forwardRef(function BangCaDayLuong({ teacherId, thang, nam, lyDo, phanHoi, onDaLuu }, ref) {
   const [d, setD] = useState(null);
   const [sua, setSua] = useState({});   // session -> {si_so?, tinh?}
   const [them, setThem] = useState([]); // [{classroom, ngay, gio, si_so}]
   const [loi, setLoi] = useState("");
   const [dang, setDang] = useState(false);
   const [taiLai, setTaiLai] = useState(0);
+  const api = useRef({ coDoi: false, luu: async () => null });
+  useImperativeHandle(ref, () => ({ coDoi: () => api.current.coDoi, luu: () => api.current.luu() }), []);
 
   useEffect(() => {
     let con = true;
@@ -58,10 +62,11 @@ export default function BangCaDayLuong({ teacherId, thang, nam, lyDo, phanHoi, o
   const coDoi = dong.some((c) => c.doi) || them.length > 0;
   const datSua = (id, k, v) => setSua((x) => ({ ...x, [id]: { ...(x[id] || {}), [k]: v } }));
 
+  // -> dữ liệu máy chủ trả (lương dạy, số ca mới) khi lưu được; null khi chưa lưu (lỗi / người dùng huỷ).
   const luu = async () => {
     setLoi("");
-    if (!lyDo.trim()) { setLoi("Ghi lý do sửa ở ô bên dưới trước khi lưu."); return; }
-    if (them.some((x) => !x.classroom || !x.ngay || x.si_so === "")) { setLoi("Ca bổ sung cần đủ lớp, ngày, sĩ số."); return; }
+    if (!lyDo.trim()) { setLoi("Ghi lý do sửa ở ô bên dưới trước khi lưu."); return null; }
+    if (them.some((x) => !x.classroom || !x.ngay || x.si_so === "")) { setLoi("Ca bổ sung cần đủ lớp, ngày, sĩ số."); return null; }
     setDang(true);
     try {
       const body = {
@@ -80,13 +85,13 @@ export default function BangCaDayLuong({ teacherId, thang, nam, lyDo, phanHoi, o
           const { data } = await apiClient.post("/payroll/luong-chot/ca-day/", body);
           setTaiLai((v) => v + 1);
           onDaLuu?.(data);
-          return;
+          return data;
         } catch (e) {
           const cc = e?.response?.status === 409 ? e.response.data?.can_chuyen : null;
           if (!cc) throw e;
           const ok = window.confirm(`Lớp ${cc.lop} ngày ${ngayVN(cc.ngay)} ${cc.gio} đang ghi cho ${cc.gv}.\n`
             + "Chuyển ca này sang người đang sửa? Lương dạy của người kia được tính lại và họ nhận thông báo.");
-          if (!ok) { setLoi(`Chưa lưu: ca ${ngayVN(cc.ngay)} lớp ${cc.lop} đang là của ${cc.gv}.`); return; }
+          if (!ok) { setLoi(`Chưa lưu: ca ${ngayVN(cc.ngay)} lớp ${cc.lop} đang là của ${cc.gv}.`); return null; }
           body.them = body.them.map((x) => (x.ngay === cc.ngay && tenLop[x.classroom] === cc.lop ? { ...x, chuyen: true } : x));
         }
       }
@@ -96,7 +101,9 @@ export default function BangCaDayLuong({ teacherId, thang, nam, lyDo, phanHoi, o
     } finally {
       setDang(false);
     }
+    return null;
   };
+  api.current = { coDoi, luu };
 
   return (
     <div style={{ border: "1px solid " + color.border, borderRadius: 10, padding: 12, display: "grid", gap: 8 }}>
@@ -211,4 +218,6 @@ export default function BangCaDayLuong({ teacherId, thang, nam, lyDo, phanHoi, o
       {loi ? <div style={{ color: color.red, fontSize: 13 }}>{loi}</div> : null}
     </div>
   );
-}
+});
+
+export default BangCaDayLuong;
