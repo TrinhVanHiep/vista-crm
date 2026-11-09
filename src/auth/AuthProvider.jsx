@@ -4,6 +4,7 @@ import { setUnauthorizedHandler } from '../services/apiClient';
 import { normalizeRole } from './roleRoutes';
 
 const TOKEN_COOKIE_KEY = 'vista_token';
+const REFRESH_COOKIE_KEY = 'vista_refresh';
 const USER_STORAGE_KEY = 'vista_user';
 const AuthContext = createContext(null);
 
@@ -29,11 +30,17 @@ export function AuthProvider({ children }) {
   const isAuthenticated = Boolean(token && user);
 
   const persistAuth = useCallback(
-    ({ nextToken, nextUser }) => {
+    ({ nextToken, nextUser, nextRefresh }) => {
       if (nextToken) {
         setCookie(TOKEN_COOKIE_KEY, nextToken);
       } else {
         removeCookie(TOKEN_COOKIE_KEY);
+      }
+      // Refresh token để apiClient tự gia hạn phiên; đăng xuất thì xoá luôn.
+      if (nextRefresh) {
+        setCookie(REFRESH_COOKIE_KEY, nextRefresh);
+      } else {
+        removeCookie(REFRESH_COOKIE_KEY);
       }
       setToken(nextToken ?? null);
 
@@ -49,8 +56,8 @@ export function AuthProvider({ children }) {
   );
 
   const login = useCallback(
-    ({ token: nextToken, user: nextUser }) => {
-      persistAuth({ nextToken, nextUser });
+    ({ token: nextToken, user: nextUser, refreshToken: nextRefresh }) => {
+      persistAuth({ nextToken, nextUser, nextRefresh });
     },
     [persistAuth],
   );

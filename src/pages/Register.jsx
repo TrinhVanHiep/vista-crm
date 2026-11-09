@@ -34,7 +34,7 @@ function Register() {
     setError('');
     try {
       const response = await requestRegister(form);
-      login({ token: response.token, user: response.user });
+      login({ token: response.token, user: response.user, refreshToken: response.refreshToken });
       const fallbackRoute = getDefaultRouteForRole(response.user?.role);
       navigate(fallbackRoute, { replace: true });
     } catch (err) {

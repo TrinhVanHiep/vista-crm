@@ -35,7 +35,7 @@ function Login() {
     setError("");
     try {
       const response = await requestLogin(form);
-      login({ token: response.token, user: response.user });
+      login({ token: response.token, user: response.user, refreshToken: response.refreshToken });
       const targetRoute = resolveRouteForRole(response.user?.role, fromPath);
       navigate(targetRoute, { replace: true });
     } catch (err) {
