@@ -75,13 +75,15 @@ export default function PhieuLuongCuaToi() {
       </div>
       {thangXn && !loi ? (
         <div className="no-print" style={{ maxWidth: 760, marginBottom: 12, padding: "12px 14px", borderRadius: 12,
-                                           background: xn.da_xac_nhan?.ket_qua === "dong_y" ? "#E8F7EE" : "#FFF6EF",
+                                           background: ["dong_y", "da_sua"].includes(xn.da_xac_nhan?.ket_qua) ? "#E8F7EE" : "#FFF6EF",
                                            border: "1px solid #F3D3C2", display: "grid", gap: 8 }}>
-          {xn.da_xac_nhan && xn.da_xac_nhan.ket_qua !== "cho_xac_nhan_lai" ? (
+          {xn.da_xac_nhan ? (
             <div style={{ fontSize: 13.5 }}>
-              {xn.da_xac_nhan.ket_qua === "dong_y" ? "✓ Bạn đã xác nhận phiếu lương này đúng." : `⚠ Bạn đã báo sai sót: ${xn.da_xac_nhan.ghi_chu}`}
+              {{ dong_y: "✓ Bạn đã xác nhận phiếu lương này đúng.",
+                 da_sua: "Quản lý đã sửa phiếu lương (xem bên dưới). Nếu vẫn chưa đúng, bấm Báo sai sót." }[xn.da_xac_nhan.ket_qua]
+                || `⚠ Bạn đã báo sai sót: ${xn.da_xac_nhan.ghi_chu}`}
               {" "}
-              {xn.da_xac_nhan.ket_qua === "dong_y" ? (
+              {xn.da_xac_nhan.ket_qua !== "khieu_nai" ? (
                 <button type="button" onClick={() => setBaoSai("")}
                         style={{ border: 0, background: "none", color: "#F26522", fontWeight: 700, cursor: "pointer" }}>Báo sai sót</button>
               ) : null}
@@ -93,7 +95,7 @@ export default function PhieuLuongCuaToi() {
             </div>
           ) : (
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", fontSize: 13.5 }}>
-              <b>{xn.hoi_lai ? `Kế toán đã sửa lương tháng ${thang}/${nam} — xác nhận lại` : `Xác nhận phiếu lương tháng ${thang}/${nam}`}</b>
+              <b>{`Xác nhận phiếu lương tháng ${thang}/${nam}`}</b>
               <span className="muted small">— xác nhận đúng thì kế toán chuyển lương (hạn ngày 15)</span>
               <span style={{ flex: 1 }} />
               <button type="button" className="btn ghost sm" onClick={() => setBaoSai("")}>Báo sai sót</button>
@@ -102,7 +104,7 @@ export default function PhieuLuongCuaToi() {
           )}
           {xn.da_xac_nhan?.phan_hoi ? (
             <div style={{ fontSize: 13, background: "#EAF1FE", borderRadius: 8, padding: "8px 10px", whiteSpace: "pre-line" }}>
-              <b>Kế toán đã đối soát:</b> {xn.da_xac_nhan.phan_hoi}
+              <b>Quản lý đã sửa:</b> {xn.da_xac_nhan.phan_hoi}
             </div>
           ) : null}
           {baoSai != null ? (

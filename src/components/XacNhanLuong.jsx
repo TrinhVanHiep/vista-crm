@@ -59,11 +59,10 @@ export default function XacNhanLuong({ userId }) {
         <header className="ui-modal__head">
           <div>
             <h2 className="ui-modal__title">
-              💰 {tt.hoi_lai ? `Kế toán đã sửa lương tháng ${tt.thang}/${tt.nam} — xác nhận lại` : `Xác nhận phiếu lương tháng ${tt.thang}/${tt.nam}`}
+              💰 Xác nhận phiếu lương tháng {tt.thang}/{tt.nam}
             </h2>
             <p className="ui-modal__sub">
-              {tt.hoi_lai ? "Kế toán đã sửa theo phản hồi của bạn. Kiểm tra lại số mới rồi xác nhận."
-                : `Hạn xác nhận: hết ngày ${ngayVN(tt.han)} — xác nhận đúng thì kế toán chuyển lương.`}
+              {`Hạn xác nhận: hết ngày ${ngayVN(tt.han)} — xác nhận đúng thì kế toán chuyển lương.`}
             </p>
           </div>
         </header>
@@ -78,12 +77,6 @@ export default function XacNhanLuong({ userId }) {
                   Xem chi tiết phiếu lương →
                 </button>
               </div>
-              {tt.hoi_lai && tt.da_xac_nhan?.phan_hoi ? (
-                <div style={{ background: "#EAF1FE", borderRadius: 10, padding: "10px 12px", fontSize: 13, whiteSpace: "pre-line" }}>
-                  <b>Kế toán đã đối soát:</b> {tt.da_xac_nhan.phan_hoi}
-                  {tt.da_xac_nhan.ghi_chu ? <div style={{ color: "#7d8592", marginTop: 4 }}>Bạn đã báo: {tt.da_xac_nhan.ghi_chu}</div> : null}
-                </div>
-              ) : null}
               {bao ? (
                 <label style={{ display: "grid", gap: 5, fontSize: 13 }}>
                   <span style={{ fontWeight: 600 }}>Khoản nào chưa đúng?</span>

@@ -10,7 +10,9 @@ import SuaLuongChot from "./SuaLuongChot";
  */
 const ngayGio = (s) => (s ? new Date(s).toLocaleString("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" }) : "");
 const NHAN = { dong_y: ["Đã xác nhận đúng", "green"], khieu_nai: ["Báo sai sót", "red"], chua: ["Chưa trả lời", "amber"],
-               cho_xac_nhan_lai: ["Đã sửa — chờ xác nhận lại", "blue"] };
+               da_sua: ["Quản lý đã sửa", "green"], cho_xac_nhan_lai: ["Đã sửa — chờ xác nhận lại", "blue"] };
+// Chuyển khoản được: xác nhận đúng, hoặc quản lý đã sửa — không chờ nhân sự xác nhận lại (chủ TT 09/11/2026).
+const XONG = ["dong_y", "da_sua"];
 
 export default function XacNhanLuongTongHop({ thang, nam, coTheGhi = false, onDoi, lamMoi = 0 }) {
   const [bc, setBc] = useState(null);
@@ -30,8 +32,9 @@ export default function XacNhanLuongTongHop({ thang, nam, coTheGhi = false, onDo
     }
   };
   const thanhToan = (r) => {
-    if (r.trang_thai !== "dong_y" && !window.confirm(`${r.ten} chưa xác nhận đúng phiếu lương (${NHAN[r.trang_thai][0]}). Vẫn đánh dấu đã thanh toán?`)) return;
-    daChuyen([r.user_id], r.trang_thai === "dong_y" ? {} : { ca_chua_xac_nhan: true });
+    const xong = XONG.includes(r.trang_thai);
+    if (!xong && !window.confirm(`${r.ten} chưa xác nhận đúng phiếu lương (${NHAN[r.trang_thai][0]}). Vẫn đánh dấu đã thanh toán?`)) return;
+    daChuyen([r.user_id], xong ? {} : { ca_chua_xac_nhan: true });
   };
 
   useEffect(() => {
@@ -43,18 +46,18 @@ export default function XacNhanLuongTongHop({ thang, nam, coTheGhi = false, onDo
 
   if (!bc || !bc.ds.length) return null;
   const { dem } = bc;
-  const choChuyen = bc.ds.filter((r) => r.trang_thai === "dong_y" && !r.da_chuyen_luc);
+  const choChuyen = bc.ds.filter((r) => XONG.includes(r.trang_thai) && !r.da_chuyen_luc);
   return (
     <Card>
       <div style={{ padding: "14px 18px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
         <b style={{ fontSize: 14 }}>Nhân sự xác nhận phiếu lương T{thang}/{nam}</b>
         <Pill tone="green">{dem.dong_y} đúng</Pill>
         {dem.khieu_nai ? <Pill tone="red">{dem.khieu_nai} báo sai</Pill> : null}
-        {dem.cho_xac_nhan_lai ? <Pill tone="blue">{dem.cho_xac_nhan_lai} chờ xác nhận lại</Pill> : null}
+        {dem.da_sua ? <Pill tone="green">{dem.da_sua} quản lý đã sửa</Pill> : null}
         <Pill tone="amber">{dem.chua} chưa trả lời</Pill>
         {choChuyen.length ? <Pill tone="blue">{choChuyen.length} chờ chuyển khoản</Pill> : null}
         {coTheGhi && choChuyen.length ? (
-          <button type="button" onClick={() => window.confirm(`Đánh dấu ĐÃ THANH TOÁN lương cho ${choChuyen.length} người đã xác nhận đúng?`) && daChuyen([])}
+          <button type="button" onClick={() => window.confirm(`Đánh dấu ĐÃ THANH TOÁN lương cho ${choChuyen.length} người đã xác nhận đúng / quản lý đã sửa?`) && daChuyen([])}
                   style={{ border: 0, borderRadius: 999, padding: "5px 12px", background: color.green, color: "#fff", fontWeight: 700, cursor: "pointer" }}>
             ✓ Đã thanh toán tất cả ({choChuyen.length})
           </button>

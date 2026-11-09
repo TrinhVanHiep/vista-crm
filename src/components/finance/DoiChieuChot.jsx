@@ -9,7 +9,7 @@ import { color } from "./v3/theme";
  * vào dòng chốt (khấu trừ 10% đi theo) và hỏi nhân sự xác nhận lại.
  */
 const tien = (v) => `${Math.round(Number(v || 0)).toLocaleString("vi-VN")}`;
-const XN = { dong_y: ["Đã xác nhận", "green"], khieu_nai: ["Báo sai", "red"], cho_xac_nhan_lai: ["Chờ xác nhận lại", "blue"], chua: ["Chưa trả lời", "amber"] };
+const XN = { dong_y: ["Đã xác nhận", "green"], khieu_nai: ["Báo sai", "red"], da_sua: ["Quản lý đã sửa", "green"], cho_xac_nhan_lai: ["Chờ xác nhận lại", "blue"], chua: ["Chưa trả lời", "amber"] };
 
 export default function DoiChieuChot({ thang, nam, coTheGhi = false, onNotice }) {
   const [bc, setBc] = useState(null);

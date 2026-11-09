@@ -7,7 +7,7 @@ import BangCaDayLuong from "./BangCaDayLuong";
 /**
  * Sửa số lương CHỐT của một người (16/10/2026). Tháng đã chốt thì bảng lương không tự
  * tính lại khi sửa đơn giá / điểm danh — phản hồi "tính sai" phải sửa thẳng số chốt ở đây.
- * Lưu xong: gross, thực nhận tự tính lại; người đó nhận thông báo và được hỏi xác nhận lại.
+ * Lưu xong: gross, thực nhận tự tính lại; người đó nhận thông báo (KHÔNG chờ họ xác nhận lại — 09/11/2026), còn sai thì họ báo lại.
  * Lương dạy + số buổi KHÔNG gõ tổng: sửa từng ca ở bảng ca dạy (lớp · sĩ số · đơn giá · % hưởng), 19/10/2026.
  */
 const TU_TINH = new Set(["so_buoi", "luong_day"]);
@@ -76,7 +76,7 @@ export default function SuaLuongChot({ nguoi, thang, nam, onDong, onXong }) {
     <Modal title={them ? `Thêm dòng lương T${thang}/${nam}` : `Sửa lương T${thang}/${nam} — ${nguoi.ten}`}
            sub={them ? "Người chưa có trong bảng lương (vd. hỗ trợ cơ sở ngoài CRM) — nhập thẳng các khoản."
              : f?.moi ? "Chưa có số sửa tay — đang hiện số TẠM TÍNH để sửa. Lưu xong, người này dùng số bạn nhập; người khác vẫn tạm tính."
-               : "Sửa trực tiếp số lương của người này. Nếu họ đã trả lời phiếu lương, họ sẽ nhận phản hồi và được hỏi xác nhận lại."}
+               : "Sửa trực tiếp số lương của người này. Lưu xong là áp dụng ngay, sửa tiếp được; người này nhận thông báo, còn sai thì họ báo lại."}
            width={860} onClose={onDong}
            footer={<>
              {f?.nhap_tay && f?.id ? (

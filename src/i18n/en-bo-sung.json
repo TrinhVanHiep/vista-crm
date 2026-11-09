@@ -835,5 +835,12 @@
  "📞 Gọi": "📞 Call",
  "🔒 Khoá điểm tháng": "🔒 Lock month score",
  "Số liệu các lớp bạn phụ trách": "Figures for the classes you teach",
- "/ {0} lớp bạn phụ trách": "/ {0} of your classes"
+ "/ {0} lớp bạn phụ trách": "/ {0} of your classes",
+ "Quản lý đã sửa": "Edited by manager",
+ "Quản lý đã sửa:": "Edited by manager:",
+ "{0} quản lý đã sửa": "{0} edited by manager",
+ "Quản lý đã sửa phiếu lương (xem bên dưới). Nếu vẫn chưa đúng, bấm Báo sai sót.": "Your manager has edited this payslip (see below). If it is still wrong, click Report an error.",
+ "Sửa trực tiếp số lương của người này. Lưu xong là áp dụng ngay, sửa tiếp được; người này nhận thông báo, còn sai thì họ báo lại.": "Edit this person's salary directly. Changes apply as soon as you save and you can keep editing; they get a notification and can report back if it is still wrong.",
+ "Đánh dấu ĐÃ THANH TOÁN lương cho {0} người đã xác nhận đúng / quản lý đã sửa?": "Mark salary as PAID for {0} people who confirmed or were edited by a manager?",
+ "Đã lưu NHÁP — báo cáo CHƯA gửi duyệt. Mở lại báo cáo và bấm “Đã báo cáo — Gửi duyệt” trước 24:00, nếu không vẫn bị tính lỗi nhiệm vụ.": "Saved as DRAFT — the report has NOT been sent for approval. Reopen it and click “Reported — Submit for approval” before 24:00, or it still counts as a missed task."
 }

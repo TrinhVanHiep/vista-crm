@@ -178,13 +178,13 @@ export default function BangLuong({ thang, nam, coTheGhi = false, coSuaLuong = f
   const danhDauTT = async (r, huy = false) => {
     if (huy) {
       if (!window.confirm(`Bỏ đánh dấu đã thanh toán của ${r.ten}?`)) return;
-    } else if (r.trang_thai !== "dong_y") {
+    } else if (!["dong_y", "da_sua"].includes(r.trang_thai)) {
       if (!window.confirm(`${r.ten} chưa xác nhận đúng phiếu lương. Vẫn đánh dấu ĐÃ THANH TOÁN?`)) return;
     } else if (!window.confirm(`Đánh dấu đã thanh toán lương T${thang}/${nam} cho ${r.ten}?`)) return;
     try {
       await apiClient.post("/payroll/xac-nhan-luong/da-chuyen/", {
         month: thang, year: nam, user_ids: [r.user_id],
-        ...(huy ? { huy: true } : r.trang_thai !== "dong_y" ? { ca_chua_xac_nhan: true } : {}) });
+        ...(huy ? { huy: true } : !["dong_y", "da_sua"].includes(r.trang_thai) ? { ca_chua_xac_nhan: true } : {}) });
       setTtKey((v) => v + 1);
     } catch (e) {
       window.alert(e?.response?.data?.detail || "Không đánh dấu được.");
@@ -364,10 +364,10 @@ export default function BangLuong({ thang, nam, coTheGhi = false, coSuaLuong = f
               </div>
             );
           }
-          const nhan = { dong_y: "Đã xác nhận", khieu_nai: "Báo sai", cho_xac_nhan_lai: "Chờ xác nhận lại", chua: "Chưa xác nhận" }[r.trang_thai];
+          const nhan = { dong_y: "Đã xác nhận", khieu_nai: "Báo sai", da_sua: "Quản lý đã sửa", cho_xac_nhan_lai: "Chờ xác nhận lại", chua: "Chưa xác nhận" }[r.trang_thai];
           return (
             <div style={{ display: "grid", gap: 3, fontSize: 12 }}>
-              <span style={{ color: r.trang_thai === "dong_y" ? color.green : r.trang_thai === "khieu_nai" ? color.red : "#B7791F" }}>{nhan}</span>
+              <span style={{ color: ["dong_y", "da_sua"].includes(r.trang_thai) ? color.green : r.trang_thai === "khieu_nai" ? color.red : "#B7791F" }}>{nhan}</span>
               {suaLuong && !cuaMinh(x.teacher_id) ? (
                 <button type="button" onClick={() => danhDauTT(r)}
                         style={{ border: "1px solid " + color.green, borderRadius: 8, padding: "3px 8px", background: "#fff", color: color.green,
