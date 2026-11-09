@@ -934,6 +934,9 @@ function CalendarDetail() {
   const [reviewTeacherId, setReviewTeacherId] = useState("");
   const [reviewClassrooms, setReviewClassrooms] = useState([]);
   const [reviewActionSessionId, setReviewActionSessionId] = useState(null);
+  // Lưu NHÁP báo cáo ca không phải là nộp — vẫn bị tính lỗi nhiệm vụ nếu quá 24:00 chưa "Gửi duyệt"
+  // (09/11/2026: GV tưởng lưu là xong). Cảnh báo này không tự ẩn.
+  const [canhBaoNhap, setCanhBaoNhap] = useState("");
   const [openReviewActionId, setOpenReviewActionId] = useState(null);
   const [reviewReasonTarget, setReviewReasonTarget] = useState(null);
   const [reviewReasonText, setReviewReasonText] = useState("");
@@ -3278,9 +3281,14 @@ function CalendarDetail() {
       if (thenSubmit) {
         saved = await submitSessionReport(saved.id);
       }
-      setNotice(
-        thenSubmit ? "Đã gửi báo cáo buổi học cho quản lý duyệt." : "Đã lưu báo cáo buổi học.",
-      );
+      if (thenSubmit) {
+        setNotice("Đã gửi báo cáo buổi học cho quản lý duyệt.");
+        setCanhBaoNhap("");
+      } else {
+        setCanhBaoNhap(
+          "Đã lưu NHÁP — báo cáo CHƯA gửi duyệt. Mở lại báo cáo và bấm “Đã báo cáo — Gửi duyệt” trước 24:00, nếu không vẫn bị tính lỗi nhiệm vụ.",
+        );
+      }
       baoViecDoi();
       setReloadKey((prev) => prev + 1);
       closeReportModal();
@@ -3552,6 +3560,13 @@ function CalendarDetail() {
                 <span>⚠️</span>
                 <div style={{ flex: 1 }}>{scheduleError}</div>
                 <button type="button" className="btn ghost sm" onClick={() => setScheduleError("")}>Đóng</button>
+              </div>
+            ) : null}
+            {canhBaoNhap ? (
+              <div className="alert orange" style={{ marginBottom: 14 }} role="alert">
+                <span>⚠️</span>
+                <div style={{ flex: 1 }}>{canhBaoNhap}</div>
+                <button type="button" className="btn ghost sm" onClick={() => setCanhBaoNhap("")}>Đóng</button>
               </div>
             ) : null}
             {notice ? (
@@ -5558,7 +5573,9 @@ function CalendarDetail() {
                 </svg>
               </button>
             </header>
-            <form className={styles.modalBody} onSubmit={motLan(handleReportFormSubmit)}>
+            <form className={styles.modalBody} onSubmit={motLan(handleReportFormSubmit)}
+                  // Enter trong ô nhập (sĩ số…) từng ngầm bấm "Lưu nháp" rồi đóng form → GV tưởng đã nộp.
+                  onKeyDown={(e) => { if (e.key === "Enter" && e.target.tagName === "INPUT") e.preventDefault(); }}>
               <div className={styles.formGrid}>
                 <label className={styles.formGroup}>
                   <span>Tên lớp</span>
