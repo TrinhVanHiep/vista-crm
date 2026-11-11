@@ -886,5 +886,7 @@
  "Ảnh minh chứng / chứng từ đính kèm (bắt buộc) *": "Evidence photo / attachment (required) *",
  "Tiền mặt: chụp phiếu thu có ký nhận.": "Cash: photograph the signed receipt.",
  "Chuyển khoản / thẻ: ảnh biên lai hoặc dòng sao kê.": "Transfer / card: photo of the receipt or statement line.",
- " phiếu thu chưa có ảnh minh chứng. ": " payments without an evidence photo. "
+ " phiếu thu chưa có ảnh minh chứng. ": " payments without an evidence photo. ",
+ "Chưa đính kèm ảnh minh chứng / hoá đơn — mọi khoản chi đều bắt buộc có ảnh.": "No evidence photo / invoice attached — every expense requires a photo.",
+ "Ảnh minh chứng / hoá đơn (bắt buộc) *": "Evidence photo / invoice (required) *"
 }
