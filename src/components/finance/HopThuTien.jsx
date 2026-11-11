@@ -126,6 +126,8 @@ export default function HopThuTien({ mo, hocVien, onDong, onXong }) {
     setLoi("");
     if (!(Number(soTien) > 0)) { setLoi("Chưa nhập số tiền thu."); return; }
     if (!taiKhoan) { setLoi("Chưa chọn quỹ / tài khoản nhận tiền."); return; }
+    // 11/11/2026 chủ TT: mọi hình thức thu đều bắt buộc ảnh minh chứng (máy chủ cũng chặn).
+    if (!chungTu) { setLoi("Chưa đính kèm ảnh minh chứng — mọi lần thu (tiền mặt, chuyển khoản, thẻ…) đều bắt buộc có ảnh."); return; }
     if (conThua < 0) {
       setLoi("Tổng phân bổ đang lớn hơn số tiền thu. Sửa lại các ô phân bổ.");
       return;
@@ -232,7 +234,7 @@ export default function HopThuTien({ mo, hocVien, onDong, onXong }) {
       </div>
 
       <div style={{ marginBottom: 24 }}>
-        <Field label="Ảnh minh chứng / chứng từ đính kèm">
+        <Field label="Ảnh minh chứng / chứng từ đính kèm (bắt buộc) *">
           <input
             type="file"
             accept="image/*,application/pdf"
@@ -247,8 +249,8 @@ export default function HopThuTien({ mo, hocVien, onDong, onXong }) {
             {chungTu
               ? `Đã chọn: ${chungTu.name} (${Math.ceil(chungTu.size / 1024)} KB)`
               : phuongThuc === "cash"
-                ? "Tiền mặt: nên chụp phiếu thu có ký nhận."
-                : "Chuyển khoản: ảnh biên lai hoặc dòng sao kê. Không có cũng lưu được, nhưng màn Đối soát sẽ đánh dấu là còn thiếu."}
+                ? "Tiền mặt: chụp phiếu thu có ký nhận."
+                : "Chuyển khoản / thẻ: ảnh biên lai hoặc dòng sao kê."}
           </div>
           {anhXem ? (
             <img src={anhXem} alt="Xem trước minh chứng"

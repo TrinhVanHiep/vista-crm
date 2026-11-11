@@ -118,7 +118,7 @@ export default function DoiSoatThuTien({ onDong, coTheXacNhan, onNotice }) {
           {Number(bc.phan_bo.chua_phan_bo) || bc.thieu_chung_tu || bc.so_giao_dich.so_dong_thu_tay ? (
             <NoteStrip>
               {Number(bc.phan_bo.chua_phan_bo) ? <>Còn <b>{d(bc.phan_bo.chua_phan_bo)}</b> đã thu nhưng chưa phân bổ vào khoản phải thu. </> : null}
-              {bc.thieu_chung_tu ? <><b>{bc.thieu_chung_tu}</b> phiếu chuyển khoản / thẻ chưa có chứng từ. </> : null}
+              {bc.thieu_chung_tu ? <><b>{bc.thieu_chung_tu}</b> phiếu thu chưa có ảnh minh chứng. </> : null}
               {bc.so_giao_dich.so_dong_thu_tay ? <>Sổ có thêm {bc.so_giao_dich.so_dong_thu_tay} dòng thu ghi tay ({d(bc.so_giao_dich.thu_tay)}) không gắn phiếu thu.</> : null}
             </NoteStrip>
           ) : null}
