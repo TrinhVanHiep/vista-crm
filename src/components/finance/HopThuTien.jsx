@@ -49,6 +49,14 @@ export default function HopThuTien({ mo, hocVien, onDong, onXong }) {
   const [soTien, setSoTien] = useState("");
   const [ghiChu, setGhiChu] = useState("");
   const [chungTu, setChungTu] = useState(null);
+  // Ảnh xem trước minh chứng (11/11/2026); PDF thì chỉ hiện tên file.
+  const [anhXem, setAnhXem] = useState("");
+  useEffect(() => {
+    if (!chungTu || !chungTu.type?.startsWith("image/")) { setAnhXem(""); return undefined; }
+    const url = URL.createObjectURL(chungTu);
+    setAnhXem(url);
+    return () => URL.revokeObjectURL(url);
+  }, [chungTu]);
   const [phanBo, setPhanBo] = useState({});
 
   useEffect(() => {
@@ -224,7 +232,7 @@ export default function HopThuTien({ mo, hocVien, onDong, onXong }) {
       </div>
 
       <div style={{ marginBottom: 24 }}>
-        <Field label="Chứng từ đính kèm">
+        <Field label="Ảnh minh chứng / chứng từ đính kèm">
           <input
             type="file"
             accept="image/*,application/pdf"
@@ -242,6 +250,10 @@ export default function HopThuTien({ mo, hocVien, onDong, onXong }) {
                 ? "Tiền mặt: nên chụp phiếu thu có ký nhận."
                 : "Chuyển khoản: ảnh biên lai hoặc dòng sao kê. Không có cũng lưu được, nhưng màn Đối soát sẽ đánh dấu là còn thiếu."}
           </div>
+          {anhXem ? (
+            <img src={anhXem} alt="Xem trước minh chứng"
+                 style={{ marginTop: 8, maxWidth: "100%", maxHeight: 220, borderRadius: radius.md, border: "1px solid " + color.borderStrong, display: "block" }} />
+          ) : null}
         </Field>
       </div>
 

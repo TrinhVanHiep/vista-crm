@@ -17,7 +17,7 @@ import ChotDauVao from "./ChotDauVao";
 import { DonGiaTheoLop, HopDieuChinhThang } from "./DieuChinhLuong";
 import CauHinhLuong from "./CauHinhLuong";
 import { DiemDanhHsBoSung, DuyetCongBoSung, GanNguoiChamCong, SoDiemDanhGoc } from "./MayChamCong";
-import { VAI_QUAN_TRI } from "../../auth/permissions";
+import { ROUTE_PERMISSIONS, VAI_QUAN_TRI } from "../../auth/permissions";
 
 const vaiHienTai = () => {
   try {
@@ -166,7 +166,9 @@ export default function BangLuong({ thang, nam, coTheGhi = false, coSuaLuong = f
   // Thanh toán từng người (23/10/2026): trạng thái xác nhận phiếu + đã thanh toán, theo teacher_id.
   const [thanhToan, setThanhToan] = useState({});
   // Dòng lương của chính người đang xem — quản lý cơ sở không tự sửa (backend cũng chặn).
-  const cuaMinh = (teacherId) => !coTheGhi && user?.id != null && thanhToan[teacherId]?.user_id === user.id;
+  // Kế toán / quản trị THEO VAI sửa được cả dòng mình; QLCS và người được cấp quyền tài chính riêng thì không (backend cũng chặn).
+  const keToanTheoVai = !!user && (user.is_superuser || ROUTE_PERMISSIONS.financeWrite.includes(user.role));
+  const cuaMinh = (teacherId) => !keToanTheoVai && user?.id != null && thanhToan[teacherId]?.user_id === user.id;
   const [ttKey, setTtKey] = useState(0); // chỉ tải lại phần thanh toán, không tải lại cả bảng lương
   useEffect(() => {
     let con = true;
@@ -365,14 +367,17 @@ export default function BangLuong({ thang, nam, coTheGhi = false, coSuaLuong = f
             );
           }
           const nhan = { dong_y: "Đã xác nhận", khieu_nai: "Báo sai", da_sua: "Quản lý đã sửa", cho_xac_nhan_lai: "Chờ xác nhận lại", chua: "Chưa xác nhận" }[r.trang_thai];
+          // 11/11/2026: nút cũ "✓ Đã thanh toán" viền xanh bị đọc nhầm là trạng thái — nay ghi rõ
+          // "Chưa thanh toán" (xám) và nút hành động "Đánh dấu đã trả" trung tính.
           return (
             <div style={{ display: "grid", gap: 3, fontSize: 12 }}>
               <span style={{ color: ["dong_y", "da_sua"].includes(r.trang_thai) ? color.green : r.trang_thai === "khieu_nai" ? color.red : "#B7791F" }}>{nhan}</span>
+              <span style={{ color: color.faint }}>Chưa thanh toán</span>
               {suaLuong && !cuaMinh(x.teacher_id) ? (
-                <button type="button" onClick={() => danhDauTT(r)}
-                        style={{ border: "1px solid " + color.green, borderRadius: 8, padding: "3px 8px", background: "#fff", color: color.green,
-                                 cursor: "pointer", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}>
-                  ✓ Đã thanh toán
+                <button type="button" onClick={() => danhDauTT(r)} title="Bấm khi đã chuyển lương cho người này"
+                        style={{ border: "1px solid " + color.borderStrong, borderRadius: 8, padding: "3px 8px", background: "#fff", color: color.muted,
+                                 cursor: "pointer", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", justifySelf: "start" }}>
+                  Đánh dấu đã trả
                 </button>
               ) : null}
             </div>
@@ -385,6 +390,12 @@ export default function BangLuong({ thang, nam, coTheGhi = false, coSuaLuong = f
                   onClick={() => setSuaTay({ teacher_id: x.teacher_id, id: x.chot?.id, ten: x.teacher_name, ghi_chu: "" })}>✎ Sửa</Button>
         ) : null}
         {x.teacher_id ? <Button variant="ghost" onClick={() => moNguoi(x.teacher_id)}>Xem →</Button> : null}
+        {/* Dòng "Ngoài hồ sơ CRM" thêm bằng "+ Thêm dòng lương": xoá thẳng tại đây (11/11/2026) —
+            trước chỉ có nút "Bỏ sửa tay" trong hộp sửa, không ai nghĩ đó là xoá. */}
+        {suaLuong && x.chot?.ngoai_crm && x.chot?.nhap_tay && x.chot?.id ? (
+          <Button variant="ghost" style={{ color: color.red }} title="Xoá dòng lương thêm tay này"
+                  onClick={() => xoaDongTay(x)}>🗑 Xoá</Button>
+        ) : null}
       </div>,
     ];
   });
@@ -440,6 +451,15 @@ export default function BangLuong({ thang, nam, coTheGhi = false, coSuaLuong = f
   ];
   const MAU = { ok: ["#E7F6EC", "#1E8E4F", "✓"], warn: ["#FFF4E0", "#B7791F", "!"], info: ["#EEF2FB", "#1F3A93", "i"], idle: ["#F3EFEA", "#8a7a66", "·"] };
   const lamMoi = (tb) => { onNotice?.(tb); setTaiLai((v) => v + 1); };
+  const xoaDongTay = async (x) => {
+    if (!window.confirm(`Xoá dòng lương "${x.teacher_name}" (ngoài hồ sơ CRM) tháng ${thang}/${nam}? Không hoàn tác được.`)) return;
+    try {
+      await apiClient.delete("/payroll/luong-chot/sua/", { params: { id: x.chot.id } });
+      lamMoi(`Đã xoá dòng lương ${x.teacher_name} T${thang}/${nam}.`);
+    } catch (e) {
+      window.alert(loiApi(e, "Không xoá được dòng lương."));
+    }
+  };
   const buocMo = BUOC.find((b) => b.ma === moBuoc);
 
   const hopThoai = (

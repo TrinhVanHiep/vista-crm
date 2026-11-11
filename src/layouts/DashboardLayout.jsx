@@ -101,6 +101,7 @@ const navItems = [
     label: "Tài chính",
     to: "/finance",
     allowedRoles: ROUTE_PERMISSIONS.financeMenu,
+    quyenRieng: "quyen_ghi_tai_chinh",
     icon: navIcon(
       <>
         <circle cx="12" cy="12" r="9" />
@@ -209,7 +210,7 @@ const navItems = [
 function DashboardLayout() {
   const { user, role, hasRole, logout } = useAuth();
   const navigate = useNavigate();
-  const visibleNavItems = navItems.filter((item) => hasRole(item.allowedRoles));
+  const visibleNavItems = navItems.filter((item) => hasRole(item.allowedRoles) || (item.quyenRieng && user?.[item.quyenRieng]));
   // Ô tìm kiếm header chỉ được gọi API và hiện kết quả cho nhóm mà role thực sự mở được
   // màn đích. Nếu không, API trả 403 (kết quả luôn rỗng) hoặc RoleGuard đá sang /unauthorized.
   const canOpenStudentList = hasRole(ROUTE_PERMISSIONS.students); // /students?classroom=...

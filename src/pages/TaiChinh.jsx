@@ -41,9 +41,11 @@ export default function TaiChinh() {
   // Quản lý cơ sở / quản lý đào tạo: chỉ xem, và không thấy Tổng quan (dòng
   // tiền, hiệu suất kinh doanh). Backend chặn tương ứng — ẩn ở đây để họ không
   // bấm vào nút rồi nhận 403.
-  const coQuyenTaiChinh = hasRole(ROUTE_PERMISSIONS.finance);
-  const coTheGhi = !!user && (user.is_superuser || hasRole(ROUTE_PERMISSIONS.financeWrite));
-  const xemTongQuan = !!user && (user.is_superuser || hasRole(ROUTE_PERMISSIONS.financeOverview));
+  // quyen_ghi_tai_chinh: cấp riêng từng người (11/11/2026) — xem / ghi như kế toán.
+  const rieng = Boolean(user?.quyen_ghi_tai_chinh);
+  const coQuyenTaiChinh = rieng || hasRole(ROUTE_PERMISSIONS.finance);
+  const coTheGhi = !!user && (user.is_superuser || rieng || hasRole(ROUTE_PERMISSIONS.financeWrite));
+  const xemTongQuan = !!user && (user.is_superuser || rieng || hasRole(ROUTE_PERMISSIONS.financeOverview));
   const phanHe = PHAN_HE.filter(([ma]) => (
     ma === "overview" ? xemTongQuan : coQuyenTaiChinh
   ));

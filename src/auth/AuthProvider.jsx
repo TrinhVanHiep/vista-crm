@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { getCookie, removeCookie, setCookie } from './cookie';
 import { setUnauthorizedHandler } from '../services/apiClient';
 import { normalizeRole } from './roleRoutes';
+import { layQuyenRieng } from '../services/authService';
 
 const TOKEN_COOKIE_KEY = 'vista_token';
 const REFRESH_COOKIE_KEY = 'vista_refresh';
@@ -65,6 +66,24 @@ export function AuthProvider({ children }) {
   const logout = useCallback(() => {
     persistAuth({ nextToken: null, nextUser: null });
   }, [persistAuth]);
+
+  // Mở app: cập nhật cờ quyền cấp riêng (11/11/2026). Lỗi mạng thì giữ cờ cũ, không chặn gì.
+  useEffect(() => {
+    if (!token) return undefined;
+    let con = true;
+    layQuyenRieng()
+      .then((q) => {
+        if (!con) return;
+        setUser((u) => {
+          if (!u || Object.keys(q).every((k) => Boolean(u[k]) === q[k])) return u;
+          const moi = { ...u, ...q };
+          window.localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(moi));
+          return moi;
+        });
+      })
+      .catch(() => {});
+    return () => { con = false; };
+  }, [token]);
 
   useEffect(() => {
     setUnauthorizedHandler(logout);

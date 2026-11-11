@@ -82,10 +82,12 @@ export default function SuaLuongChot({ nguoi, thang, nam, onDong, onXong }) {
              {f?.nhap_tay && f?.id ? (
                <Button variant="ghost" style={{ marginRight: "auto", color: color.red }} disabled={dang}
                        onClick={async () => {
-                         if (!window.confirm("Bỏ số sửa tay — người này quay về số lương tạm tính?")) return;
+                         const ngoai = !f.teacher_id; // dòng "Ngoài hồ sơ CRM": bỏ = xoá hẳn dòng
+                         if (!window.confirm(ngoai ? `Xoá dòng lương "${nguoi.ten}"? Không hoàn tác được.`
+                           : "Bỏ số sửa tay — người này quay về số lương tạm tính?")) return;
                          await apiClient.delete(`/payroll/luong-chot/sua/?id=${f.id}`);
-                         onXong?.(`Đã bỏ số sửa tay của ${nguoi.ten} — quay về số tạm tính.`);
-                       }}>Bỏ sửa tay</Button>
+                         onXong?.(ngoai ? `Đã xoá dòng lương ${nguoi.ten}.` : `Đã bỏ số sửa tay của ${nguoi.ten} — quay về số tạm tính.`);
+                       }}>{f.teacher_id ? "Bỏ sửa tay" : "🗑 Xoá dòng"}</Button>
              ) : null}
              <Button variant="ghost" onClick={onDong}>Huỷ</Button>
              <Button onClick={luu} disabled={dang || !f}>{dang ? "Đang lưu…" : "Lưu"}</Button>

@@ -279,7 +279,7 @@ function App() {
           <Route
             path="finance"
             element={
-              <RoleGuard allowedRoles={ROUTE_PERMISSIONS.financeMenu}>
+              <RoleGuard allowedRoles={ROUTE_PERMISSIONS.financeMenu} quyenRieng="quyen_ghi_tai_chinh">
                 <TaiChinh />
               </RoleGuard>
             }

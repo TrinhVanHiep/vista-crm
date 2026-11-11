@@ -23,6 +23,8 @@ const normalizeUser = (profile) => {
     student_id: profile.student_id ?? null,
     // Quyền thu học phí cấp riêng (nhóm thu_hoc_phi, 14/10/2026).
     quyen_thu_hoc_phi: Boolean(profile.quyen_thu_hoc_phi),
+    // Quyền ghi tài chính cấp riêng (nhóm ghi_tai_chinh, 11/11/2026) — như kế toán.
+    quyen_ghi_tai_chinh: Boolean(profile.quyen_ghi_tai_chinh),
   };
 };
 
@@ -31,6 +33,16 @@ const splitName = (name = '') => {
   const firstName = parts.pop() || '';
   return { firstName, lastName: parts.join(' ') };
 };
+
+// Quyền cấp riêng từng người (nhóm thu_hoc_phi / ghi_tai_chinh) — đọc lại mỗi lần mở app, vì
+// người đang đăng nhập sẵn (phiên tự gia hạn) sẽ không thấy quyền vừa được cấp nếu chỉ lấy lúc đăng nhập.
+export async function layQuyenRieng() {
+  const { data } = await apiClient.get('/users/profile/');
+  return {
+    quyen_thu_hoc_phi: Boolean(data?.quyen_thu_hoc_phi),
+    quyen_ghi_tai_chinh: Boolean(data?.quyen_ghi_tai_chinh),
+  };
+}
 
 export async function login(credentials) {
   if (!import.meta.env.VITE_API_BASE_URL) {
