@@ -101,7 +101,7 @@ export const moLaiKy = (id, ly_do) =>
 
 /* ------------------------------------------------------ nhập liệu */
 
-/** Các đường nhập: khoản phải thu, phiếu thu, khoản chi, học phí theo lớp. */
+/** Các đường nhập: khoản phải thu, khoản chi, học phí theo lớp. */
 export const LOAI_NHAP = [
   {
     ma: "phai-thu",
@@ -109,12 +109,8 @@ export const LOAI_NHAP = [
     mo: "Lập công nợ học phí, giáo trình, lệ phí thi cho nhiều em cùng lúc.",
     cot: "Mã học viên · Họ và tên · Lớp · Loại khoản thu · Tháng · Năm · Số tiền · Hạn thu · Ghi chú",
   },
-  {
-    ma: "phieu-thu",
-    ten: "Phiếu thu",
-    mo: "Ghi các lần đã thu tiền. Hệ thống tự phân bổ vào khoản đang nợ, cũ trước mới sau.",
-    cot: "Mã học viên · Họ và tên · Lớp · Ngày thu · Số tiền · Phương thức · Quỹ · Nội dung",
-  },
+  // "Phiếu thu" đã khoá (11/11/2026): mọi lần thu phải có ảnh minh chứng, file Excel
+  // không đính được ảnh — ghi bằng nút "Ghi nhận thu". Máy chủ cũng chặn.
   {
     ma: "khoan-chi",
     ten: "Khoản chi",
