@@ -340,9 +340,20 @@ function NganKeoGhiSo({ mo, onDong, onXong }) {
   const [noiDung, setNoiDung] = useState("");
   const [dangLuu, setDangLuu] = useState(false);
   const [loi, setLoi] = useState("");
+  // Ảnh minh chứng bắt buộc (11/11/2026, chủ TT) — máy chủ cũng chặn.
+  const [tep, setTep] = useState(null);
+  const [anhXem, setAnhXem] = useState("");
+
+  useEffect(() => {
+    if (!tep || !String(tep.type).startsWith("image/")) { setAnhXem(""); return undefined; }
+    const u = URL.createObjectURL(tep);
+    setAnhXem(u);
+    return () => URL.revokeObjectURL(u);
+  }, [tep]);
 
   useEffect(() => {
     if (!mo) return;
+    setTep(null);
     layDanhSachQuy()
       .then((d) => { setQuy(d); setTaiKhoan((c) => c || String(d[0]?.id || "")); })
       .catch(() => setQuy([]));
@@ -353,11 +364,12 @@ function NganKeoGhiSo({ mo, onDong, onXong }) {
     if (!(Number(soTien) > 0)) { setLoi("Chưa nhập số tiền."); return; }
     if (!taiKhoan) { setLoi("Chưa chọn quỹ / tài khoản."); return; }
     if (!noiDung.trim()) { setLoi("Chưa ghi nội dung giao dịch."); return; }
+    if (!tep) { setLoi("Chưa đính kèm ảnh minh chứng — mọi giao dịch ghi tay đều bắt buộc có ảnh."); return; }
     setDangLuu(true);
     try {
       const gd = await ghiSo({
         direction: huong, amount: Number(soTien), occurred_at: ngay,
-        account: Number(taiKhoan), description: noiDung.trim(),
+        account: Number(taiKhoan), description: noiDung.trim(), chung_tu: tep,
       });
       onXong?.(`Đã ghi giao dịch ${gd.code}.`);
       onDong?.();
@@ -418,6 +430,16 @@ function NganKeoGhiSo({ mo, onDong, onXong }) {
           <Input value={noiDung} onChange={(e) => setNoiDung(e.target.value)}
                  placeholder="Ví dụ: tiền điện cơ sở tháng 9" />
         </Field>
+      </div>
+      <div style={{ marginTop: 16 }}>
+        <Field label="Ảnh minh chứng / hoá đơn (bắt buộc) *">
+          <input type="file" accept="image/*,application/pdf" onChange={(e) => setTep(e.target.files?.[0] || null)} />
+        </Field>
+        {anhXem ? (
+          <img src={anhXem} alt="Xem trước minh chứng"
+               style={{ marginTop: 8, maxWidth: "100%", maxHeight: 220, objectFit: "contain", borderRadius: radius.md,
+                        border: "1px solid " + color.borderStrong, display: "block" }} />
+        ) : null}
       </div>
     </Drawer>
   );

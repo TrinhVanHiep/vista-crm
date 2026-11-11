@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../../auth/AuthProvider";
 import apiClient from "../../services/apiClient";
-import { Card, Pill } from "./v3/ui";
+import ChiTietBaoCaoNgay from "../reports/ChiTietBaoCaoNgay";
+import { Card, Modal, Pill } from "./v3/ui";
 import { color } from "./v3/theme";
 
 /**
@@ -22,7 +24,17 @@ function O({ value, onChange, disabled, w = 64, tay }) {
   );
 }
 
+const gioPhut = (iso) => (iso ? new Date(iso).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }) : "");
+const ngayVN = (iso) => String(iso || "").slice(0, 10).split("-").reverse().join("/");
+// Cùng nhóm vai duyệt báo cáo như màn Báo cáo ngày (DailyReport canReviewReports); máy chủ vẫn kiểm.
+const VAI_DUYET_BAO_CAO = ["superadmin", "admin", "center_manager", "training_manager"];
+
 export default function NhapLuongThang({ thang, nam, onNotice }) {
+  const { user, role } = useAuth();
+  const coQuyenDuyet = !!user && (user.is_superuser || VAI_DUYET_BAO_CAO.includes(role));
+  // 11/11/2026: bấm "N ca chưa duyệt báo cáo" -> danh sách ca -> mở từng ca (xem + duyệt tại chỗ).
+  const [dsCa, setDsCa] = useState(null); // {ten, ca: []}
+  const [caXem, setCaXem] = useState(null);
   const [bc, setBc] = useState(null);
   const [mo, setMo] = useState(true);
   const [sua, setSua] = useState({});      // teacher_id -> {so_cong, ca_truc_t2_t6, …}
@@ -177,7 +189,19 @@ export default function NhapLuongThang({ thang, nam, onNotice }) {
                       {r.thi_dua.thuong ? <div style={{ color: color.green }}>+{tien(r.thi_dua.thuong)}</div> : null}
                     </td>
                     <td style={{ padding: "8px", fontSize: 12, color: r.thieu.length ? color.red : color.green }}>
-                      {r.thieu.length ? r.thieu.join(" · ") : "Đủ"}
+                      {r.thieu.length ? r.thieu.map((t, i) => (
+                        <span key={t}>
+                          {i ? " · " : ""}
+                          {/ca chưa duyệt báo cáo$/.test(t) && r.ca_chua_duyet?.length ? (
+                            <button type="button" onClick={() => setDsCa({ ten: r.ten, ca: r.ca_chua_duyet })}
+                                    title="Xem các ca chưa duyệt"
+                                    style={{ background: "none", border: 0, padding: 0, color: color.red, fontSize: 12,
+                                             textDecoration: "underline", cursor: "pointer" }}>
+                              {t}
+                            </button>
+                          ) : t}
+                        </span>
+                      )) : "Đủ"}
                     </td>
                     <td style={{ padding: "8px" }}>
                       {doi ? (
@@ -197,6 +221,26 @@ export default function NhapLuongThang({ thang, nam, onNotice }) {
           </div>
         </div>
       ) : null}
+      {dsCa && !caXem ? (
+        <Modal title={`Ca chưa duyệt — ${dsCa.ten}`} sub={`Tháng ${thang}/${nam} · ${dsCa.ca.length} ca. Bấm một ca để xem báo cáo và duyệt.`}
+               width={640} onClose={() => setDsCa(null)}>
+          <div style={{ display: "grid", gap: 8 }}>
+            {dsCa.ca.map((c) => (
+              <button key={c.id} type="button" onClick={() => setCaXem(c)}
+                      style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", textAlign: "left",
+                               background: "#fff", border: "1px solid " + color.borderStrong, borderRadius: 10,
+                               padding: "10px 12px", cursor: "pointer", fontSize: 13 }}>
+                <span>
+                  <b>{ngayVN(c.session_date)}</b> · {gioPhut(c.start_at)}–{gioPhut(c.end_at)} · {c.classroom_name}
+                </span>
+                <Pill tone={c.report_status === "submitted" ? "amber" : "red"}>{c.trang_thai_bao_cao}</Pill>
+              </button>
+            ))}
+          </div>
+        </Modal>
+      ) : null}
+      <ChiTietBaoCaoNgay buoi={caXem} onDong={() => setCaXem(null)} coQuyenDuyet={coQuyenDuyet}
+                         onDaDuyet={() => { setDsCa(null); setTaiLai((v) => v + 1); }} />
     </Card>
   );
 }

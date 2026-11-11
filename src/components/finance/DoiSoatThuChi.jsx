@@ -79,7 +79,7 @@ function BangThu({ nhom, cot }) {
               <td style={{ ...tdSo, fontWeight: 700 }}>{d(x.tong)}</td>
               <td style={td}>{x.hinh_thuc}</td>
               <td style={td}>{x.nguoi_thu || "—"}</td>
-              <td style={td}>{x.nguon === "so_tay" ? <span style={{ color: color.faint }}>Ghi tay</span> : <MinhChung url={x.minh_chung} />}</td>
+              <td style={td}><MinhChung url={x.minh_chung} /></td>
             </tr>
           ))}
           <tr style={{ background: "#FBF7F2" }}>
@@ -123,7 +123,7 @@ function BangChi({ nhom, laQuanTri, onXoa }) {
               <td style={{ ...tdSo, fontWeight: 700 }}>{d(x.so_tien)}</td>
               <td style={td}>{x.quy}</td>
               <td style={td}>{x.nguoi_chi || "—"}</td>
-              <td style={td}>{x.id ? <MinhChung url={x.minh_chung} /> : <span style={{ color: color.faint }}>Ghi trên sổ</span>}</td>
+              <td style={td}><MinhChung url={x.minh_chung} /></td>
               {laQuanTri ? (
                 <td style={td}>
                   {x.id ? (

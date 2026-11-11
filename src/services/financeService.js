@@ -86,7 +86,12 @@ export const tongHopSo = (p = {}) =>
   apiClient.get("/finances/transactions/tong-hop/", { params: p }).then(lay);
 export const baoCaoKqkd = (p = {}) =>
   apiClient.get("/finances/transactions/bao-cao-kqkd/", { params: p }).then(lay);
-export const ghiSo = (d) => apiClient.post("/finances/transactions/ghi-so/", d).then(lay);
+// Ghi tay vào sổ: kèm ảnh minh chứng bắt buộc (11/11/2026) nên gửi multipart.
+export const ghiSo = (d) => {
+  const fd = new FormData();
+  Object.entries(d || {}).forEach(([k, v]) => { if (v !== undefined && v !== null) fd.append(k, v); });
+  return apiClient.post("/finances/transactions/ghi-so/", fd).then(lay);
+};
 export const xacNhanKhop = (id, d = {}) =>
   apiClient.post(`/finances/transactions/${id}/doi-soat/`, d).then(lay);
 
