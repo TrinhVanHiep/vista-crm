@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import apiClient from "../../services/apiClient";
-import { dinhDangTien, loiApi, taoKhoanPhaiThu } from "../../services/financeService";
+import { LOAI_KHOAN_THU, dinhDangTien, loiApi, taoKhoanPhaiThu, tenLoaiKhoanThu } from "../../services/financeService";
 import { listClassroomsAll, listStudents } from "../../services/calendarService";
 import { getFullName } from "../../utils/userFormatters";
 import { Button, Drawer, Field, Input, NoteStrip } from "./v3/ui";
@@ -23,6 +23,10 @@ export default function NganKeoHocPhiCaNhan({ mo, thang, nam, onDong, onXong }) 
   const [dsLop, setDsLop] = useState([]);
   const [loc, setLoc] = useState("");
   const [hv, setHv] = useState("");
+  // Học phí tính theo buổi; Quỹ lớp / Apps / Tài liệu nhập thẳng số tiền (11/11/2026).
+  const [loai, setLoai] = useState("tuition");
+  const laHocPhi = loai === "tuition";
+  const tenLoai = tenLoaiKhoanThu(loai);
   const [lop, setLop] = useState("");
   const [tuNgay, setTuNgay] = useState(homNay());
   const [goiY, setGoiY] = useState(null);
@@ -37,7 +41,7 @@ export default function NganKeoHocPhiCaNhan({ mo, thang, nam, onDong, onXong }) 
   useEffect(() => {
     if (!mo) return;
     setHv(""); setLop(""); setLoc(""); setGoiY(null); setSoTien(""); setTronKy(""); setHanThu(""); setLoi("");
-    setTuNgay(homNay()); setCach("thang");
+    setTuNgay(homNay()); setCach("thang"); setLoai("tuition"); setGhiChu("");
     Promise.all([listStudents({ page_size: 1000 }), listClassroomsAll()])
       .then(([h, l]) => {
         setDsHv(Array.isArray(h) ? h : h?.results || []);
@@ -74,29 +78,29 @@ export default function NganKeoHocPhiCaNhan({ mo, thang, nam, onDong, onXong }) 
   }, [deXuat]);
 
   useEffect(() => {
-    if (!goiY || cach === "tay") return;
+    if (!goiY || cach === "tay" || !laHocPhi) return;
     const ngay = tuNgay.split("-").reverse().slice(0, 2).join("/");
     setGhiChu(cach === "lo_trinh"
       ? `Vào học giữa lộ trình từ ${ngay}: ${tuSo}/${mauSo} buổi còn lại`
       : `Vào học từ ${ngay}: ${tuSo}/${mauSo} buổi trong tháng ${thang}/${nam}`);
-  }, [goiY, cach, tuNgay, tuSo, mauSo, thang, nam]);
+  }, [goiY, cach, tuNgay, tuSo, mauSo, thang, nam, laHocPhi]);
 
   const luu = async () => {
     setLoi("");
     if (!hv) { setLoi("Chưa chọn học viên."); return; }
-    if (!(Number(soTien) > 0)) { setLoi("Chưa có số tiền học phí."); return; }
+    if (!(Number(soTien) > 0)) { setLoi(`Chưa có số tiền ${tenLoai.toLowerCase()}.`); return; }
     setDangLuu(true);
     try {
       await taoKhoanPhaiThu({
-        student_id: Number(hv), classroom: lop ? Number(lop) : null, kind: "tuition",
+        student_id: Number(hv), classroom: lop ? Number(lop) : null, kind: loai,
         amount: Number(soTien), period_month: thang, period_year: nam,
         due_date: hanThu || null, description: ghiChu.trim(),
       });
       const ten = getFullName(dsHv.find((h) => String(h.id) === String(hv))?.user);
-      onXong?.(`Đã lập học phí ${dinhDangTien(soTien)} đ cho ${ten} — kỳ ${String(thang).padStart(2, "0")}/${nam}.`);
+      onXong?.(`Đã lập ${tenLoai.toLowerCase()} ${dinhDangTien(soTien)} đ cho ${ten} — kỳ ${String(thang).padStart(2, "0")}/${nam}.`);
       onDong?.();
     } catch (e) {
-      setLoi(loiApi(e, "Không lập được học phí."));
+      setLoi(loiApi(e, `Không lập được ${tenLoai.toLowerCase()}.`));
     } finally {
       setDangLuu(false);
     }
@@ -118,7 +122,7 @@ export default function NganKeoHocPhiCaNhan({ mo, thang, nam, onDong, onXong }) 
 
   return (
     <Drawer
-      title="Lập học phí cá nhân"
+      title="Lập khoản thu cá nhân"
       sub={`Học viên vào giữa tháng / giữa lộ trình — kỳ ${String(thang).padStart(2, "0")}/${nam}`}
       onClose={onDong}
       footer={(
@@ -134,6 +138,19 @@ export default function NganKeoHocPhiCaNhan({ mo, thang, nam, onDong, onXong }) 
       ) : null}
 
       <div style={{ display: "grid", gap: 14, marginBottom: 16 }}>
+        <Field label="Loại khoản thu">
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {LOAI_KHOAN_THU.map(([ma, ten]) => (
+              <button key={ma} type="button" aria-pressed={loai === ma}
+                      onClick={() => { setLoai(ma); setCach(ma === "tuition" ? "thang" : "tay"); if (ma !== "tuition") setSoTien(""); }}
+                      style={{ ...oChon, width: "auto", padding: "8px 12px", fontWeight: 600,
+                               borderColor: loai === ma ? color.orange : color.borderStrong,
+                               background: loai === ma ? "#FFF3EC" : "#fff", color: loai === ma ? color.orange : color.ink }}>
+                {ten}
+              </button>
+            ))}
+          </div>
+        </Field>
         <Field label="Học viên">
           <Input placeholder="Gõ tên hoặc mã để lọc…" value={loc} onChange={(e) => setLoc(e.target.value)} />
           <select style={{ ...oChon, marginTop: 6 }} value={hv} onChange={(e) => {
@@ -159,7 +176,7 @@ export default function NganKeoHocPhiCaNhan({ mo, thang, nam, onDong, onXong }) 
           </Field>
         </div>
 
-        {goiY ? (
+        {goiY && laHocPhi ? (
           <div style={{ background: "#FBF7F2", borderRadius: radius.md, padding: "10px 12px", fontSize: 13, lineHeight: 1.6 }}>
             Lớp {goiY.lop}: <b>{goiY.con_lai_thang}/{goiY.so_buoi_thang}</b> buổi còn lại trong tháng {thang}/{nam}
             {goiY.tong_lo_trinh ? <> · lộ trình <b>{goiY.con_lai_lo_trinh}/{goiY.tong_lo_trinh}</b> buổi còn lại (đã dạy {goiY.da_day_truoc})</> : " · lớp chưa khai tổng số buổi lộ trình"}
@@ -167,6 +184,7 @@ export default function NganKeoHocPhiCaNhan({ mo, thang, nam, onDong, onXong }) 
           </div>
         ) : null}
 
+        {laHocPhi ? (
         <Field label="Cách tính">
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {nutCach("thang", "Theo buổi còn lại trong tháng", !goiY?.so_buoi_thang)}
@@ -174,12 +192,13 @@ export default function NganKeoHocPhiCaNhan({ mo, thang, nam, onDong, onXong }) 
             {nutCach("tay", "Nhập số tiền")}
           </div>
         </Field>
-        {cach !== "tay" ? (
+        ) : null}
+        {laHocPhi && cach !== "tay" ? (
           <Field label={cach === "lo_trinh" ? "Học phí trọn lộ trình" : "Học phí trọn tháng"}>
             <Input value={tronKy} onChange={(e) => setTronKy(e.target.value.replace(/[^0-9]/g, ""))} style={{ textAlign: "right" }} />
           </Field>
         ) : null}
-        <Field label={deXuat != null ? `Học phí phải thu (đề xuất ${dinhDangTien(deXuat)} đ)` : "Học phí phải thu"}>
+        <Field label={deXuat != null && laHocPhi ? `Học phí phải thu (đề xuất ${dinhDangTien(deXuat)} đ)` : `${tenLoai} phải thu`}>
           <Input value={soTien} onChange={(e) => setSoTien(e.target.value.replace(/[^0-9]/g, ""))} style={{ textAlign: "right", fontWeight: 700 }} />
         </Field>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>

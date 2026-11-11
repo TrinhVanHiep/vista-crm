@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import { ROUTE_PERMISSIONS } from "../auth/permissions";
+import DoiSoatThuChi from "../components/finance/DoiSoatThuChi";
 import DongSo from "../components/finance/DongSo";
 import BaoCaoKqkd from "../components/finance/BaoCaoKqkd";
 import BangLuong from "../components/finance/BangLuong";
@@ -15,7 +16,7 @@ import { color as mau, radius } from "../components/finance/v3/theme";
 import { Page, PageHeader } from "../ui";
 
 /**
- * Tài chính V2 — MỘT tab cấp 1, bên trong 7 phân hệ cấp 2.
+ * Tài chính V2 — MỘT tab cấp 1, bên trong 8 phân hệ cấp 2.
  *
  * Không tách thành nhiều mục trên thanh điều hướng trái, vì các nghiệp vụ này
  * dùng chung một nguồn sổ giao dịch và cùng một luồng kiểm soát: tách ra thì
@@ -26,6 +27,7 @@ import { Page, PageHeader } from "../ui";
 const PHAN_HE = [
   ["overview", "Tổng quan"],
   ["tuition", "Học phí & Công nợ"],
+  ["doi-soat", "Đối soát thu chi"],
   ["income", "Thu khác"],
   ["expense", "Khoản chi"],
   ["ledger", "Sổ giao dịch & Đối soát"],
@@ -148,6 +150,10 @@ export default function TaiChinh() {
         />
       ) : null}
 
+      {tab === "doi-soat" ? (
+        <DoiSoatThuChi thang={thang} nam={nam} coTheGhi={coTheGhi} laQuanTri={laQuanTri} onNotice={setThongBao} />
+      ) : null}
+
       {tab === "ledger" ? (
         <SoGiaoDich thang={thang} nam={nam} coTheGhi={coTheGhi} onNotice={setThongBao} />
       ) : null}
@@ -199,7 +205,7 @@ export default function TaiChinh() {
             "Người ghi nhận đã thanh toán có được là chính người duyệt không.",
             "Danh sách nhà cung cấp thường chi.",
           ]}
-          tam="khoản chi ghi thẳng ở phân hệ “Sổ giao dịch & Đối soát”, hoặc nhập hàng loạt bằng file Excel khoản chi."
+          tam="khoản chi kèm loại chi và ảnh minh chứng ghi ở phân hệ “Đối soát thu chi” (nút Ghi khoản chi), hoặc nhập hàng loạt bằng file Excel khoản chi."
         />
       ) : null}
 

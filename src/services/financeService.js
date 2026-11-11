@@ -22,6 +22,11 @@ export const layCongNo = (p = {}) =>
   apiClient.get("/finances/receivables/", { params: p }).then((r) => r.data);
 export const tongHopCongNo = (p = {}) =>
   apiClient.get("/finances/receivables/tong-hop/", { params: p }).then(lay);
+// Loại khoản thu lập được trên màn Học phí (11/11/2026). Cọc đi qua "Đăng ký học".
+export const LOAI_KHOAN_THU = [
+  ["tuition", "Học phí"], ["class_fund", "Quỹ lớp"], ["apps", "Apps"], ["material", "Tài liệu"],
+];
+export const tenLoaiKhoanThu = (ma) => (LOAI_KHOAN_THU.find(([m]) => m === ma) || [null, "Học phí"])[1];
 export const taoKhoanPhaiThu = (d) =>
   apiClient.post("/finances/receivables/", d).then(lay);
 export const suaKhoanPhaiThu = (id, d) =>

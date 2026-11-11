@@ -2,8 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../auth/AuthProvider";
 import {
-  duyetGiamTru, lapPhaiThuHangLoat, layCongNo, layGiamTru,
-  loiApi, rutGonM, soDayDu, taoGiamTru, tongHopCongNo,
+  LOAI_KHOAN_THU, duyetGiamTru, lapPhaiThuHangLoat, layCongNo, layGiamTru,
+  loiApi, tenLoaiKhoanThu, rutGonM, soDayDu, taoGiamTru, tongHopCongNo,
 } from "../../services/financeService";
 import { listClassroomsAll } from "../../services/calendarService";
 import HopThuTien from "./HopThuTien";
@@ -183,10 +183,10 @@ export default function HocPhiCongNo({ thang, nam, onNotice, laQuanTri, coTheGhi
           ) : null}
           <Button variant="ghost" icon="plus" onClick={() => setMoDangKy(true)}>Đăng ký học</Button>
           {coTheGhi ? (
-            <Button variant="ghost" icon="plus" onClick={() => setMoCaNhan(true)}>Học phí cá nhân</Button>
+            <Button variant="ghost" icon="plus" onClick={() => setMoCaNhan(true)}>Khoản thu cá nhân</Button>
           ) : null}
           {coTheGhi ? (
-            <Button icon="plus" onClick={() => setMoLapHangLoat(true)}>Lập học phí cho lớp</Button>
+            <Button icon="plus" onClick={() => setMoLapHangLoat(true)}>Lập khoản thu cho lớp</Button>
           ) : null}
         </div>
       </div>
@@ -232,7 +232,7 @@ export default function HocPhiCongNo({ thang, nam, onNotice, laQuanTri, coTheGhi
             ) : hang.length === 0 ? (
               <div style={{ padding: 28, textAlign: "center", fontSize: 13, color: color.muted, lineHeight: 1.6 }}>
                 Chưa có khoản phải thu nào trong kỳ này.
-                <br />Bấm “Lập học phí cho lớp” hoặc “Nhập từ Excel” để tạo.
+                <br />Bấm “Lập khoản thu cho lớp” hoặc “Nhập từ Excel” để tạo.
               </div>
             ) : (
               <Table columns={COT} rows={hang} align={CANH} />
@@ -317,6 +317,7 @@ export default function HocPhiCongNo({ thang, nam, onNotice, laQuanTri, coTheGhi
 function NganKeoLapHangLoat({ mo, thang, nam, onDong, onXong }) {
   const [lop, setLop] = useState([]);
   const [chonLop, setChonLop] = useState("");
+  const [loai, setLoai] = useState("tuition");
   const [soTien, setSoTien] = useState("");
   const [hanThu, setHanThu] = useState("");
   const [dangLuu, setDangLuu] = useState(false);
@@ -324,6 +325,7 @@ function NganKeoLapHangLoat({ mo, thang, nam, onDong, onXong }) {
 
   useEffect(() => {
     if (!mo) return;
+    setLoai("tuition");
     listClassroomsAll({ page_size: 300 })
       .then((kq) => setLop(Array.isArray(kq) ? kq : kq?.results || []))
       .catch(() => setLop([]));
@@ -332,11 +334,11 @@ function NganKeoLapHangLoat({ mo, thang, nam, onDong, onXong }) {
   const luu = async () => {
     setLoi("");
     if (!chonLop) { setLoi("Chưa chọn lớp."); return; }
-    if (!(Number(soTien) > 0)) { setLoi("Chưa nhập học phí."); return; }
+    if (!(Number(soTien) > 0)) { setLoi(`Chưa nhập số tiền ${tenLoaiKhoanThu(loai).toLowerCase()}.`); return; }
     setDangLuu(true);
     try {
       const kq = await lapPhaiThuHangLoat({
-        classroom: Number(chonLop), period_month: thang, period_year: nam,
+        classroom: Number(chonLop), period_month: thang, period_year: nam, kind: loai,
         amount: Number(soTien), due_date: hanThu || null,
       });
       onXong?.(kq.detail);
@@ -352,7 +354,7 @@ function NganKeoLapHangLoat({ mo, thang, nam, onDong, onXong }) {
 
   return (
     <Drawer
-      title="Lập học phí cho cả lớp"
+      title="Lập khoản thu cho cả lớp"
       sub={`Kỳ ${String(thang).padStart(2, "0")}/${nam}`}
       onClose={onDong}
       footer={(
@@ -381,7 +383,15 @@ function NganKeoLapHangLoat({ mo, thang, nam, onDong, onXong }) {
             {lop.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
           </select>
         </Field>
-        <Field label="Học phí mỗi em">
+        <Field label="Loại khoản thu">
+          <select value={loai} onChange={(e) => setLoai(e.target.value)} style={{
+            width: "100%", background: "#fff", border: "1px solid " + color.borderStrong,
+            borderRadius: radius.md, padding: "11px 12px", fontSize: 13.5, cursor: "pointer",
+          }}>
+            {LOAI_KHOAN_THU.map(([ma, ten]) => <option key={ma} value={ma}>{ten}</option>)}
+          </select>
+        </Field>
+        <Field label={`${tenLoaiKhoanThu(loai)} mỗi em`}>
           <Input value={soTien} onChange={(e) => setSoTien(e.target.value.replace(/[^0-9]/g, ""))}
                  style={{ textAlign: "right" }} />
         </Field>

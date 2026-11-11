@@ -473,7 +473,7 @@ export default function StudentProfile() {
             <EmptyState
               icon="💳"
               title="Chưa có khoản học phí nào"
-              hint="Lập học phí cho học viên ở Tài chính → Học phí & Công nợ (Đăng ký học hoặc Lập học phí cho lớp)."
+              hint="Lập học phí cho học viên ở Tài chính → Học phí & Công nợ (Đăng ký học hoặc Lập khoản thu cho lớp)."
             />
           )}
         </Card>
