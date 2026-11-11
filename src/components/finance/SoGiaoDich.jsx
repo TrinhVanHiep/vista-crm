@@ -4,7 +4,6 @@ import {
   tongHopSo, xacNhanKhop,
 } from "../../services/financeService";
 import HopQuy from "./HopQuy";
-import NhapLieu from "./NhapLieu";
 import { color, mono, radius } from "./v3/theme";
 import {
   Button, Card, CardHead, Drawer, Field, Input, Num, Pill, Search, Select,
@@ -46,7 +45,6 @@ export default function SoGiaoDich({ thang, nam, onNotice, coTheGhi = true }) {
   const [locKhop, setLocKhop] = useState("");
   const [moGhiSo, setMoGhiSo] = useState(false);
   const [suaQuyNao, setSuaQuyNao] = useState(null);
-  const [moNhap, setMoNhap] = useState(false);
 
   const tai = useCallback(async () => {
     setDangTai(true);
@@ -165,9 +163,7 @@ export default function SoGiaoDich({ thang, nam, onNotice, coTheGhi = true }) {
         ]} />
         {coTheGhi ? (
           <div style={{ marginLeft: "auto", display: "flex", gap: 10 }}>
-            <Button variant="outline" icon="doc" onClick={() => setMoNhap(true)}>
-              Nhập khoản chi
-            </Button>
+            {/* "Nhập khoản chi" từ Excel đã khoá (11/11/2026): khoản chi bắt buộc ảnh — ghi ở tab Đối soát thu chi. */}
             <Button icon="plus" onClick={() => setMoGhiSo(true)}>Ghi giao dịch</Button>
           </div>
         ) : null}
@@ -329,8 +325,6 @@ export default function SoGiaoDich({ thang, nam, onNotice, coTheGhi = true }) {
       <NganKeoGhiSo mo={moGhiSo} onDong={() => setMoGhiSo(false)} onXong={xong} />
       <HopQuy mo={!!suaQuyNao} quy={suaQuyNao?.id ? suaQuyNao : null}
               onDong={() => setSuaQuyNao(null)} onXong={xong} />
-      <NhapLieu mo={moNhap} loaiBanDau="khoan-chi" thang={thang} nam={nam}
-                onDong={() => setMoNhap(false)} onXong={xong} />
     </>
   );
 }

@@ -888,5 +888,6 @@
  "Chuyển khoản / thẻ: ảnh biên lai hoặc dòng sao kê.": "Transfer / card: photo of the receipt or statement line.",
  " phiếu thu chưa có ảnh minh chứng. ": " payments without an evidence photo. ",
  "Chưa đính kèm ảnh minh chứng / hoá đơn — mọi khoản chi đều bắt buộc có ảnh.": "No evidence photo / invoice attached — every expense requires a photo.",
- "Ảnh minh chứng / hoá đơn (bắt buộc) *": "Evidence photo / invoice (required) *"
+ "Ảnh minh chứng / hoá đơn (bắt buộc) *": "Evidence photo / invoice (required) *",
+ "Nhập file học phí kiểu “HỌC PHÍ 2026”: lập công nợ và ưu đãi cho cả lớp. Các lần đã đóng KHÔNG tự ghi thành phiếu thu.": "Import a “TUITION 2026”-style file: creates receivables and discounts for the whole class. Paid instalments are NOT recorded as payments."
 }

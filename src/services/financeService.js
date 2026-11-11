@@ -101,7 +101,7 @@ export const moLaiKy = (id, ly_do) =>
 
 /* ------------------------------------------------------ nhập liệu */
 
-/** Các đường nhập: khoản phải thu, khoản chi, học phí theo lớp. */
+/** Các đường nhập: khoản phải thu, học phí theo lớp. */
 export const LOAI_NHAP = [
   {
     ma: "phai-thu",
@@ -109,23 +109,18 @@ export const LOAI_NHAP = [
     mo: "Lập công nợ học phí, giáo trình, lệ phí thi cho nhiều em cùng lúc.",
     cot: "Mã học viên · Họ và tên · Lớp · Loại khoản thu · Tháng · Năm · Số tiền · Hạn thu · Ghi chú",
   },
-  // "Phiếu thu" đã khoá (11/11/2026): mọi lần thu phải có ảnh minh chứng, file Excel
-  // không đính được ảnh — ghi bằng nút "Ghi nhận thu". Máy chủ cũng chặn.
-  {
-    ma: "khoan-chi",
-    ten: "Khoản chi",
-    mo: "Ghi các khoản đã chi thẳng vào sổ giao dịch.",
-    cot: "Ngày chi · Nội dung · Số tiền · Quỹ / Tài khoản · Danh mục",
-  },
+  // "Phiếu thu" và "Khoản chi" đã khoá (11/11/2026): mọi lần thu / chi phải có ảnh minh
+  // chứng, file Excel không đính được ảnh — ghi bằng "Ghi nhận thu" / "Ghi khoản chi".
+  // Máy chủ cũng chặn.
   {
     ma: "hoc-phi-lop",
     ten: "Học phí theo lớp (mỗi lớp 1 sheet)",
-    mo: "Nhập file học phí kiểu “HỌC PHÍ 2026”: lập công nợ, ghi các lần đã đóng và ưu đãi cho cả lớp.",
+    mo: "Nhập file học phí kiểu “HỌC PHÍ 2026”: lập công nợ và ưu đãi cho cả lớp. Các lần đã đóng KHÔNG tự ghi thành phiếu thu.",
     cot: "Mỗi sheet: LỚP · HỌC PHÍ CT · SỐ BUỔI · THỜI GIAN HỌC, rồi HỌ VÀ TÊN · ĐỊA CHỈ · TỔNG THIẾU · "
       + "ĐÃ ĐÓNG LẦN 2 · ngày đóng · ĐÃ ĐÓNG LẦN 1 · ngày đóng · TỔNG TIỀN · ƯU ĐÃI/ HỌC BỔNG · GHI CHÚ",
     goiY: "Mỗi sheet là MỘT lớp, tên sheet là mã lớp trong hệ thống (‘501 -’, ‘M1+’ được hiểu là 501, M1). "
-      + "Mỗi học viên sinh một khoản học phí = TỔNG TIỀN vào kỳ đang chọn; ĐÃ ĐÓNG LẦN 1/2 thành phiếu thu "
-      + "với ngày lấy từ ô “ngày đóng” (có ‘ck’ là chuyển khoản, còn lại là tiền mặt); ƯU ĐÃI/HỌC BỔNG thành "
+      + "Mỗi học viên sinh một khoản học phí = TỔNG TIỀN vào kỳ đang chọn; cột ĐÃ ĐÓNG LẦN 1/2 KHÔNG thành phiếu thu "
+      + "(mọi lần thu phải có ảnh minh chứng — ghi bằng nút “Ghi nhận thu”); ƯU ĐÃI/HỌC BỔNG thành "
       + "giảm trừ chờ duyệt. Dòng tổng lớp và các sheet tổng hợp (doanh thu, lương, nháp…) được tự bỏ qua. "
       + "Học viên phải có sẵn trong hệ thống. Nhập lại cùng file không ghi trùng.",
   },
