@@ -279,7 +279,8 @@ export default function HocPhiCongNo({ thang, nam, onNotice, laQuanTri, coTheGhi
                 <div style={{ fontSize: 11.5, color: color.faint, marginTop: 4 }}>
                   Người lập: {dc.created_by_name || "—"}
                 </div>
-                {laQuanTri ? (
+                {/* 11/11/2026: người được cấp quyền ghi tài chính (QLCS) duyệt được, trừ phiếu mình lập. */}
+                {laQuanTri || (user?.quyen_ghi_tai_chinh && dc.created_by !== user?.id) ? (
                   <div style={{ marginTop: 10 }}>
                     <Button style={{ padding: "7px 14px", fontSize: 12.5 }} onClick={() => duyet(dc)}>
                       Duyệt

@@ -366,12 +366,21 @@ export default function BangLuong({ thang, nam, coTheGhi = false, coSuaLuong = f
               </div>
             );
           }
-          const nhan = { dong_y: "Đã xác nhận", khieu_nai: "Báo sai", da_sua: "Quản lý đã sửa", cho_xac_nhan_lai: "Chờ xác nhận lại", chua: "Chưa xác nhận" }[r.trang_thai];
+          // Trạng thái nhân sự XÁC NHẬN phiếu lương — nhãn màu cho dễ thấy (11/11/2026, chủ TT: chữ nhỏ
+          // cạnh "Chưa thanh toán" không phân biệt được ai đã xác nhận, ai chưa).
+          const [nhan, nen, chu] = {
+            dong_y: ["✓ Đã xác nhận", color.greenSoft, color.green],
+            da_sua: ["✎ Quản lý đã sửa", "#E8F0FE", "#1D4ED8"],
+            khieu_nai: ["⚠ Yêu cầu sửa", color.redSoft, color.red],
+            cho_xac_nhan_lai: ["⏳ Chờ xác nhận lại", color.amberSoft, color.amber],
+            chua: ["⏳ Chưa xác nhận", color.amberSoft, color.amber],
+          }[r.trang_thai] || ["—", "transparent", color.faint];
           // 11/11/2026: nút cũ "✓ Đã thanh toán" viền xanh bị đọc nhầm là trạng thái — nay ghi rõ
           // "Chưa thanh toán" (xám) và nút hành động "Đánh dấu đã trả" trung tính.
           return (
-            <div style={{ display: "grid", gap: 3, fontSize: 12 }}>
-              <span style={{ color: ["dong_y", "da_sua"].includes(r.trang_thai) ? color.green : r.trang_thai === "khieu_nai" ? color.red : "#B7791F" }}>{nhan}</span>
+            <div style={{ display: "grid", gap: 4, fontSize: 12 }}>
+              <span title={r.ghi_chu || ""} style={{ background: nen, color: chu, fontWeight: 700, borderRadius: 6, padding: "3px 8px",
+                                                     whiteSpace: "nowrap", justifySelf: "start" }}>{nhan}</span>
               <span style={{ color: color.faint }}>Chưa thanh toán</span>
               {suaLuong && !cuaMinh(x.teacher_id) ? (
                 <button type="button" onClick={() => danhDauTT(r)} title="Bấm khi đã chuyển lương cho người này"

@@ -890,5 +890,10 @@
  "Chưa đính kèm ảnh minh chứng / hoá đơn — mọi khoản chi đều bắt buộc có ảnh.": "No evidence photo / invoice attached — every expense requires a photo.",
  "Ảnh minh chứng / hoá đơn (bắt buộc) *": "Evidence photo / invoice (required) *",
  "Nhập file học phí kiểu “HỌC PHÍ 2026”: lập công nợ và ưu đãi cho cả lớp. Các lần đã đóng KHÔNG tự ghi thành phiếu thu.": "Import a “TUITION 2026”-style file: creates receivables and discounts for the whole class. Paid instalments are NOT recorded as payments.",
- "Chưa đính kèm ảnh minh chứng — mọi giao dịch ghi tay đều bắt buộc có ảnh.": "No evidence photo attached — every manual entry requires a photo."
+ "Chưa đính kèm ảnh minh chứng — mọi giao dịch ghi tay đều bắt buộc có ảnh.": "No evidence photo attached — every manual entry requires a photo.",
+ "✓ Đã xác nhận": "✓ Confirmed",
+ "✎ Quản lý đã sửa": "✎ Edited by manager",
+ "⚠ Yêu cầu sửa": "⚠ Correction requested",
+ "⏳ Chờ xác nhận lại": "⏳ Awaiting re-confirmation",
+ "⏳ Chưa xác nhận": "⏳ Not confirmed"
 }
