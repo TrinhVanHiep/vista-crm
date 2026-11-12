@@ -30,6 +30,7 @@ import {
 import { TEN_CAP, capDangCho, quyenKy, tomTatPhieuKiem } from "../utils/duyetBaoCao";
 import HopKyDuyet from "../components/reports/HopKyDuyet";
 import DiemDanhCa from "../components/reports/DiemDanhCa";
+import useSiSoCa, { chuSiSo } from "../components/reports/useSiSoCa";
 
 const monthOptions = Array.from({ length: 12 }, (_, index) => ({
   value: index + 1,
@@ -203,7 +204,8 @@ function TheBaoCaoCaDay({
       </header>
 
       <div className="sr-card__facts">
-        <span><em>Sĩ số</em><b>{report.student_count ?? "--"}</b></span>
+        <span><em>Sĩ số</em><b>{report.si_so_lop ?? "--"}</b></span>
+        <span><em>Có mặt</em><b>{report.student_count ?? "--"}</b></span>
         <span><em>Đã báo cáo</em><b className={daTick ? "sr-ok" : "sr-no"}>{daTick ? "Rồi" : "Chưa tick"}</b></span>
         <span><em>Zalo</em><b className={report.reported_on_zalo ? "sr-ok" : "sr-no"}>
           {report.reported_on_zalo ? "Đã gửi" : "Chưa"}
@@ -384,6 +386,7 @@ function MonthlyReports() {
   const [reviewDialog, setReviewDialog] = useState(null);
   const [kyDuyet, setKyDuyet] = useState(null);
   const [moDiemDanh, setMoDiemDanh] = useState(false);
+  const [ddCa, datDdCa] = useSiSoCa(manualForm.session); // sĩ số theo danh sách lớp + có mặt theo điểm danh
   const [reviewNote, setReviewNote] = useState("");
 
   useEffect(() => {
@@ -652,8 +655,8 @@ function MonthlyReports() {
       setManualError("Báo cáo đã gửi/đã duyệt nên không thể sửa ở tài khoản giáo viên.");
       return;
     }
-    if (manualForm.student_count === "" || Number(manualForm.student_count) < 0) {
-      setManualError("Vui lòng nhập sĩ số hợp lệ.");
+    if (!ddCa?.da_diem) {
+      setManualError("Chưa điểm danh — bấm “Điểm danh” để điểm danh từng em trước khi lưu báo cáo.");
       return;
     }
     if (
@@ -679,8 +682,8 @@ function MonthlyReports() {
       const payload = {
         session: Number(manualForm.session),
         objective_status: "achieved",
-        attendance_summary: `Sĩ số: ${Number(manualForm.student_count) || 0}`,
-        student_count: Number(manualForm.student_count) || 0,
+        attendance_summary: `Có mặt ${ddCa.co_mat}/${ddCa.si_so}`,
+        student_count: ddCa.co_mat,
         content_taught: manualForm.content_taught.trim(),
         session_evaluation: manualForm.session_evaluation.trim(),
         next_session_plan: manualForm.next_session_plan.trim(),
@@ -1036,13 +1039,6 @@ function MonthlyReports() {
                     ))}
                   </select>
                 </Field>
-                {manualForm.session ? (
-                  <div style={{ marginTop: 6 }}>
-                    <Button size="sm" variant="ghost" onClick={() => setMoDiemDanh(true)}>
-                      Điểm danh từng em (kể cả học bù) — sĩ số tự điền
-                    </Button>
-                  </div>
-                ) : null}
               </div>
               <Field label="Tên lớp">
                 <input type="text" value={selectedManualSession?.classroom_name || ""} readOnly />
@@ -1058,19 +1054,18 @@ function MonthlyReports() {
                   readOnly
                 />
               </Field>
-              <Field label="Sĩ số">
-                <input
-                  type="number"
-                  min="0"
-                  value={manualForm.student_count}
-                  disabled={manualReportLocked}
-                  onChange={(event) =>
-                    setManualForm((prev) => ({
-                      ...prev,
-                      student_count: event.target.value,
-                    }))
-                  }
-                />
+              <Field label="Sĩ số (theo danh sách lớp)">
+                <input type="text" readOnly value={manualForm.session ? (ddCa?.si_so ?? "…") : ""} />
+              </Field>
+              <Field label="Có mặt (theo điểm danh)">
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                  <b style={{ color: ddCa?.da_diem ? "#1F9D55" : "#C0392B" }}>{manualForm.session ? chuSiSo(ddCa) : "—"}</b>
+                  {manualForm.session ? (
+                    <Button size="sm" variant="ghost" onClick={() => setMoDiemDanh(true)}>
+                      {ddCa?.da_diem ? "Xem / sửa điểm danh" : "Điểm danh"}
+                    </Button>
+                  ) : null}
+                </div>
               </Field>
               <div style={fullSpan}>
                 <Field label="Nội dung dạy">
@@ -1371,7 +1366,7 @@ function MonthlyReports() {
           sessionId={manualForm.session}
           tieuDe={selectedManualSession ? `${selectedManualSession.classroom_name || ""} — ${formatDate(selectedManualSession.session_date)}` : ""}
           onDong={() => setMoDiemDanh(false)}
-          onDaLuu={(d) => setManualForm((p) => ({ ...p, student_count: String(d.present_count) }))}
+          onDaLuu={datDdCa}
         />
       ) : null}
 

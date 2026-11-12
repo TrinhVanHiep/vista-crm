@@ -895,5 +895,12 @@
  "✎ Quản lý đã sửa": "✎ Edited by manager",
  "⚠ Yêu cầu sửa": "⚠ Correction requested",
  "⏳ Chờ xác nhận lại": "⏳ Awaiting re-confirmation",
- "⏳ Chưa xác nhận": "⏳ Not confirmed"
+ "⏳ Chưa xác nhận": "⏳ Not confirmed",
+ "Sĩ số (theo danh sách lớp)": "Class size (from class list)",
+ "Có mặt (theo điểm danh)": "Present (from attendance)",
+ "Xem / sửa điểm danh": "View / edit attendance",
+ "Không tải được điểm danh": "Could not load attendance",
+ "Sĩ số · Có mặt (theo điểm danh)": "Class size · Present (from attendance)",
+ "Chưa điểm danh — bấm “Điểm danh” để điểm danh từng em trước khi lưu báo cáo.": "Attendance not taken — click “Attendance” to mark each student before saving the report.",
+ "Vui lòng nhập bài tập giao trước khi lưu.": "Please enter the homework before saving."
 }

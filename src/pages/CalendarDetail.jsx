@@ -6,6 +6,7 @@ import MinhChungLich from "../components/MinhChungLich";
 import { VAI_QUAN_TRI } from "../auth/permissions";
 import { Link, useOutletContext, useSearchParams, useLocation } from "react-router-dom";
 import DiemDanhCa from "../components/reports/DiemDanhCa";
+import { chuSiSo, tomDiemDanh } from "../components/reports/useSiSoCa";
 import NganDoiCa from "../components/NganDoiCa";
 import DuyetKeHoach from "../components/DuyetKeHoach";
 import { plannerCategories } from "../data/scheduleData";
@@ -47,6 +48,7 @@ import {
   updateSessionReport,
   updateTeachingSession,
   deleteTeachingSession,
+  getDiemDanhCa,
 } from "../services/calendarService";
 import {
   competitionFrame,
@@ -922,6 +924,9 @@ function CalendarDetail() {
   const [cheDoGiaoViec, setCheDoGiaoViec] = useState(false);
   useEffect(() => { if (!isCreateOpen) setCheDoGiaoViec(false); }, [isCreateOpen]);
   const [reportForm, setReportForm] = useState(buildDefaultReportForm);
+  // Sĩ số / có mặt của ca đang báo cáo (12/11/2026): sĩ số khoá theo danh sách lớp, có mặt theo điểm danh tay.
+  const [ddBaoCao, setDdBaoCao] = useState(null); // { si_so, co_mat, da_diem } | { loi } | null = đang tải
+  const [moDdBaoCao, setMoDdBaoCao] = useState(false);
   const [reportSaving, setReportSaving] = useState(false);
   const [reportError, setReportError] = useState("");
   const [isReviewOpen, setIsReviewOpen] = useState(false);
@@ -3229,6 +3234,11 @@ function CalendarDetail() {
     } else {
       setReportForm(buildDefaultReportForm());
     }
+    setDdBaoCao(null);
+    setMoDdBaoCao(false);
+    getDiemDanhCa(sessionId)
+      .then((d) => setDdBaoCao(tomDiemDanh(d)))
+      .catch(() => setDdBaoCao({ loi: true }));
   };
 
   const closeReportModal = () => {
@@ -3242,8 +3252,12 @@ function CalendarDetail() {
       setReportError("Vui lòng tích Đã báo cáo trước khi gửi quản lý duyệt.");
       return null;
     }
-    if (!reportForm.attendance_summary.trim() || !reportForm.homework_assigned.trim()) {
-      setReportError("Vui lòng nhập điểm danh/sĩ số và bài tập giao trước khi lưu.");
+    if (!ddBaoCao?.da_diem) {
+      setReportError("Chưa điểm danh — bấm “Điểm danh” để điểm danh từng em trước khi lưu báo cáo.");
+      return null;
+    }
+    if (!reportForm.homework_assigned.trim()) {
+      setReportError("Vui lòng nhập bài tập giao trước khi lưu.");
       return null;
     }
     setReportSaving(true);
@@ -3255,8 +3269,9 @@ function CalendarDetail() {
       );
       const payload = {
         objective_status: reportForm.objective_status,
-        attendance_summary: reportForm.attendance_summary.trim(),
-        student_count: reportForm.student_count === "" ? null : Number(reportForm.student_count),
+        // Sĩ số / có mặt lấy từ danh sách lớp + điểm danh tay, không gõ tay (backend cũng ép theo điểm danh).
+        attendance_summary: `Có mặt ${ddBaoCao.co_mat}/${ddBaoCao.si_so}`,
+        student_count: ddBaoCao.co_mat,
         content_taught: reportForm.content_taught.trim(),
         session_evaluation: reportForm.session_evaluation.trim(),
         next_session_plan: reportForm.next_session_plan.trim(),
@@ -4068,6 +4083,14 @@ function CalendarDetail() {
         </div>
       </div>
 
+      {moDdBaoCao && reportSessionId ? (
+        <DiemDanhCa
+          sessionId={reportSessionId}
+          tieuDe={activeReportSession?.classroom_name || ""}
+          onDong={() => setMoDdBaoCao(false)}
+          onDaLuu={(d) => setDdBaoCao(tomDiemDanh(d))}
+        />
+      ) : null}
       {diemDanhCa ? (
         <DiemDanhCa
           sessionId={diemDanhCa.id}
@@ -5594,15 +5617,9 @@ function CalendarDetail() {
                   />
                 </label>
                 <label className={styles.formGroup}>
-                  <span>Sĩ số</span>
-                  <input
-                    type="number"
-                    min="0"
-                    value={reportForm.student_count}
-                    onChange={(event) =>
-                      setReportForm((prev) => ({ ...prev, student_count: event.target.value }))
-                    }
-                  />
+                  <span>Sĩ số (theo danh sách lớp)</span>
+                  <input type="text" readOnly value={ddBaoCao?.si_so ?? (ddBaoCao?.loi ? "—" : "…")}
+                         title="Tự lấy theo danh sách học sinh của lớp, không sửa tay" />
                 </label>
                 <label className={styles.formGroup}>
                   <span>Đánh giá mục tiêu</span>
@@ -5619,16 +5636,17 @@ function CalendarDetail() {
                     ))}
                   </select>
                 </label>
-                <label className={`${styles.formGroup} ${styles.formGroupFull}`}>
-                  <span>Điểm danh / sĩ số chi tiết</span>
-                  <textarea
-                    rows={2}
-                    value={reportForm.attendance_summary}
-                    onChange={(event) =>
-                      setReportForm((prev) => ({ ...prev, attendance_summary: event.target.value }))
-                    }
-                  />
-                </label>
+                <div className={`${styles.formGroup} ${styles.formGroupFull}`}>
+                  <span>Có mặt (theo điểm danh)</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                    <b style={{ color: ddBaoCao?.da_diem ? "#1F9D55" : "#C0392B" }}>
+                      {chuSiSo(ddBaoCao)}
+                    </b>
+                    <button type="button" className={styles.secondaryButton} onClick={() => setMoDdBaoCao(true)}>
+                      {ddBaoCao?.da_diem ? "Xem / sửa điểm danh" : "Điểm danh"}
+                    </button>
+                  </div>
+                </div>
                 <label className={`${styles.formGroup} ${styles.formGroupFull}`}>
                   <span>Nội dung dạy</span>
                   <textarea

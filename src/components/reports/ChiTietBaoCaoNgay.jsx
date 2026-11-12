@@ -311,7 +311,7 @@ export default function ChiTietBaoCaoNgay({ buoi, onDong, coQuyenDuyet = false, 
             <Badge tone={toneTt}>{nhanTt}</Badge>
             <Badge tone={toneMt}>{nhanMt}</Badge>
             {bc.student_count != null && bc.student_count !== ""
-              ? <Badge tone="blue">{bc.student_count} học sinh</Badge> : null}
+              ? <Badge tone="blue">Có mặt {bc.student_count}{bc.si_so_lop != null ? `/${bc.si_so_lop}` : ""} học sinh</Badge> : null}
             {bc.reported_on_zalo ? <Badge tone="green">Đã gửi Zalo phụ huynh</Badge> : null}
             {bc.is_late_submission ? <Badge tone="red">Nộp muộn</Badge> : null}
           </div>

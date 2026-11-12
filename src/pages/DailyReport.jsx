@@ -19,6 +19,7 @@ import {
 } from "../utils/khoangThoiGian";
 import ChiTietBaoCaoNgay from "../components/reports/ChiTietBaoCaoNgay";
 import DiemDanhCa from "../components/reports/DiemDanhCa";
+import useSiSoCa, { chuSiSo } from "../components/reports/useSiSoCa";
 import XemDuyetTruyenThong from "../components/XemDuyetTruyenThong";
 import "../styles/vista4.css";
 
@@ -237,6 +238,7 @@ function DailyReport() {
   const [moDiemDanh, setMoDiemDanh] = useState(false);
 
   const selectedSession = sessions.find((s) => String(s.id) === String(selectedSessionId)) || null;
+  const [ddCa, datDdCa] = useSiSoCa(selectedSessionId); // sĩ số theo danh sách lớp + có mặt theo điểm danh
   const selectedStatus = selectedSession?.report_status || "";
   // Chỉ khóa nhập khi báo cáo đã submitted/approved. Draft/rejected/revision_required vẫn cho sửa lại.
   const selectedReported = Boolean(selectedSession) && isLockedReport(selectedStatus);
@@ -278,6 +280,10 @@ function DailyReport() {
       setFormError("Vui lòng chọn lớp học.");
       return;
     }
+    if (!ddCa?.da_diem) {
+      setFormError("Chưa điểm danh — bấm “Điểm danh” để điểm danh từng em trước khi lưu báo cáo.");
+      return;
+    }
     if (!form.topic.trim()) {
       setFormError("Vui lòng nhập chủ đề bài học.");
       return;
@@ -287,10 +293,10 @@ function DailyReport() {
       const payload = {
         session: Number(selectedSessionId),
         objective_status: "achieved",
-        student_count: form.student_count ? Number(form.student_count) : undefined,
+        student_count: ddCa.co_mat,
         content_taught: form.topic.trim(),
         session_evaluation: form.activities.trim() || "Hoàn thành nội dung buổi học.",
-        attendance_summary: form.student_count ? `${form.student_count} học sinh đi học` : "Đã điểm danh",
+        attendance_summary: `Có mặt ${ddCa.co_mat}/${ddCa.si_so}`,
         homework_assigned: "Xem lại nội dung bài học.",
       };
       // SessionReport.session là OneToOne (unique): nếu buổi dạy đã có báo cáo (kể cả bị từ chối /
@@ -609,8 +615,8 @@ function DailyReport() {
                   {formTab === "general" ? (
                     <div className="grid c2">
                       <label>
-                        <span className="field-label">Sĩ số học sinh đi học *</span>
-                        <input type="number" min="0" placeholder="12" value={form.student_count} onChange={(e) => setForm((p) => ({ ...p, student_count: e.target.value }))} />
+                        <span className="field-label">Sĩ số · Có mặt (theo điểm danh)</span>
+                        <input type="text" readOnly value={selectedSessionId ? `Sĩ số ${ddCa?.si_so ?? "…"} · Có mặt: ${chuSiSo(ddCa)}` : ""} />
                         {selectedSessionId ? (
                           <button
                             type="button"
@@ -618,7 +624,7 @@ function DailyReport() {
                             style={{ cursor: "pointer", background: "none", border: "none", font: "inherit", padding: "4px 0 0", textAlign: "left" }}
                             onClick={() => setMoDiemDanh(true)}
                           >
-                            Điểm danh từng em (kể cả học bù) — sĩ số tự điền →
+                            {ddCa?.da_diem ? "Xem / sửa điểm danh →" : "Điểm danh từng em (kể cả học bù) →"}
                           </button>
                         ) : null}
                       </label>
@@ -768,7 +774,7 @@ function DailyReport() {
           sessionId={selectedSessionId}
           tieuDe={selectedSession ? `${selectedSession.classroom_name || ""} — ${selectedSession.teacher_name || ""}` : ""}
           onDong={() => setMoDiemDanh(false)}
-          onDaLuu={(d) => setForm((p) => ({ ...p, student_count: String(d.present_count) }))}
+          onDaLuu={datDdCa}
         />
       ) : null}
 
