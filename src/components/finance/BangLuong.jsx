@@ -169,6 +169,9 @@ export default function BangLuong({ thang, nam, coTheGhi = false, coSuaLuong = f
   // Kế toán / quản trị THEO VAI sửa được cả dòng mình; QLCS và người được cấp quyền tài chính riêng thì không (backend cũng chặn).
   const keToanTheoVai = !!user && (user.is_superuser || ROUTE_PERMISSIONS.financeWrite.includes(user.role));
   const cuaMinh = (teacherId) => !keToanTheoVai && user?.id != null && thanhToan[teacherId]?.user_id === user.id;
+  // 12/11/2026 chủ TT: quản lý cơ sở được tự sửa lương của mình (✎ Sửa, chỉnh thưởng/thuế/phạt);
+  // tự "Đánh dấu đã trả" thì vẫn không (backend chặn).
+  const chanSua = (teacherId) => user?.role !== "center_manager" && cuaMinh(teacherId);
   const [ttKey, setTtKey] = useState(0); // chỉ tải lại phần thanh toán, không tải lại cả bảng lương
   useEffect(() => {
     let con = true;
@@ -394,7 +397,7 @@ export default function BangLuong({ thang, nam, coTheGhi = false, coSuaLuong = f
         })()}
       </div>,
       <div key="c" style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-        {suaLuong && !cuaMinh(x.teacher_id) && (x.teacher_id || x.chot?.id) ? (
+        {suaLuong && !chanSua(x.teacher_id) && (x.teacher_id || x.chot?.id) ? (
           <Button variant="ghost" title="Sửa tay số lương người này"
                   onClick={() => setSuaTay({ teacher_id: x.teacher_id, id: x.chot?.id, ten: x.teacher_name, ghi_chu: "" })}>✎ Sửa</Button>
         ) : null}
@@ -505,7 +508,7 @@ export default function BangLuong({ thang, nam, coTheGhi = false, coSuaLuong = f
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           <Button variant="ghost" onClick={() => moNguoi(null)}>← Bảng lương tháng {thang}/{nam}</Button>
           <span style={{ flex: 1 }} />
-          {suaLuong && nguoi && !cuaMinh(nguoi.teacher_id) ? <Button variant="ghost" onClick={() => setDangChinh(nguoi)}>Chỉnh thưởng / thuế / phạt tháng này</Button> : null}
+          {suaLuong && nguoi && !chanSua(nguoi.teacher_id) ? <Button variant="ghost" onClick={() => setDangChinh(nguoi)}>Chỉnh thưởng / thuế / phạt tháng này</Button> : null}
           {coTheGhi && nguoi ? <Button variant="ghost" onClick={() => setCauHinh(nguoi.teacher_id)}>⚙ Cấu hình lương</Button> : null}
         </div>
         <Card>
