@@ -59,7 +59,8 @@ function apDungQuyen(g) {
   thayTaiCho(ROUTE_PERMISSIONS.financeApprove, vaiCo("q_duyet_tai_chinh", g));
   thayTaiCho(ROUTE_PERMISSIONS.payrollEdit, vaiCo("q_sua_luong", g));
   thayTaiCho(ROUTE_PERMISSIONS.kpiAdmin, vaiCo("q_cham_thi_dua", g));
-  const xem = [...new Set([...vaiCo("q_xem_tai_chinh", g), ...vaiCo("q_ghi_tai_chinh", g)])];
+  // Khớp backend is_finance_user: xem ∪ ghi ∪ sửa lương.
+  const xem = [...new Set([...vaiCo("q_xem_tai_chinh", g), ...vaiCo("q_ghi_tai_chinh", g), ...vaiCo("q_sua_luong", g)])];
   thayTaiCho(ROUTE_PERMISSIONS.finance, xem);
   thayTaiCho(ROUTE_PERMISSIONS.financeMenu, xem);
   thayTaiCho(VAI_DUYET_CAP_1, vaiCo("q_duyet_bc_cap1", g));
