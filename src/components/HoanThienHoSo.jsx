@@ -37,15 +37,18 @@ export default function HoanThienHoSo({ userId, onDangXuat }) {
   const coAnh = tt.gia_tri?.anh || anh;
 
   const luu = async () => {
+    // Mục bắt buộc theo Cài đặt › Tính năng (13/11/2026); máy chủ trả trong muc_bat_buoc.
+    const can = new Set(tt.muc_bat_buoc || ["anh", "sdt", "facebook", "sdt_khan_cap"]);
     const l = {};
-    if (!coAnh) l.anh = "Chọn ảnh đại diện.";
-    if (!f.sdt.trim()) l.sdt = "Nhập số điện thoại.";
-    if (!f.facebook.trim()) l.facebook = "Nhập link Facebook.";
-    if (!f.sdt_khan_cap.trim()) l.sdt_khan_cap = "Nhập SĐT người thân để liên hệ khi khẩn cấp.";
+    if (can.has("anh") && !coAnh) l.anh = "Chọn ảnh đại diện.";
+    if (can.has("sdt") && !f.sdt.trim()) l.sdt = "Nhập số điện thoại.";
+    if (can.has("facebook") && !f.facebook.trim()) l.facebook = "Nhập link Facebook.";
+    if (can.has("sdt_khan_cap") && !f.sdt_khan_cap.trim()) l.sdt_khan_cap = "Nhập SĐT người thân để liên hệ khi khẩn cấp.";
     setLoi(l);
     if (Object.keys(l).length) return;
     const fd = new FormData();
-    Object.entries(f).forEach(([k, v]) => fd.append(k, v.normalize("NFC")));
+    // Ô không bắt buộc mà để trống thì không gửi (máy chủ kiểm định dạng mọi ô được gửi).
+    Object.entries(f).forEach(([k, v]) => { if (v.trim() || can.has(k)) fd.append(k, v.normalize("NFC")); });
     if (anh) fd.append("anh", anh);
     setDangLuu(true);
     try {

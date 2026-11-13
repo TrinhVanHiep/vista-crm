@@ -4,6 +4,7 @@ import { useAuth } from "../auth/AuthProvider";
 import { VAI_QUAN_TRI } from "../auth/permissions";
 import { useDanAnh } from "../utils/danAnh";
 import { baoViecDoi } from "../utils/viecDoi";
+import { cd } from "../utils/caiDat";
 
 /**
  * Minh chứng + hẹn lại cho một đầu mục lịch công tác (12/10/2026). Chuyển “Hoàn thành”
@@ -216,7 +217,7 @@ export default function MinhChungLich({ lich, onDoi }) {
       ) : null}
       {hen ? (
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: 10 }}>
-          <input type="date" value={hen.ngay} min={isoCach(0)} max={isoCach(7)} onChange={(e) => setHen((h) => ({ ...h, ngay: e.target.value }))} />
+          <input type="date" value={hen.ngay} min={isoCach(0)} max={isoCach(cd("hen_toi_da_ngay"))} onChange={(e) => setHen((h) => ({ ...h, ngay: e.target.value }))} />
           <input type="text" placeholder="Lý do (bắt buộc)" value={hen.lyDo} style={{ flex: 1, minWidth: 180 }}
                  onChange={(e) => setHen((h) => ({ ...h, lyDo: e.target.value }))} />
           <button type="button" className="btn primary sm" disabled={dang || !hen.lyDo.trim()}
@@ -227,11 +228,11 @@ export default function MinhChungLich({ lich, onDoi }) {
                   })}>
             Lưu hẹn
           </button>
-          <span style={{ fontSize: 12, color: "#8a7a66" }}>Mỗi đầu mục hẹn một lần, tối đa 7 ngày.</span>
+          <span style={{ fontSize: 12, color: "#8a7a66" }}>Mỗi đầu mục hẹn một lần, tối đa {cd("hen_toi_da_ngay")} ngày.</span>
         </div>
       ) : null}
       <div style={{ fontSize: 12, color: "#8a7a66", marginTop: 8 }}>
-        Quá 24:00 ngày của đầu mục mà chưa “Hoàn thành” kèm minh chứng thì mỗi đêm tính 1 lỗi, trừ 1 điểm thi đua.
+        Quá 24:00 ngày của đầu mục mà chưa “Hoàn thành” kèm minh chứng thì mỗi đêm tính 1 lỗi, trừ {cd("loi_tru_moi_loi")} điểm thi đua.
       </div>
       {loi ? <div style={{ color: "#C0392B", fontSize: 12.5, marginTop: 6 }}>{loi}</div> : null}
     </div>

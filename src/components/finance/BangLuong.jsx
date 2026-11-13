@@ -29,6 +29,7 @@ const vaiHienTai = () => {
 };
 import { color } from "./v3/theme";
 import apiClient from "../../services/apiClient";
+import { cd } from "../../utils/caiDat";
 
 /**
  * Phân hệ "Bảng lương".
@@ -732,7 +733,7 @@ export default function BangLuong({ thang, nam, coTheGhi = false, coSuaLuong = f
           {ds.length && ds.every((x) => x.attendance?.machine_enabled === false) ? (
             <b>Công đang tính THEO FILE chấm công đã duyệt (máy chấm công tạm tắt). </b>
           ) : null}
-          Lương cơ bản = lương × công ÷ 25 (đủ 25 công = trọn lương; quản lý đào tạo tính ít nhất 15 công). Lương dạy
+          Lương cơ bản = lương × công ÷ 25 (đủ 25 công = trọn lương; quản lý đào tạo tính ít nhất {cd("qldt_cong_toi_thieu")} công). Lương dạy
           = đơn giá lớp × lượt học sinh của ca đã duyệt × % chia. Ca trực = T2–T6 × 50.000 + cả ngày T7 × 150.000 + cả ngày
           CN × 200.000 (file chấm công ô “T”, hoặc quản lý nhập ở “Nhập lương tháng”). Thưởng thi đua theo xếp loại phiếu đã
           duyệt: Xuất sắc 10%, Tốt 7%, Khá 5%. File Excel và phiếu lương gộp ca trực vào cột “Trợ cấp” theo mẫu giấy.

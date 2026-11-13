@@ -31,6 +31,7 @@ import HoanThienHoSo from "../components/HoanThienHoSo";
 import XacNhanLuong from "../components/XacNhanLuong";
 import NutNgonNgu from "../i18n/NutNgonNgu";
 import { useAutoCenter, isSingleCenter } from "../utils/centerField";
+import { napCaiDat, useCaiDat } from "../utils/caiDat";
 
 const NOTIFICATION_POLL_MS = 5000;
 
@@ -210,6 +211,9 @@ const navItems = [
 function DashboardLayout() {
   const { user, role, hasRole, logout } = useAuth();
   const navigate = useNavigate();
+  // Cài đặt hệ thống (13/11/2026): nạp một lần; nạp xong menu vẽ lại theo ma trận quyền.
+  const { cd } = useCaiDat();
+  useEffect(() => { if (user?.id) napCaiDat(); }, [user?.id]);
   const visibleNavItems = navItems.filter((item) => hasRole(item.allowedRoles) || (item.quyenRieng && user?.[item.quyenRieng]));
   // Ô tìm kiếm header chỉ được gọi API và hiện kết quả cho nhóm mà role thực sự mở được
   // màn đích. Nếu không, API trả 403 (kết quả luôn rỗng) hoặc RoleGuard đá sang /unauthorized.
@@ -1010,7 +1014,7 @@ function DashboardLayout() {
               <b>Máy tính đang đặt múi giờ khác Việt Nam.</b> Giờ ca dạy hiển thị trên máy này có thể lệch. Vào Cài đặt hệ thống → Ngày &amp; giờ → chọn múi giờ <b>Hà Nội / TP. Hồ Chí Minh (GMT+7)</b>, rồi tải lại trang.
             </div>
           ) : null}
-          <CanhBaoViecGap userId={user?.id} />
+          <CanhBaoViecGap userId={user?.id} tuMo={cd("popup_nhiem_vu")} />
           <HoanThienHoSo userId={user?.id} onDangXuat={handleLogout} />
           <XacNhanLuong userId={user?.id} />
           <Outlet

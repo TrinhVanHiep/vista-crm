@@ -1,9 +1,10 @@
 import { useRef, useState } from "react";
 import {
-  LOAI_NHAP, loiApi, nhapFileTaiChinh, taiFileMau,
+  loaiNhapDangMo, loiApi, nhapFileTaiChinh, taiFileMau,
 } from "../../services/financeService";
 import { color, radius } from "./v3/theme";
 import { Button, Drawer, NoteStrip, Pill } from "./v3/ui";
+import { cd } from "../../utils/caiDat";
 
 /**
  * Nhập liệu Tài chính từ Excel — bốn đường, mỗi đường một file mẫu.
@@ -61,7 +62,7 @@ export default function NhapLieu({ mo, loaiBanDau, thang, nam, onDong, onXong })
   const tepVuaChon = useRef(null);
   const oTep = useRef(null);
 
-  const chon = LOAI_NHAP.find((x) => x.ma === loai) || LOAI_NHAP[0];
+  const chon = loaiNhapDangMo(cd).find((x) => x.ma === loai) || loaiNhapDangMo(cd)[0];
 
   const taiMau = async (ma, coDuLieu = false) => {
     setLoi("");
@@ -112,7 +113,7 @@ export default function NhapLieu({ mo, loaiBanDau, thang, nam, onDong, onXong })
       {/* Bước 1 — chọn loại dữ liệu */}
       <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>1. Chọn loại dữ liệu</div>
       <div style={{ display: "grid", gap: 10, marginBottom: 22 }}>
-        {LOAI_NHAP.map((x) => {
+        {loaiNhapDangMo(cd).map((x) => {
           const dang = x.ma === loai;
           return (
             <button
@@ -220,7 +221,7 @@ export default function NhapLieu({ mo, loaiBanDau, thang, nam, onDong, onXong })
                   background: color.orange, color: "#fff", fontWeight: 700, fontSize: 13,
                 }}
               >
-                Nhập bằng loại “{(LOAI_NHAP.find((x) => x.ma === goiYLoai) || {}).ten || goiYLoai}” với file này
+                Nhập bằng loại “{(loaiNhapDangMo(cd).find((x) => x.ma === goiYLoai) || {}).ten || goiYLoai}” với file này
               </button>
             </div>
           ) : null}

@@ -3,6 +3,7 @@ import KpiSheet from "./KpiSheet";
 import apiClient from "../../services/apiClient";
 import { Badge, Button, Card, DataTable, EmptyState, Field, Kpi } from "../../ui";
 import { ICON_NHOM, IcCong, IcCup, IcSao, IcTru } from "./KpiIcons";
+import { cd } from "../../utils/caiDat";
 
 /**
  * Bảng chấm điểm thi đua tháng của MỘT người trong MỘT tháng.
@@ -25,13 +26,17 @@ const TRAN_TRU = 15;
 
 // Thang xếp loại đúng theo hàm xep_loai() ở backend (kpi/serializers.py) —
 // để bảng chú thích không bao giờ nói khác con số phiếu trả về.
-const THANG_XEP_LOAI = [
-  { ten: "Xuất sắc", mo_ta: "91 - 100 điểm · thưởng 10%", sao: 5, tone: "green" },
-  { ten: "Tốt", mo_ta: "81 - 90 điểm · thưởng 7%", sao: 4, tone: "blue" },
-  { ten: "Khá", mo_ta: "71 - 80 điểm · thưởng 5%", sao: 3, tone: "orange" },
-  { ten: "Trung bình", mo_ta: "61 - 70 điểm · không thưởng", sao: 2, tone: "purple" },
-  { ten: "Không đạt", mo_ta: "Dưới 60 điểm · không thưởng", sao: 1, tone: "red" },
-];
+// Ngưỡng lấy từ Cài đặt › Tính năng (13/11/2026), mặc định 91 / 81 / 71 / 61.
+const thangXepLoai = () => {
+  const [xs, tot, kha, tb] = ["xep_loai_xuat_sac", "xep_loai_tot", "xep_loai_kha", "xep_loai_trung_binh"].map(cd);
+  return [
+    { ten: "Xuất sắc", mo_ta: `Từ ${xs} điểm · thưởng 10%`, sao: 5, tone: "green" },
+    { ten: "Tốt", mo_ta: `${tot} - ${xs - 1} điểm · thưởng 7%`, sao: 4, tone: "blue" },
+    { ten: "Khá", mo_ta: `${kha} - ${tot - 1} điểm · thưởng 5%`, sao: 3, tone: "orange" },
+    { ten: "Trung bình", mo_ta: `${tb} - ${kha - 1} điểm · không thưởng`, sao: 2, tone: "purple" },
+    { ten: "Không đạt", mo_ta: `Dưới ${tb} điểm · không thưởng`, sao: 1, tone: "red" },
+  ];
+};
 
 // Ba ô ký khớp đúng MonthlyKpiReport.STAGES. Ban giám đốc chốt XẾP LOẠI chứ
 // không chấm lại điểm, nên ô đó dùng ô chọn thay vì ô nhập số.
@@ -637,7 +642,7 @@ export default function KpiScoreBoard({
           onDoiGhiNhan={(id, v) => setNhapGhiNhan((cu) => ({ ...cu, [id]: v }))}
           onLuuDiem={async () => { const ok = await luuDiem(); if (ok) setDangCham(false); }}
           onHuyCham={() => setDangCham(false)}
-          thangXepLoai={THANG_XEP_LOAI}
+          thangXepLoai={thangXepLoai()}
           tranCong={TRAN_CONG}
           tranTru={TRAN_TRU}
           diemTran={DIEM_TRAN}
@@ -974,7 +979,7 @@ export default function KpiScoreBoard({
                       onChange={(e) => doiDuyet(o.stage, "xepLoai", e.target.value)}
                     >
                       <option value="">-- Chọn xếp loại --</option>
-                      {THANG_XEP_LOAI.map((x) => (
+                      {thangXepLoai().map((x) => (
                         <option key={x.ten} value={x.ten}>{x.ten}</option>
                       ))}
                     </select>
@@ -1066,7 +1071,7 @@ export default function KpiScoreBoard({
       {/* F. Thang điểm xếp loại. */}
       <Card title="5. THANG ĐIỂM XẾP LOẠI">
         <div className="kpi-scale">
-          {THANG_XEP_LOAI.map((x) => (
+          {thangXepLoai().map((x) => (
             <div
               className={`kpi-scale__item${tong.rating === x.ten ? " is-current" : ""}`}
               key={x.ten}

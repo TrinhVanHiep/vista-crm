@@ -131,6 +131,28 @@ export const LOAI_NHAP = [
   },
 ];
 
+// Hai đường nhập có thể khoá / mở ở Cài đặt › Tính năng (13/11/2026; mặc định khoá vì Excel không
+// đính được ảnh minh chứng). Máy chủ cũng kiểm theo cùng cài đặt.
+const LOAI_NHAP_CO_THE_KHOA = [
+  {
+    ma: "phieu-thu",
+    khoa: "khoa_nhap_phieu_thu",
+    ten: "Phiếu thu",
+    mo: "Ghi các lần đã thu tiền. Hệ thống tự phân bổ vào khoản đang nợ, cũ trước mới sau.",
+    cot: "Mã học viên · Họ và tên · Lớp · Ngày thu · Số tiền · Phương thức · Quỹ · Nội dung",
+  },
+  {
+    ma: "khoan-chi",
+    khoa: "khoa_nhap_khoan_chi",
+    ten: "Khoản chi",
+    mo: "Ghi các khoản đã chi thẳng vào sổ giao dịch.",
+    cot: "Ngày chi · Nội dung · Số tiền · Quỹ / Tài khoản · Danh mục",
+  },
+];
+
+/** Danh sách loại nhập đang mở: LOAI_NHAP + phiếu thu / khoản chi nếu Cài đặt không khoá. */
+export const loaiNhapDangMo = (cd) => [...LOAI_NHAP, ...LOAI_NHAP_CO_THE_KHOA.filter((x) => !cd(x.khoa))];
+
 /** Tải file mẫu về máy. Trình duyệt không cho tải chéo miền bằng thẻ <a> có
  *  kèm token, nên phải lấy blob qua apiClient rồi tự tạo link tạm. */
 export async function taiFileMau(loai, { coDuLieu = false, thang, nam } = {}) {

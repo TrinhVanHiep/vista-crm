@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { getViecCanLam, henLaiCa, henLaiLich } from "../services/calendarService";
 import { Button, Modal } from "../ui";
 import { SU_KIEN_VIEC_DOI } from "../utils/viecDoi";
+import { cd } from "../utils/caiDat";
 
 /**
  * Cảnh báo "Nhiệm vụ cần hoàn thành ngay" khi vào site.
@@ -16,7 +17,9 @@ import { SU_KIEN_VIEC_DOI } from "../utils/viecDoi";
  * góc màn hình "N việc cần hoàn thành" để mở lại danh sách (20/10/2026: làm xong một việc
  * thì không tìm lại được các việc truyền thông còn tồn); danh sách tự làm mới khi đổi trang.
  */
-export default function CanhBaoViecGap({ userId }) {
+// tuMo = Cài đặt › Tính năng "Popup Nhiệm vụ cần hoàn thành ngay" (13/11/2026): tắt thì không tự bật
+// popup khi vào site, chỉ còn nút góc màn hình "N việc cần hoàn thành".
+export default function CanhBaoViecGap({ userId, tuMo = true }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [viec, setViec] = useState([]);
@@ -49,13 +52,13 @@ export default function CanhBaoViecGap({ userId }) {
         if (!con) return;
         const ds = Array.isArray(data?.items) ? data.items : [];
         setViec(ds);
-        if (daHien) return; // đã xem trong phiên: chỉ cập nhật nút góc màn hình
+        if (daHien || !tuMo) return; // đã xem trong phiên / tắt tự bật: chỉ cập nhật nút góc màn hình
         if (data?.so_tre_khong_hen) setCoY({ so: data.so_tre_khong_hen, quanLy: data.quan_ly || [] });
         setMo(ds.length > 0);
       })
       .catch(() => {});
     return () => { con = false; };
-  }, [userId, khoa, location.pathname, location.search, doi]);
+  }, [userId, khoa, location.pathname, location.search, doi, tuMo]);
 
   const dong = () => {
     setMo(false);
@@ -147,7 +150,7 @@ export default function CanhBaoViecGap({ userId }) {
       onClose={dong}
       title="⚠️ Nhiệm vụ cần hoàn thành ngay"
       subtitle={`${viec.length} việc đang quá hạn hoặc chờ bạn xử lý`
-        + (tongLoi ? ` · ${tongLoi} lỗi đã tính (trừ ${Math.min(tongLoi, 10)} điểm thi đua tháng)` : "")}
+        + (tongLoi ? ` · ${tongLoi} lỗi đã tính (trừ ${Math.min(tongLoi * cd("loi_tru_moi_loi"), cd("loi_tru_toi_da"))} điểm thi đua tháng)` : "")}
       size="md"
       footer={(
         <>
@@ -159,7 +162,7 @@ export default function CanhBaoViecGap({ userId }) {
       {viec.some((v) => v.tinh_loi) ? (
         <p className="small muted" style={{ marginTop: 0 }}>
           Mỗi ca dạy phải có báo cáo kèm ít nhất 1 ảnh minh chứng, mỗi đầu mục lịch công tác phải chuyển
-          “Hoàn thành” kèm minh chứng — trước 24:00 ngày hạn. Quá hạn mà chưa xong thì mỗi đêm tính 1 lỗi (trừ 1 điểm thi đua). Chưa kịp
+          “Hoàn thành” kèm minh chứng — trước 24:00 ngày hạn. Quá hạn mà chưa xong thì mỗi đêm tính 1 lỗi (trừ {cd("loi_tru_moi_loi")} điểm thi đua). Chưa kịp
           thì bấm <b>Hẹn lại</b> và chọn ngày cụ thể — mỗi đầu mục được hẹn một lần.
         </p>
       ) : null}
@@ -190,7 +193,7 @@ export default function CanhBaoViecGap({ userId }) {
             ) : null}
             {hen?.khoa === khoaViec(v) ? (
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: 6 }}>
-                <input type="date" value={hen.ngay} min={isoCach(0)} max={isoCach(7)}
+                <input type="date" value={hen.ngay} min={isoCach(0)} max={isoCach(cd("hen_toi_da_ngay"))}
                        onChange={(e) => setHen((h) => ({ ...h, ngay: e.target.value }))} />
                 <input type="text" placeholder="Lý do (bắt buộc)" value={hen.lyDo} style={{ flex: 1, minWidth: 160 }}
                        onChange={(e) => setHen((h) => ({ ...h, lyDo: e.target.value }))} />

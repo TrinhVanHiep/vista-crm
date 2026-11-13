@@ -13,6 +13,7 @@ import ClassManager from './pages/ClassManager.jsx';
 import MonthlyReports from './pages/MonthlyReports.jsx';
 import DailyReport from './pages/DailyReport.jsx';
 import ComingSoon from './pages/ComingSoon.jsx';
+import CaiDat from './pages/CaiDat.jsx';
 import MediaPlan from './pages/MediaPlan.jsx';
 import Finance from './pages/Finance.jsx';
 import TaiChinh from './pages/TaiChinh.jsx';
@@ -264,7 +265,7 @@ function App() {
             path="cai-dat"
             element={
               <RoleGuard allowedRoles={ROUTE_PERMISSIONS.settings}>
-                <ComingSoon />
+                <CaiDat />
               </RoleGuard>
             }
           />

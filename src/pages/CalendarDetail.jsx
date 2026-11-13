@@ -59,6 +59,7 @@ import {
 import { CenterField, useAutoCenter } from "../utils/centerField";
 import styles from "../styles/calendarDetail.module.css";
 import "../styles/vista4.css";
+import { vaiCo } from "../utils/caiDat";
 
 const monthOptions = Array.from({ length: 12 }, (_, index) => ({
   value: index + 1,
@@ -776,8 +777,9 @@ function CalendarDetail() {
   const canManageSessions = VAI_QUAN_TRI.includes(role);
   // Phân quyền duyệt đơn nhân sự (mirror backend staff_requests._can_review).
   const isAdminRole = VAI_QUAN_TRI.includes(role);
-  const isCenterManagerRole = ["superadmin", "admin", "center_manager"].includes(role);
-  const isTrainingManagerRole = ["superadmin", "admin", "training_manager"].includes(role);
+  // Vai phụ trách từng loại đơn theo Cài đặt › Giao việc (13/11/2026).
+  const isCenterManagerRole = vaiCo("q_phu_trach_de_xuat").includes(role);
+  const isTrainingManagerRole = vaiCo("q_phu_trach_don_nghi").includes(role);
   const canReviewStaffType = (requestType) => {
     if (isAdminRole) return true;
     if (["leave", "shift_change"].includes(requestType)) return isTrainingManagerRole;

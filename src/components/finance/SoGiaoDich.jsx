@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { cd } from "../../utils/caiDat";
 import {
   ghiSo, layDanhSachQuy, layNhatKy, laySoGiaoDich, loiApi, rutGonM, soDayDu,
   tongHopSo, xacNhanKhop,
@@ -364,7 +365,7 @@ function NganKeoGhiSo({ mo, onDong, onXong }) {
     if (!(Number(soTien) > 0)) { setLoi("Chưa nhập số tiền."); return; }
     if (!taiKhoan) { setLoi("Chưa chọn quỹ / tài khoản."); return; }
     if (!noiDung.trim()) { setLoi("Chưa ghi nội dung giao dịch."); return; }
-    if (!tep) { setLoi("Chưa đính kèm ảnh minh chứng — mọi giao dịch ghi tay đều bắt buộc có ảnh."); return; }
+    if (!tep && cd("bat_buoc_anh_thu_chi")) { setLoi("Chưa đính kèm ảnh minh chứng — mọi giao dịch ghi tay đều bắt buộc có ảnh."); return; }
     setDangLuu(true);
     try {
       const gd = await ghiSo({
@@ -432,7 +433,7 @@ function NganKeoGhiSo({ mo, onDong, onXong }) {
         </Field>
       </div>
       <div style={{ marginTop: 16 }}>
-        <Field label="Ảnh minh chứng / hoá đơn (bắt buộc) *">
+        <Field label={cd("bat_buoc_anh_thu_chi") ? "Ảnh minh chứng / hoá đơn (bắt buộc) *" : "Ảnh minh chứng / hoá đơn"}>
           <input type="file" accept="image/*,application/pdf" onChange={(e) => setTep(e.target.files?.[0] || null)} />
         </Field>
         {anhXem ? (

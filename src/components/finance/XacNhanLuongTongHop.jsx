@@ -3,6 +3,7 @@ import apiClient from "../../services/apiClient";
 import { Card, Pill } from "./v3/ui";
 import { color } from "./v3/theme";
 import SuaLuongChot from "./SuaLuongChot";
+import { cd } from "../../utils/caiDat";
 
 /**
  * Kế toán theo dõi nhân sự đã xác nhận phiếu lương tháng chưa (16/10/2026). Xác nhận
@@ -62,7 +63,7 @@ export default function XacNhanLuongTongHop({ thang, nam, coTheGhi = false, onDo
             ✓ Đã thanh toán tất cả ({choChuyen.length})
           </button>
         ) : null}
-        <span style={{ fontSize: 12.5, color: color.muted }}>Hỏi tự động ngày 10–15; chỉ chuyển lương khi đã xác nhận đúng.</span>
+        <span style={{ fontSize: 12.5, color: color.muted }}>Hỏi tự động ngày {cd("xn_luong_tu_ngay")}–{cd("xn_luong_den_ngay")}; chỉ chuyển lương khi đã xác nhận đúng.</span>
         <button type="button" onClick={() => setMo((v) => !v)}
                 style={{ marginLeft: "auto", border: 0, background: "none", color: color.orange, fontWeight: 700, cursor: "pointer" }}>
           {mo ? "Thu gọn" : "Xem từng người"}

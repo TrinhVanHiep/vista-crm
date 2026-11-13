@@ -4,6 +4,7 @@ import { dinhDangTien, layDanhSachQuy, loiApi } from "../../services/financeServ
 import { THU, khoaNgay } from "../../utils/khoangThoiGian";
 import { Button, Card, Drawer, Field, Input, NoteStrip, Pill } from "./v3/ui";
 import { color, radius } from "./v3/theme";
+import { cd } from "../../utils/caiDat";
 
 /**
  * Đối soát THU CHI theo ngày (11/11/2026, chủ TT).
@@ -178,7 +179,7 @@ function NganKeoGhiChi({ loaiChi, onDong, onXong }) {
     if (!noiDung.trim()) { setLoi("Chưa ghi nội dung chi."); return; }
     if (!(so(soTien) > 0)) { setLoi("Số tiền chi phải lớn hơn 0."); return; }
     if (!quy) { setLoi("Chưa chọn quỹ / tài khoản chi."); return; }
-    if (!tep) { setLoi("Chưa đính kèm ảnh minh chứng / hoá đơn — mọi khoản chi đều bắt buộc có ảnh."); return; }
+    if (!tep && cd("bat_buoc_anh_thu_chi")) { setLoi("Chưa đính kèm ảnh minh chứng / hoá đơn — mọi khoản chi đều bắt buộc có ảnh."); return; }
     const f = new FormData();
     f.append("ngay", ngay);
     f.append("loai", loai);
@@ -186,7 +187,7 @@ function NganKeoGhiChi({ loaiChi, onDong, onXong }) {
     f.append("amount", String(so(soTien)));
     f.append("account", quy);
     f.append("nguoi_chi", nguoiChi.trim());
-    f.append("chung_tu", tep);
+    if (tep) f.append("chung_tu", tep);
     setDangLuu(true);
     try {
       await apiClient.post(`${URL_API}khoan-chi/`, f, { timeout: 60000 });
@@ -245,7 +246,7 @@ function NganKeoGhiChi({ loaiChi, onDong, onXong }) {
         <Field label="Người chi / người nhận tiền">
           <Input value={nguoiChi} onChange={(e) => setNguoiChi(e.target.value)} placeholder="Để trống = người ghi" />
         </Field>
-        <Field label="Ảnh minh chứng / hoá đơn (bắt buộc) *">
+        <Field label={cd("bat_buoc_anh_thu_chi") ? "Ảnh minh chứng / hoá đơn (bắt buộc) *" : "Ảnh minh chứng / hoá đơn"}>
           <input type="file" accept="image/*,application/pdf" onChange={(e) => setTep(e.target.files?.[0] || null)} />
         </Field>
         {anhXem ? (

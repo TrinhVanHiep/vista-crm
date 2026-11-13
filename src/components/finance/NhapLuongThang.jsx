@@ -5,6 +5,7 @@ import apiClient from "../../services/apiClient";
 import ChiTietBaoCaoNgay from "../reports/ChiTietBaoCaoNgay";
 import { Card, Modal, Pill } from "./v3/ui";
 import { color } from "./v3/theme";
+import { vaiCo } from "../../utils/caiDat";
 
 /**
  * Nhập lương theo tháng — mỗi nhân sự chỉ có đúng các mục của vị trí (19/10/2026):
@@ -27,11 +28,12 @@ function O({ value, onChange, disabled, w = 64, tay }) {
 const gioPhut = (iso) => (iso ? new Date(iso).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }) : "");
 const ngayVN = (iso) => String(iso || "").slice(0, 10).split("-").reverse().join("/");
 // Cùng nhóm vai duyệt báo cáo như màn Báo cáo ngày (DailyReport canReviewReports); máy chủ vẫn kiểm.
-const VAI_DUYET_BAO_CAO = ["superadmin", "admin", "center_manager", "training_manager"];
+// Theo Cài đặt › Phân quyền (13/11/2026): ai ký được cấp 1 hoặc cấp 2.
+const vaiDuyetBaoCao = () => [...new Set([...vaiCo("q_duyet_bc_cap1"), ...vaiCo("q_duyet_bc_cap2")])];
 
 export default function NhapLuongThang({ thang, nam, onNotice }) {
   const { user, role } = useAuth();
-  const coQuyenDuyet = !!user && (user.is_superuser || VAI_DUYET_BAO_CAO.includes(role));
+  const coQuyenDuyet = !!user && (user.is_superuser || vaiDuyetBaoCao().includes(role));
   // 11/11/2026: bấm "N ca chưa duyệt báo cáo" -> danh sách ca -> mở từng ca (xem + duyệt tại chỗ).
   const [dsCa, setDsCa] = useState(null); // {ten, ca: []}
   const [caXem, setCaXem] = useState(null);
