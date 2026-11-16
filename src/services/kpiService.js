@@ -61,8 +61,17 @@ export async function taoKhungMacDinh() {
   return data;
 }
 
-export async function layQuyTacDieuChinh() {
-  const { data } = await apiClient.get("/kpi-frame/adjustment-rules/");
+/**
+ * Quy tắc điểm cộng/trừ, CÙNG KỲ với khung tiêu chí.
+ *
+ * Phải nhận tháng/năm như layKhungKpi: quy tắc cũng được sao sang bản riêng khi
+ * tách khung tháng, nên lấy khung gốc trong khi điểm cộng của phiếu nằm ở quy
+ * tắc của tháng là hai bên không khớp id — bảng hiện trống mà không báo lỗi.
+ */
+export async function layQuyTacDieuChinh(ky = {}) {
+  const { data } = await apiClient.get("/kpi-frame/adjustment-rules/", {
+    params: locThamSo(ky),
+  });
   return Array.isArray(data) ? data : data?.results || [];
 }
 

@@ -185,18 +185,38 @@ export default function KpiAdminBoard({ nhungTrongTrang = false, month, year } =
     return () => clearTimeout(oCho.current);
   }, [tuKhoa]);
 
+  // Danh sách cơ sở không đổi theo kỳ nên nạp một lần.
   useEffect(() => {
     let song = true;
-    Promise.all([layKhungKpi(), layQuyTacDieuChinh(), listCentersAll()])
-      .then(([k, q, c]) => {
+    listCentersAll()
+      .then((c) => song && setDsCoSo(Array.isArray(c) ? c : c?.results || []))
+      .catch(() => {});
+    return () => { song = false; };
+  }, []);
+
+  // Khung PHẢI nạp theo ĐÚNG KỲ đang xem, và nạp lại khi đổi kỳ.
+  // Trước đây gọi layKhungKpi() không tham số nên backend luôn trả KHUNG GỐC,
+  // trong khi điểm của phiếu lại thuộc khung riêng của tháng (bản sao có id
+  // khác). Hậu quả: mẫu số của "xx/100" lấy từ một khung, tử số từ khung khác,
+  // và bảng tiêu chí dựng từ khung gốc không khớp id nên hiện trống. Deps rỗng
+  // còn làm đổi tháng cũng không nạp lại.
+  useEffect(() => {
+    let song = true;
+    // Dùng `thang`/`nam` (kỳ HIỆU LỰC) chứ không phải state nội bộ: màn này được
+    // nhúng làm tab trong /thi-dua-thang, lúc đó kỳ đến từ prop của trang cha còn
+    // state nội bộ đứng im ở tháng hiện tại. Khoá nhầm vào state là luôn nạp khung
+    // của tháng này bất kể người dùng chọn tháng nào. Effect nạp bảng ở dưới cũng
+    // khoá vào thang/nam — hai chỗ phải cùng một kỳ.
+    const ky = { month: thang, year: nam };
+    Promise.all([layKhungKpi(ky), layQuyTacDieuChinh(ky)])
+      .then(([k, q]) => {
         if (!song) return;
         setKhung(k);
         setQuyTac(q);
-        setDsCoSo(Array.isArray(c) ? c : c?.results || []);
       })
       .catch((e) => song && setLoi(thongDiepLoi(e, "Không tải được khung chấm thi đua.")));
     return () => { song = false; };
-  }, []);
+  }, [thang, nam]);
 
   /* Mỗi lượt tải mang một số thứ tự; chỉ lượt MỚI NHẤT được phép ghi vào state.
      Không có nó thì đổi bộ lọc nhanh hai lần, lượt cũ về sau sẽ đè lên lượt mới. */
